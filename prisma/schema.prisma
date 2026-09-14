@@ -230,6 +230,23 @@ model StaffPermissionOverride {
   @@index([permissionId])
 }
 
+/// Login throttling. Deliberately has no foreign key to Staff: attempts are
+/// recorded for addresses that do not exist too, otherwise the table itself
+/// would reveal which emails are real.
+model LoginAttempt {
+  id         String  @id @default(cuid())
+  email      String
+  ipAddress  String?
+  userAgent  String?
+  successful Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([createdAt])
+}
+
 // ---------------------------------------------------------------------------
 // Audit
 // ---------------------------------------------------------------------------
