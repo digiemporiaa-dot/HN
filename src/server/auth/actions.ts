@@ -10,6 +10,7 @@ import { changePasswordSchema, loginSchema } from "@/lib/validation/auth";
 import { getCurrentStaff } from "./guards";
 import { signIn, signOut } from "./index";
 import { hashPassword, verifyPassword } from "./password";
+import { revokeSession } from "./sessions";
 import { checkLoginThrottle } from "./throttle";
 
 /**
@@ -21,7 +22,9 @@ const GENERIC_CREDENTIALS_ERROR =
 
 export type LoginState = {
   error?: string;
-  fieldErrors?: { email?: string; password?: string };
+  fieldErrors?: { email?: string; password?: string; code?: string };
+  /** Set once the password is accepted and an authenticator code is needed. */
+  requiresTwoFactor?: boolean;
 };
 
 async function requestContext() {
@@ -69,10 +72,29 @@ export async function loginAction(
     };
   }
 
+  const code = String(formData.get("code") ?? "").trim();
+
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { email, password, code, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
+      const reason = (error as { code?: string }).code;
+
+      // Raised only after the password was accepted, so surfacing it leaks
+      // nothing an attacker could not already determine.
+      if (reason === "two_factor_required") {
+        return { requiresTwoFactor: true };
+      }
+
+      if (reason === "two_factor_invalid") {
+        return {
+          requiresTwoFactor: true,
+          fieldErrors: {
+            code: "That code is not valid. Try the next one, or use a recovery code.",
+          },
+        };
+      }
+
       await recordAuditEvent({
         actorEmail: email,
         action: "AUTH_LOGIN_FAILED",
@@ -94,6 +116,10 @@ export async function logoutAction(): Promise<void> {
   const { ipAddress, userAgent } = await requestContext();
 
   if (staff) {
+    // Signing out ends this device's session server-side too, so its record
+    // does not linger in the active sessions list.
+    await revokeSession(staff.sessionId, staff.id);
+
     await recordAuditEvent({
       actorId: staff.id,
       actorEmail: staff.email,

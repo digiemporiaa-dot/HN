@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
 import { hashPassword } from "@/server/auth/password";
+import { disableTwoFactor } from "@/server/auth/two-factor";
 import {
   currentPermissions,
   getEffectivePermissions,
@@ -360,6 +361,53 @@ export async function resetStaffPasswordAction(
   return {
     success: `Password reset for ${target.email}. They must change it at next sign-in.`,
     temporaryPassword: password,
+  };
+}
+
+/**
+ * Clears a staff member's two-factor enrolment so they can set it up again
+ * after losing their authenticator. Restricted to administrators who can
+ * already manage the account, and always audited — this removes a security
+ * control from someone else's account.
+ */
+export async function resetStaffTwoFactorAction(
+  _previous: StaffActionState,
+  formData: FormData,
+): Promise<StaffActionState> {
+  const actor = await requirePermission("STAFF", "EDIT");
+
+  const parsed = staffIdSchema.safeParse({ staffId: formData.get("staffId") });
+  if (!parsed.success) return { error: "Invalid request." };
+
+  const target = await prisma.staff.findUnique({
+    where: { id: parsed.data.staffId },
+    select: { id: true, email: true, role: { select: { key: true } } },
+  });
+  if (!target) return { error: "That account no longer exists." };
+
+  const blocked = await assertCanManageTarget({
+    actorId: actor.id,
+    actorRoleKey: actor.roleKey,
+    targetRoleKey: target.role.key,
+  });
+  if (blocked) return { error: blocked };
+
+  await disableTwoFactor(target.id);
+
+  await recordAuditEvent({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: "STAFF_TWO_FACTOR_RESET",
+    module: "STAFF",
+    entityType: "Staff",
+    entityId: target.id,
+    summary: `Two-factor authentication reset for ${target.email}`,
+  });
+
+  revalidatePath(`/admin/staff/${target.id}`);
+
+  return {
+    success: `Two-factor authentication cleared for ${target.email}. They can enrol a new authenticator from their profile.`,
   };
 }
 

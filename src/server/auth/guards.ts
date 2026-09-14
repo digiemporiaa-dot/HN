@@ -14,7 +14,11 @@ export type CurrentStaff = {
   roleId: string;
   roleKey: string;
   roleName: string;
+  sessionId: string;
 };
+
+/** Avoids a write on every request while keeping "last seen" usefully fresh. */
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
  * Resolves the signed-in staff member from the database.
@@ -48,9 +52,35 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
   if (!staff) return null;
   if (staff.status !== "ACTIVE") return null;
 
-  // Any password change, deactivation or role change increments tokenVersion,
-  // which retires every token issued before it.
+  // Any password change or deactivation increments tokenVersion, which retires
+  // every token issued before it.
   if (staff.tokenVersion !== session.user.tokenVersion) return null;
+
+  // Per-device revocation: the session row is the server-side state that a JWT
+  // session otherwise lacks. A token whose session has been revoked is dead
+  // even though it is still structurally valid and unexpired.
+  const sessionId = session.user.sessionId;
+  if (!sessionId) return null;
+
+  const sessionRecord = await prisma.staffSession.findFirst({
+    where: { id: sessionId, staffId: staff.id, revokedAt: null },
+    select: { id: true, lastSeenAt: true },
+  });
+  if (!sessionRecord) return null;
+
+  if (
+    Date.now() - sessionRecord.lastSeenAt.getTime() >
+    SESSION_TOUCH_INTERVAL_MS
+  ) {
+    await prisma.staffSession
+      .update({
+        where: { id: sessionRecord.id },
+        data: { lastSeenAt: new Date() },
+      })
+      .catch(() => {
+        // Losing a "last seen" refresh must never break the request.
+      });
+  }
 
   return {
     id: staff.id,
@@ -62,6 +92,7 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
     roleId: staff.roleId,
     roleKey: staff.role.key,
     roleName: staff.role.name,
+    sessionId: sessionRecord.id,
   };
 });
 

@@ -23,11 +23,13 @@ import {
   SUPER_ADMIN_ROLE_KEY,
 } from "@/server/permissions/catalogue";
 import { deleteStaffAction } from "@/server/staff/actions";
+import { getTwoFactorStatus } from "@/server/auth/two-factor";
 import {
   StaffDetailsForm,
   StaffOverridesForm,
   StaffPasswordResetForm,
   StaffStatusForm,
+  StaffTwoFactorResetForm,
 } from "./staff-manage-forms";
 
 export const metadata: Metadata = {
@@ -90,6 +92,8 @@ export default async function StaffDetailPage({
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
+
+  const twoFactor = await getTwoFactorStatus(staff.id);
 
   const rolePermissions = staff.role.permissions.map((entry) =>
     permissionKey(entry.permission.module, entry.permission.action),
@@ -186,6 +190,19 @@ export default async function StaffDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Two-factor authentication</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StaffTwoFactorResetForm
+            staffId={staff.id}
+            enabled={twoFactor.enabled}
+            disabled={!mayEdit}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

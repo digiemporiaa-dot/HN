@@ -103,17 +103,18 @@ export default async function AdminDashboardPage() {
             <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
               <KeyRound aria-hidden="true" className="size-5" />
             </span>
-            <CardTitle>Your account</CardTitle>
+            <CardTitle>My profile</CardTitle>
             <CardDescription>
-              Change your password. Doing so signs you out everywhere.
+              Your details, password, two-factor authentication and active
+              sessions.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link
-              href="/change-password"
+              href="/admin/profile"
               className={buttonStyles({ variant: "outline", size: "sm" })}
             >
-              Change password
+              Open profile
             </Link>
           </CardContent>
         </Card>

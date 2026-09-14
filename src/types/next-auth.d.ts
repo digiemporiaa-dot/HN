@@ -7,6 +7,7 @@ declare module "next-auth" {
       roleKey: string;
       tokenVersion: number;
       mustChangePassword: boolean;
+      sessionId: string;
     } & DefaultSession["user"];
   }
 
@@ -14,6 +15,7 @@ declare module "next-auth" {
     roleKey: string;
     tokenVersion: number;
     mustChangePassword: boolean;
+    sessionId: string;
   }
 }
 
@@ -25,5 +27,6 @@ declare module "@auth/core/jwt" {
     roleKey: string;
     tokenVersion: number;
     mustChangePassword: boolean;
+    sessionId: string;
   }
 }

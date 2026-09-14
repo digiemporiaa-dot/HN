@@ -162,6 +162,9 @@ model Staff {
   permissionOverrides StaffPermissionOverride[]
   auditLogs           AuditLog[]
   uploadedMedia       MediaAsset[]              @relation("MediaUploader")
+  twoFactorSecret     TwoFactorSecret?
+  recoveryCodes       RecoveryCode[]
+  sessions            StaffSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -228,6 +231,67 @@ model StaffPermissionOverride {
 
   @@id([staffId, permissionId])
   @@index([permissionId])
+}
+
+/// Standards-based TOTP (RFC 6238), so any authenticator app works — Microsoft
+/// Authenticator, Google Authenticator, 1Password and the rest.
+///
+/// The shared secret is stored encrypted, never in plaintext, and is only ever
+/// decrypted to verify a code. A row with confirmedAt still null is an
+/// enrolment that was started but never proved, and does not gate sign-in.
+model TwoFactorSecret {
+  id      String @id @default(cuid())
+  staffId String @unique
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  secretCiphertext String
+  confirmedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Single-use fallback codes for a lost authenticator.
+///
+/// Hashed with SHA-256 rather than bcrypt: the codes are generated with high
+/// entropy, so a slow hash buys nothing, and an indexed digest lets one code be
+/// matched with a single lookup instead of comparing against every stored hash.
+model RecoveryCode {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  codeHash String
+  usedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([staffId, codeHash])
+  @@index([staffId])
+}
+
+/// One row per sign-in, so a staff member can see where they are signed in and
+/// end a single session without dropping every other device.
+///
+/// Credentials sign-in requires JWT sessions, which carry no server-side state
+/// of their own; this table supplies it. The session id travels in the token
+/// and is checked against this table on every protected request.
+model StaffSession {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  ipAddress String?
+  userAgent String?
+
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([staffId])
+  @@index([revokedAt])
+  @@index([createdAt])
 }
 
 /// Login throttling. Deliberately has no foreign key to Staff: attempts are

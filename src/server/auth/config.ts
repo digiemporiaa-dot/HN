@@ -49,6 +49,7 @@ export const authConfig = {
         token.roleKey = user.roleKey;
         token.tokenVersion = user.tokenVersion;
         token.mustChangePassword = user.mustChangePassword;
+        token.sessionId = user.sessionId;
       }
 
       if (trigger === "update" && session) {
@@ -65,6 +66,7 @@ export const authConfig = {
       session.user.roleKey = token.roleKey;
       session.user.tokenVersion = token.tokenVersion;
       session.user.mustChangePassword = token.mustChangePassword;
+      session.user.sessionId = token.sessionId;
       return session;
     },
   },

@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, KeyRound } from "lucide-react";
 import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
 import {
   resetStaffPasswordAction,
+  resetStaffTwoFactorAction,
   setStaffStatusAction,
   updateStaffAction,
   updateStaffOverridesAction,
@@ -211,6 +212,47 @@ export function StaffPasswordResetForm({
         <div>
           <Button type="submit" variant="outline" loading={pending}>
             {pending ? "Resetting" : "Reset password"}
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
+export function StaffTwoFactorResetForm({
+  staffId,
+  enabled,
+  disabled,
+}: {
+  staffId: string;
+  enabled: boolean;
+  disabled: boolean;
+}) {
+  const [state, formAction, pending] = useActionState(
+    resetStaffTwoFactorAction,
+    INITIAL,
+  );
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="staffId" value={staffId} />
+      <Feedback state={state} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge tone={enabled ? "success" : "neutral"}>
+          {enabled ? "Enabled" : "Not enabled"}
+        </Badge>
+        <span className="text-body-sm text-ink-muted">
+          {enabled
+            ? "Clear this only if they have lost their authenticator."
+            : "This account signs in with a password only."}
+        </span>
+      </div>
+
+      {enabled && !disabled ? (
+        <div>
+          <Button type="submit" variant="danger" loading={pending}>
+            {pending ? "Clearing" : "Reset two-factor"}
           </Button>
         </div>
       ) : null}
