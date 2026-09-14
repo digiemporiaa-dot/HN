@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { KeyRound, ShieldCheck, Users } from "lucide-react";
 
 import {
   Badge,
@@ -7,10 +8,15 @@ import {
   buttonStyles,
   Card,
   CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Container,
 } from "@/components/ui";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { prisma } from "@/server/db";
 import { logoutAction } from "@/server/auth/actions";
-import { requireStaff } from "@/server/auth/guards";
+import { currentPermissions } from "@/server/permissions";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -18,59 +24,97 @@ export const metadata: Metadata = {
 };
 
 /**
- * Placeholder dashboard proving the protected route works end to end. Phase 6
- * replaces it with the real admin panel.
+ * Interim dashboard. Phase 6 replaces it with the full admin shell and Phase 45
+ * adds real lead analytics — the counts here are only what already exists.
  */
 export default async function AdminDashboardPage() {
-  const staff = await requireStaff();
+  const { staff, can } = await currentPermissions();
+
+  const [staffCount, roleCount] = await Promise.all([
+    can("STAFF", "VIEW") ? prisma.staff.count() : Promise.resolve(null),
+    can("ROLES", "VIEW") ? prisma.role.count() : Promise.resolve(null),
+  ]);
 
   return (
-    <Container className="py-10">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <h1 className="text-h2 text-ink">Dashboard</h1>
-            <p className="text-body-sm text-ink-muted">
-              Signed in as {staff.name}
-            </p>
-          </div>
+    <Container className="flex flex-col gap-8 py-10">
+      <AdminPageHeader
+        title={`Welcome, ${staff.name.split(" ")[0]}`}
+        description={`Signed in as ${staff.email}`}
+        actions={
+          <>
+            <Badge tone="brand">{staff.roleName}</Badge>
+            <form action={logoutAction}>
+              <Button type="submit" variant="outline">
+                Sign out
+              </Button>
+            </form>
+          </>
+        }
+      />
 
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline">
-              Sign out
-            </Button>
-          </form>
-        </div>
-
-        <Card>
-          <CardContent className="flex flex-col gap-4">
-            <dl className="grid gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1">
-                <dt className="text-label text-ink-subtle">Email</dt>
-                <dd className="text-body-sm text-ink">{staff.email}</dd>
-              </div>
-              <div className="flex flex-col gap-1">
-                <dt className="text-label text-ink-subtle">Role</dt>
-                <dd>
-                  <Badge tone="brand">{staff.roleName}</Badge>
-                </dd>
-              </div>
-              <div className="flex flex-col gap-1">
-                <dt className="text-label text-ink-subtle">Status</dt>
-                <dd>
-                  <Badge tone="success">{staff.status}</Badge>
-                </dd>
-              </div>
-            </dl>
-
-            <div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {can("STAFF", "VIEW") ? (
+          <Card interactive>
+            <CardHeader>
+              <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
+                <Users aria-hidden="true" className="size-5" />
+              </span>
+              <CardTitle>Staff</CardTitle>
+              <CardDescription>
+                {staffCount} {staffCount === 1 ? "account" : "accounts"} with
+                admin access.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <Link
-                href="/change-password"
+                href="/admin/staff"
                 className={buttonStyles({ variant: "outline", size: "sm" })}
               >
-                Change password
+                Manage staff
               </Link>
-            </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {can("ROLES", "VIEW") ? (
+          <Card interactive>
+            <CardHeader>
+              <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
+                <ShieldCheck aria-hidden="true" className="size-5" />
+              </span>
+              <CardTitle>Roles &amp; permissions</CardTitle>
+              <CardDescription>
+                {roleCount} roles defining what each account can do.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/admin/roles"
+                className={buttonStyles({ variant: "outline", size: "sm" })}
+              >
+                Manage roles
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card interactive>
+          <CardHeader>
+            <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
+              <KeyRound aria-hidden="true" className="size-5" />
+            </span>
+            <CardTitle>Your account</CardTitle>
+            <CardDescription>
+              Change your password. Doing so signs you out everywhere.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/change-password"
+              className={buttonStyles({ variant: "outline", size: "sm" })}
+            >
+              Change password
+            </Link>
           </CardContent>
         </Card>
       </div>
