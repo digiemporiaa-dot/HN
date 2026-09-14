@@ -497,6 +497,78 @@ export async function updateStaffOverridesAction(
   return { success: "Permission overrides saved." };
 }
 
+/**
+ * Applies a status change to several accounts at once.
+ *
+ * Every per-account rule still applies — the actor's own account, Super Admin
+ * records they may not touch, and the last active Super Admin are skipped
+ * rather than failing the whole batch, so one ineligible row does not block the
+ * rest.
+ */
+export async function bulkStaffStatusAction(formData: FormData): Promise<void> {
+  const actor = await requirePermission("STAFF", "EDIT");
+
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  const command = String(formData.get("bulkAction") ?? "");
+  if (ids.length === 0) return;
+
+  const status =
+    command === "activate"
+      ? "ACTIVE"
+      : command === "deactivate"
+        ? "INACTIVE"
+        : null;
+  if (!status) return;
+
+  const targets = await prisma.staff.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, email: true, role: { select: { key: true } } },
+  });
+
+  const actorIsSuperAdmin = actor.roleKey === SUPER_ADMIN_ROLE_KEY;
+  const applied: string[] = [];
+  const skipped: string[] = [];
+
+  for (const target of targets) {
+    const targetIsSuperAdmin = target.role.key === SUPER_ADMIN_ROLE_KEY;
+
+    if (target.id === actor.id || (targetIsSuperAdmin && !actorIsSuperAdmin)) {
+      skipped.push(target.email);
+      continue;
+    }
+
+    if (
+      status !== "ACTIVE" &&
+      targetIsSuperAdmin &&
+      (await countActiveSuperAdmins(target.id)) === 0
+    ) {
+      skipped.push(target.email);
+      continue;
+    }
+
+    await prisma.staff.update({
+      where: { id: target.id },
+      data: {
+        status,
+        ...(status !== "ACTIVE" ? { tokenVersion: { increment: 1 } } : {}),
+      },
+    });
+    applied.push(target.email);
+  }
+
+  await recordAuditEvent({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: "STAFF_BULK_STATUS_CHANGED",
+    module: "STAFF",
+    entityType: "Staff",
+    summary: `Set ${applied.length} accounts to ${status.toLowerCase()}`,
+    metadata: { status, applied, skipped },
+  });
+
+  revalidatePath("/admin/staff");
+}
+
 export async function deleteStaffAction(formData: FormData): Promise<void> {
   const actor = await requirePermission("STAFF", "DELETE");
 

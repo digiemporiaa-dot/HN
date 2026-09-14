@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AdminShell } from "@/components/admin/admin-shell";
 import { requireStaff } from "@/server/auth/guards";
 
 /**
@@ -7,8 +8,6 @@ import { requireStaff } from "@/server/auth/guards";
  * cookie check before this, but this is the decision that counts: it re-reads
  * the account, so a deactivated or force-logged-out staff member is stopped
  * even while holding a structurally valid token.
- *
- * Phase 6 replaces the presentation here with the full admin shell.
  */
 export default async function AdminLayout({
   children,
@@ -17,9 +16,5 @@ export default async function AdminLayout({
 
   if (staff.mustChangePassword) redirect("/change-password");
 
-  return (
-    <div className="bg-surface-subtle min-h-dvh">
-      <main id="main">{children}</main>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

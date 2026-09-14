@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KeyRound, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, ShieldCheck, UserCheck, Users } from "lucide-react";
 
 import {
-  Badge,
-  Button,
   buttonStyles,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Container,
 } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { MetricCard } from "@/components/admin/metric-card";
 import { prisma } from "@/server/db";
-import { logoutAction } from "@/server/auth/actions";
 import { currentPermissions } from "@/server/permissions";
 
 export const metadata: Metadata = {
@@ -24,45 +22,67 @@ export const metadata: Metadata = {
 };
 
 /**
- * Interim dashboard. Phase 6 replaces it with the full admin shell and Phase 45
- * adds real lead analytics — the counts here are only what already exists.
+ * Interim dashboard: it reports only what the database actually holds today.
+ * Lead and RFQ analytics arrive with the modules that produce them.
  */
 export default async function AdminDashboardPage() {
   const { staff, can } = await currentPermissions();
 
-  const [staffCount, roleCount] = await Promise.all([
-    can("STAFF", "VIEW") ? prisma.staff.count() : Promise.resolve(null),
-    can("ROLES", "VIEW") ? prisma.role.count() : Promise.resolve(null),
+  const showStaffMetrics = can("STAFF", "VIEW");
+  const showRoleMetrics = can("ROLES", "VIEW");
+
+  const [staffCount, activeStaffCount, roleCount] = await Promise.all([
+    showStaffMetrics ? prisma.staff.count() : Promise.resolve(null),
+    showStaffMetrics
+      ? prisma.staff.count({ where: { status: "ACTIVE" } })
+      : Promise.resolve(null),
+    showRoleMetrics ? prisma.role.count() : Promise.resolve(null),
   ]);
 
   return (
-    <Container className="flex flex-col gap-8 py-10">
+    <AdminPage>
       <AdminPageHeader
         title={`Welcome, ${staff.name.split(" ")[0]}`}
-        description={`Signed in as ${staff.email}`}
-        actions={
-          <>
-            <Badge tone="brand">{staff.roleName}</Badge>
-            <form action={logoutAction}>
-              <Button type="submit" variant="outline">
-                Sign out
-              </Button>
-            </form>
-          </>
-        }
+        description="Operational overview. Sales and content metrics appear here as those modules come online."
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {showStaffMetrics || showRoleMetrics ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {showStaffMetrics ? (
+            <>
+              <MetricCard
+                label="Staff accounts"
+                value={staffCount ?? 0}
+                icon={Users}
+              />
+              <MetricCard
+                label="Active accounts"
+                value={activeStaffCount ?? 0}
+                hint="Able to sign in right now"
+                icon={UserCheck}
+              />
+            </>
+          ) : null}
+
+          {showRoleMetrics ? (
+            <MetricCard
+              label="Roles"
+              value={roleCount ?? 0}
+              hint="Permission sets available to assign"
+              icon={ShieldCheck}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="grid gap-6 md:grid-cols-2">
         {can("STAFF", "VIEW") ? (
           <Card interactive>
             <CardHeader>
-              <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
-                <Users aria-hidden="true" className="size-5" />
-              </span>
               <CardTitle>Staff</CardTitle>
               <CardDescription>
-                {staffCount} {staffCount === 1 ? "account" : "accounts"} with
-                admin access.
+                Create accounts, assign roles, adjust individual permissions and
+                reset access.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -71,6 +91,7 @@ export default async function AdminDashboardPage() {
                 className={buttonStyles({ variant: "outline", size: "sm" })}
               >
                 Manage staff
+                <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </CardContent>
           </Card>
@@ -79,12 +100,10 @@ export default async function AdminDashboardPage() {
         {can("ROLES", "VIEW") ? (
           <Card interactive>
             <CardHeader>
-              <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
-                <ShieldCheck aria-hidden="true" className="size-5" />
-              </span>
               <CardTitle>Roles &amp; permissions</CardTitle>
               <CardDescription>
-                {roleCount} roles defining what each account can do.
+                Review what each role can do across every module of the
+                platform.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -93,32 +112,12 @@ export default async function AdminDashboardPage() {
                 className={buttonStyles({ variant: "outline", size: "sm" })}
               >
                 Manage roles
+                <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </CardContent>
           </Card>
         ) : null}
-
-        <Card interactive>
-          <CardHeader>
-            <span className="text-primary bg-primary-subtle w-fit rounded-md p-2">
-              <KeyRound aria-hidden="true" className="size-5" />
-            </span>
-            <CardTitle>My profile</CardTitle>
-            <CardDescription>
-              Your details, password, two-factor authentication and active
-              sessions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/admin/profile"
-              className={buttonStyles({ variant: "outline", size: "sm" })}
-            >
-              Open profile
-            </Link>
-          </CardContent>
-        </Card>
       </div>
-    </Container>
+    </AdminPage>
   );
 }

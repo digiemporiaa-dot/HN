@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { Card, CardContent, Container } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/permissions";
@@ -26,7 +27,7 @@ export default async function NewStaffPage() {
   });
 
   return (
-    <Container width="narrow" className="flex flex-col gap-8 py-10">
+    <AdminPage width="narrow">
       <AdminPageHeader
         title="Add staff member"
         description="The account is created with a temporary password and must set a new one at first sign-in."
@@ -39,6 +40,6 @@ export default async function NewStaffPage() {
           <StaffCreateForm roles={roles} />
         </CardContent>
       </Card>
-    </Container>
+    </AdminPage>
   );
 }

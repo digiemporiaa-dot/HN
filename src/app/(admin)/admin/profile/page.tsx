@@ -9,8 +9,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Container,
 } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { requireStaff } from "@/server/auth/guards";
 import { describeUserAgent, listSessions } from "@/server/auth/sessions";
@@ -41,12 +41,10 @@ export default async function ProfilePage() {
   ]);
 
   return (
-    <Container className="flex flex-col gap-8 py-10">
+    <AdminPage>
       <AdminPageHeader
         title="My profile"
         description={staff.email}
-        backHref="/admin"
-        backLabel="Dashboard"
         actions={<Badge tone="brand">{staff.roleName}</Badge>}
       />
 
@@ -132,6 +130,6 @@ export default async function ProfilePage() {
           />
         </CardContent>
       </Card>
-    </Container>
+    </AdminPage>
   );
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { Badge, Card, CardContent, Container } from "@/components/ui";
+import { Badge, Card, CardContent } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
@@ -64,7 +65,7 @@ export default async function RoleDetailPage({
   }));
 
   return (
-    <Container className="flex flex-col gap-8 py-10">
+    <AdminPage>
       <AdminPageHeader
         title={role.name}
         description={role.description ?? undefined}
@@ -99,6 +100,6 @@ export default async function RoleDetailPage({
           />
         </CardContent>
       </Card>
-    </Container>
+    </AdminPage>
   );
 }

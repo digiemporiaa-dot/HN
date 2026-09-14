@@ -9,8 +9,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Container,
 } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
@@ -38,12 +38,10 @@ export default async function RolesPage() {
   });
 
   return (
-    <Container className="flex flex-col gap-8 py-10">
+    <AdminPage>
       <AdminPageHeader
         title="Roles & permissions"
         description="A role is a named set of permissions. Individual accounts can be adjusted from their own page without changing the role."
-        backHref="/admin"
-        backLabel="Dashboard"
       />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -81,6 +79,6 @@ export default async function RolesPage() {
           </Card>
         ))}
       </div>
-    </Container>
+    </AdminPage>
   );
 }

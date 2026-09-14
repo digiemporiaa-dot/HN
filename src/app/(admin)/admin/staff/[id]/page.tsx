@@ -8,9 +8,9 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Container,
   StatusBadge,
 } from "@/components/ui";
+import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
@@ -117,7 +117,7 @@ export default async function StaffDetailPage({
   }));
 
   return (
-    <Container className="flex flex-col gap-8 py-10">
+    <AdminPage>
       <AdminPageHeader
         title={staff.name}
         description={staff.email}
@@ -242,6 +242,6 @@ export default async function StaffDetailPage({
           </CardContent>
         </Card>
       ) : null}
-    </Container>
+    </AdminPage>
   );
 }
