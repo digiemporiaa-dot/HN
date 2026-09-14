@@ -19,6 +19,7 @@ import {
   disableTwoFactor,
   regenerateRecoveryCodes,
 } from "@/server/auth/two-factor";
+import { clearUsage, recordUsage } from "@/server/media/service";
 
 export type ProfileState = {
   error?: string;
@@ -90,6 +91,60 @@ export async function updateProfileAction(
 
   revalidatePath("/admin/profile");
   return { success: "Profile updated." };
+}
+
+/**
+ * Sets or clears the profile photo from an already-uploaded media asset.
+ *
+ * Usage is recorded so the media library can warn before someone deletes a file
+ * that is still someone's avatar.
+ */
+export async function updateProfilePhotoAction(
+  _previous: ProfileState,
+  formData: FormData,
+): Promise<ProfileState> {
+  const staff = await requireStaff();
+  const raw = formData.get("assetId");
+  const assetId = typeof raw === "string" && raw ? raw : null;
+
+  if (assetId) {
+    const asset = await prisma.mediaAsset.findFirst({
+      where: { id: assetId, deletedAt: null, kind: { in: ["IMAGE", "VECTOR"] } },
+      select: { id: true },
+    });
+    if (!asset) return { error: "Choose an image from the media library." };
+  }
+
+  await prisma.staff.update({
+    where: { id: staff.id },
+    data: { avatarId: assetId },
+  });
+
+  await clearUsage({
+    entityType: "Staff",
+    entityId: staff.id,
+    field: "avatar",
+  });
+
+  if (assetId) {
+    await recordUsage({
+      assetId,
+      entityType: "Staff",
+      entityId: staff.id,
+      field: "avatar",
+    });
+  }
+
+  await recordAuditEvent({
+    actorId: staff.id,
+    actorEmail: staff.email,
+    action: assetId ? "PROFILE_PHOTO_SET" : "PROFILE_PHOTO_CLEARED",
+    entityType: "Staff",
+    entityId: staff.id,
+  });
+
+  revalidatePath("/admin/profile");
+  return { success: assetId ? "Profile photo updated." : "Profile photo removed." };
 }
 
 /**

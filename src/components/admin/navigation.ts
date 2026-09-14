@@ -136,7 +136,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/media",
         icon: Image,
         module: "MEDIA",
-        available: false,
+        available: true,
       },
       {
         label: "Forms",

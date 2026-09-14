@@ -7,9 +7,10 @@ import {
   Laptop,
   ShieldCheck,
   ShieldOff,
+  UserRound,
 } from "lucide-react";
 
-import { Badge, Button, Field, Input } from "@/components/ui";
+import { Badge, Button, Field, Input, Select } from "@/components/ui";
 import {
   confirmTwoFactorAction,
   disableTwoFactorAction,
@@ -18,6 +19,7 @@ import {
   revokeSessionAction,
   startTwoFactorEnrolmentAction,
   updateProfileAction,
+  updateProfilePhotoAction,
   type ProfileState,
   type TwoFactorState,
 } from "@/server/profile/actions";
@@ -112,6 +114,76 @@ export function ProfileDetailsForm({
       <div>
         <Button type="submit" loading={pending}>
           {pending ? "Saving" : "Save profile"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export function ProfilePhotoForm({
+  currentUrl,
+  options,
+  currentAssetId,
+}: {
+  currentUrl: string | null;
+  currentAssetId: string | null;
+  options: Array<{ id: string; label: string }>;
+}) {
+  const [state, formAction, pending] = useActionState(
+    updateProfilePhotoAction,
+    INITIAL,
+  );
+
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <Feedback state={state} />
+
+      <div className="flex flex-wrap items-center gap-4">
+        {currentUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element -- served from
+             our own media route, already sized for an avatar */
+          <img
+            src={currentUrl}
+            alt="Your profile photo"
+            className="border-line size-16 rounded-full border object-cover"
+          />
+        ) : (
+          <span className="bg-surface-muted text-ink-subtle flex size-16 items-center justify-center rounded-full">
+            <UserRound aria-hidden="true" className="size-7" />
+          </span>
+        )}
+
+        <div className="min-w-[14rem] flex-1">
+          <Field
+            label="Choose from the media library"
+            help={
+              options.length === 0
+                ? "Upload an image in Media first, then select it here."
+                : undefined
+            }
+          >
+            {(props) => (
+              <Select
+                name="assetId"
+                defaultValue={currentAssetId ?? ""}
+                disabled={options.length === 0}
+                {...props}
+              >
+                <option value="">No photo</option>
+                {options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        </div>
+      </div>
+
+      <div>
+        <Button type="submit" variant="outline" loading={pending}>
+          {pending ? "Saving" : "Save photo"}
         </Button>
       </div>
     </form>

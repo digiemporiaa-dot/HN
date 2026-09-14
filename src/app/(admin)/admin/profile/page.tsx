@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ImageOff } from "lucide-react";
 
 import {
   Badge,
@@ -12,11 +11,14 @@ import {
 } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { prisma } from "@/server/db";
+import { publicUrlForKey } from "@/server/storage/paths";
 import { requireStaff } from "@/server/auth/guards";
 import { describeUserAgent, listSessions } from "@/server/auth/sessions";
 import { getTwoFactorStatus } from "@/server/auth/two-factor";
 import {
   ProfileDetailsForm,
+  ProfilePhotoForm,
   SessionList,
   TwoFactorSetup,
 } from "./profile-forms";
@@ -35,10 +37,27 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
 export default async function ProfilePage() {
   const staff = await requireStaff();
 
-  const [twoFactor, sessions] = await Promise.all([
+  const [twoFactor, sessions, record, photoAssets] = await Promise.all([
     getTwoFactorStatus(staff.id),
     listSessions(staff.id),
+    prisma.staff.findUnique({
+      where: { id: staff.id },
+      select: { avatar: { select: { id: true, storageKey: true } } },
+    }),
+    prisma.mediaAsset.findMany({
+      where: { deletedAt: null, kind: { in: ["IMAGE", "VECTOR"] } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, originalName: true, title: true },
+    }),
   ]);
+
+  const avatar = record?.avatar ?? null;
+  const avatarUrl = avatar ? publicUrlForKey(avatar.storageKey) : null;
+  const photoOptions = photoAssets.map((asset) => ({
+    id: asset.id,
+    label: asset.title ?? asset.originalName,
+  }));
 
   return (
     <AdminPage>
@@ -66,13 +85,11 @@ export default async function ProfilePage() {
           <CardTitle>Profile photo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-ink-muted text-body-sm flex items-center gap-3">
-            <ImageOff aria-hidden="true" className="size-4 shrink-0" />
-            <span>
-              Photo uploads arrive with the media library, once persistent file
-              storage is in place.
-            </span>
-          </div>
+          <ProfilePhotoForm
+            currentUrl={avatarUrl}
+            currentAssetId={avatar?.id ?? null}
+            options={photoOptions}
+          />
         </CardContent>
       </Card>
 
