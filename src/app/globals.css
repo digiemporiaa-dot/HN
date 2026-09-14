@@ -1,26 +1,260 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Base layer — semantic defaults so unstyled content (CMS rich text, server
+ * error pages) still looks like part of the system.
+ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-line);
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /*
+   * One focus treatment for the entire application. Never remove it without
+   * providing an equivalent — keyboard users depend on it.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--color-medical-100);
+    color: var(--color-navy-950);
+  }
+
+  [hidden] {
+    display: none !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /*
+   * Surface themes. Because Tailwind v4 utilities compile to `var(--color-*)`,
+   * remapping the semantic tokens on a container re-themes every descendant
+   * that uses `text-ink`, `border-line`, `bg-surface`, and so on.
+   *
+   * This is how CMS sections get a dark or brand background without each
+   * component needing to know which background it is sitting on.
+   */
+  .surface-default {
+    background-color: var(--color-canvas);
+  }
+
+  .surface-white {
+    background-color: #ffffff;
+  }
+
+  .surface-light {
+    background-color: var(--color-steel-50);
+    --color-surface: #ffffff;
+    --color-surface-subtle: var(--color-steel-100);
+  }
+
+  .surface-dark {
+    background-color: var(--color-navy-950);
+    --color-ink: #ffffff;
+    --color-ink-muted: var(--color-steel-300);
+    --color-ink-subtle: var(--color-steel-400);
+    --color-line: color-mix(in srgb, #ffffff 14%, transparent);
+    --color-line-strong: color-mix(in srgb, #ffffff 24%, transparent);
+    --color-surface: var(--color-navy-900);
+    --color-surface-subtle: var(--color-navy-900);
+    --color-surface-muted: var(--color-navy-800);
+    --color-ring: var(--color-medical-300);
+    color: var(--color-ink);
+  }
+
+  .surface-brand {
+    background-color: var(--color-navy-900);
+    --color-ink: #ffffff;
+    --color-ink-muted: var(--color-navy-200);
+    --color-ink-subtle: var(--color-navy-300);
+    --color-line: color-mix(in srgb, #ffffff 16%, transparent);
+    --color-line-strong: color-mix(in srgb, #ffffff 26%, transparent);
+    --color-surface: var(--color-navy-800);
+    --color-surface-subtle: var(--color-navy-800);
+    --color-surface-muted: var(--color-navy-700);
+    --color-ring: var(--color-medical-300);
+    color: var(--color-ink);
+  }
+
+  /*
+   * Long-form content rendered from the CMS. Scoped so editor output can never
+   * leak styles into the surrounding layout.
+   */
+  .prose-hn {
+    color: var(--color-ink-muted);
+    font-size: var(--text-body);
+    line-height: 1.7;
+  }
+
+  .prose-hn > * + * {
+    margin-top: 1.25em;
+  }
+
+  .prose-hn h2 {
+    font-size: var(--text-h2);
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin-top: 2em;
+  }
+
+  .prose-hn h3 {
+    font-size: var(--text-h3);
+    line-height: 1.25;
+    font-weight: 600;
+    margin-top: 1.75em;
+  }
+
+  .prose-hn h4 {
+    font-size: var(--text-h4);
+    font-weight: 600;
+    margin-top: 1.5em;
+  }
+
+  .prose-hn a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .prose-hn a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  .prose-hn strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .prose-hn ul,
+  .prose-hn ol {
+    padding-left: 1.5em;
+  }
+
+  .prose-hn ul {
+    list-style: disc;
+  }
+
+  .prose-hn ol {
+    list-style: decimal;
+  }
+
+  .prose-hn li + li {
+    margin-top: 0.5em;
+  }
+
+  .prose-hn blockquote {
+    border-left: 3px solid var(--color-primary);
+    padding-left: 1.25em;
+    color: var(--color-ink);
+    font-size: var(--text-body-lg);
+  }
+
+  .prose-hn code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background-color: var(--color-surface-muted);
+    padding: 0.15em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .prose-hn table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-body-sm);
+  }
+
+  .prose-hn th,
+  .prose-hn td {
+    border: 1px solid var(--color-line);
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .prose-hn th {
+    background-color: var(--color-surface-subtle);
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  /*
+   * Skip link — visually hidden until focused. Present in the root layout so
+   * every page, public and admin, is keyboard navigable from the first tab.
+   */
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -10rem;
+    z-index: 100;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--color-navy-950);
+    color: #ffffff;
+    border-radius: var(--radius-md);
+    font-size: var(--text-body-sm);
+    font-weight: 500;
+    transition: top var(--duration-base) var(--ease-out-quart);
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+}
+
+/*
+ * Motion policy: animation is decoration. Anyone who asks for less gets none,
+ * and no content is ever gated behind a transition completing.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
