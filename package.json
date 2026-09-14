@@ -21,6 +21,7 @@
     "@prisma/client": "^7.10.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "file-type": "^22.1.0",
     "lucide-react": "^1.46.0",
     "next": "15.5.25",
     "next-auth": "^5.0.0-beta.32",
@@ -28,6 +29,7 @@
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "sharp": "^0.35.4",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5"
   },
