@@ -3,7 +3,8 @@ import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCode from "qrcode";
 
 import { prisma } from "@/server/db";
-import { siteConfig } from "@/lib/site-config";
+import { FALLBACK_COMPANY_NAME } from "@/lib/site-config";
+import { getSetting } from "@/server/settings/service";
 import { decryptSecret, encryptSecret } from "./crypto";
 
 /**
@@ -70,9 +71,13 @@ export async function beginEnrolment(params: {
     },
   });
 
+  // The issuer is the label shown in the authenticator app, so it follows the
+  // configured company name rather than a constant.
+  const issuer = (await getSetting("company.name")) ?? FALLBACK_COMPANY_NAME;
+
   const otpauthUrl = generateURI({
     strategy: "totp",
-    issuer: siteConfig.name,
+    issuer,
     label: params.email,
     secret,
   });

@@ -202,7 +202,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/settings",
         icon: Settings,
         module: "SETTINGS",
-        available: false,
+        available: true,
       },
     ],
   },

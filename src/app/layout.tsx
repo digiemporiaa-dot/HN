@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 
-import { siteConfig } from "@/lib/site-config";
+import { appUrl } from "@/lib/site-config";
+import { getSiteSettings } from "@/server/settings/service";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,14 +17,28 @@ const interTight = Inter_Tight({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.shortDescription,
-};
+/**
+ * Metadata is generated rather than static so the title template, description,
+ * favicon and social image all follow the settings an administrator has chosen.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return {
+    metadataBase: new URL(appUrl()),
+    title: {
+      default: settings.seo.defaultTitle,
+      template: settings.seo.titleTemplate,
+    },
+    description: settings.seo.defaultDescription ?? undefined,
+    icons: settings.faviconUrl ? { icon: settings.faviconUrl } : undefined,
+    openGraph: {
+      siteName: settings.companyName,
+      type: "website",
+      images: settings.ogImageUrl ? [settings.ogImageUrl] : undefined,
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0a1626",

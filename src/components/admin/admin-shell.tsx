@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-import { siteConfig } from "@/lib/site-config";
+import { getSiteSettings } from "@/server/settings/service";
 import { currentPermissions } from "@/server/permissions";
 import { AdminNavList, type VisibleNav } from "./admin-nav-list";
 import { AdminTopBar } from "./admin-topbar";
@@ -13,7 +13,10 @@ import { ADMIN_NAV } from "./navigation";
  * pages themselves re-check, so a hidden link is convenience, not the control.
  */
 export async function AdminShell({ children }: { children: ReactNode }) {
-  const { staff, can } = await currentPermissions();
+  const [{ staff, can }, settings] = await Promise.all([
+    currentPermissions(),
+    getSiteSettings(),
+  ]);
 
   const groups: VisibleNav = ADMIN_NAV.map((group) => ({
     label: group.label,
@@ -32,7 +35,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
         <div className="border-navy-800 border-b px-5 py-5">
           <Link href="/admin" className="flex flex-col gap-0.5">
             <span className="text-h4 font-display leading-tight text-white">
-              {siteConfig.name}
+              {settings.companyName}
             </span>
             <span className="text-caption text-navy-300">Administration</span>
           </Link>
@@ -51,6 +54,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-64">
         <AdminTopBar
           groups={groups}
+          companyName={settings.companyName}
           staffName={staff.name}
           staffEmail={staff.email}
           roleName={staff.roleName}

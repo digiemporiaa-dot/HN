@@ -1,13 +1,17 @@
 /**
  * Build-time constants only.
  *
- * Everything an administrator must be able to change — contact details, social
- * profiles, logos, default SEO — belongs in the Settings module (Phase 9) and is
- * read from the database. Do not add such values here.
+ * Everything an administrator can change — company name, contact details,
+ * logos, default SEO, brand colours — lives in the Settings module and is read
+ * from the database. Nothing belongs here unless it is fixed at deploy time.
  */
-export const siteConfig = {
-  name: "HN Medical System",
-  shortDescription:
-    "B2B supplier of medical, surgical and hospital equipment to healthcare institutions across India.",
-  url: process.env.APP_URL ?? "http://localhost:3000",
-} as const;
+
+export function appUrl(): string {
+  return process.env.APP_URL ?? "http://localhost:3000";
+}
+
+/**
+ * Fallback name used before the database is reachable — for example on an error
+ * page rendered when a query has failed. The real name comes from settings.
+ */
+export const FALLBACK_COMPANY_NAME = "HN Medical System";

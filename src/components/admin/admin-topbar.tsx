@@ -6,16 +6,17 @@ import { LogOut, Menu, UserCircle2, X } from "lucide-react";
 
 import { Button } from "@/components/ui";
 import { logoutAction } from "@/server/auth/actions";
-import { siteConfig } from "@/lib/site-config";
 import { AdminNavList, type VisibleNav } from "./admin-nav-list";
 
 export function AdminTopBar({
   groups,
+  companyName,
   staffName,
   staffEmail,
   roleName,
 }: {
   groups: VisibleNav;
+  companyName: string;
   staffName: string;
   staffEmail: string;
   roleName: string;
@@ -38,7 +39,7 @@ export function AdminTopBar({
           </button>
 
           <span className="text-h4 font-display text-ink truncate lg:hidden">
-            {siteConfig.name}
+            {companyName}
           </span>
 
           <div className="hidden lg:block" />
@@ -125,7 +126,7 @@ export function AdminTopBar({
           <div className="bg-navy-950 absolute inset-y-0 left-0 flex w-[min(17rem,85vw)] flex-col overflow-y-auto">
             <div className="border-navy-800 flex items-center justify-between border-b px-4 py-4">
               <span className="text-h4 font-display text-white">
-                {siteConfig.name}
+                {companyName}
               </span>
               <button
                 type="button"
