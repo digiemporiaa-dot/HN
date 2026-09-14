@@ -6,7 +6,11 @@ import type {
   PermissionModule,
 } from "@/generated/prisma/enums";
 import { prisma } from "@/server/db";
-import { requireStaff, type CurrentStaff } from "@/server/auth/guards";
+import {
+  getCurrentStaff,
+  requireStaff,
+  type CurrentStaff,
+} from "@/server/auth/guards";
 import { permissionKey, SUPER_ADMIN_ROLE_KEY } from "./catalogue";
 
 export { permissionKey } from "./catalogue";
@@ -84,6 +88,26 @@ export async function hasPermission(
   action: PermissionAction,
 ): Promise<boolean> {
   const staff = await requireStaff();
+  const permissions = await getEffectivePermissions(staff.id);
+  return grants(permissions, module, action);
+}
+
+/**
+ * Permission check for public routes, which must never redirect.
+ *
+ * requirePermission and hasPermission send a signed-out visitor to the login
+ * screen. On a public URL that is a disclosure in itself: being bounced to
+ * /login rather than a 404 confirms the page exists. This returns false for a
+ * visitor who is not signed in, so an unpublished page is indistinguishable
+ * from one that was never created.
+ */
+export async function visitorHasPermission(
+  module: PermissionModule,
+  action: PermissionAction,
+): Promise<boolean> {
+  const staff = await getCurrentStaff();
+  if (!staff) return false;
+
   const permissions = await getEffectivePermissions(staff.id);
   return grants(permissions, module, action);
 }

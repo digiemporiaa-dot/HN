@@ -122,7 +122,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/pages",
         icon: Layers,
         module: "PAGES",
-        available: false,
+        available: true,
       },
       {
         label: "Blogs",

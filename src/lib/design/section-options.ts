@@ -44,11 +44,19 @@ export type SectionDesign = {
   anchorId?: string;
 };
 
+/**
+ * The fallback for every option. Complete rather than partial: the editor, the
+ * renderer and new-section defaults all read it, so an option missing here
+ * would be one where those three could disagree.
+ */
 export const DEFAULT_SECTION_DESIGN: SectionDesign = {
   spacing: "normal",
   container: "standard",
   background: "default",
   align: "left",
+  columns: "3",
+  cardStyle: "standard",
+  imagePosition: "left",
 };
 
 /** Anchor IDs are author-supplied, so they are constrained to a safe shape. */
