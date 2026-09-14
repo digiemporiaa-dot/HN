@@ -37,6 +37,9 @@ yarn-error.log*
 # persistent runtime data (media uploads, backups) — never in git
 /data
 
+# Prisma client is generated from the schema on install and build
+/src/generated
+
 # vercel
 .vercel
 

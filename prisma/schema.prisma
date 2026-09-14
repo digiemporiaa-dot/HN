@@ -1,0 +1,433 @@
+// HN Medical System — database schema
+//
+// Conventions applied throughout:
+//   * cuid primary keys
+//   * createdAt / updatedAt on every mutable entity
+//   * status enums rather than booleans wherever a lifecycle exists
+//   * soft deletion only where accidental loss is expensive and restore is a
+//     real requirement — everywhere else rows are deleted outright, to avoid
+//     paying a filtering tax on every query
+//   * JSON only where the data is genuinely polymorphic (section payloads,
+//     audit metadata); everything else is normalised with foreign keys
+//
+// Entities for the catalogue, CRM, locations, forms and blog are introduced by
+// the phases that build those features, so their columns can be designed
+// against real requirements rather than guessed at here.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7 takes the connection URL from prisma.config.ts for migrations, and
+// from the driver adapter passed to PrismaClient at runtime.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+/// Shared publishing lifecycle. Programmatic SEO pages depend on DRAFT and
+/// REVIEW existing as distinct states from PUBLISHED.
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PermissionModule {
+  DASHBOARD
+  LEADS
+  RFQ
+  PRODUCTS
+  CATEGORIES
+  BRANDS
+  SPECIALTIES
+  SOLUTIONS
+  LOCATIONS
+  PAGES
+  BLOGS
+  MEDIA
+  FORMS
+  SEO
+  STAFF
+  ROLES
+  BACKUPS
+  AUDIT_LOGS
+  SETTINGS
+}
+
+enum PermissionAction {
+  VIEW
+  CREATE
+  EDIT
+  DELETE
+  PUBLISH
+  EXPORT
+  ASSIGN
+  RESTORE
+  MANAGE_SETTINGS
+}
+
+/// Per-staff adjustments layered on top of the role's permission set.
+enum PermissionEffect {
+  GRANT
+  REVOKE
+}
+
+enum MediaKind {
+  IMAGE
+  VECTOR
+  DOCUMENT
+}
+
+enum SettingType {
+  STRING
+  TEXT
+  NUMBER
+  BOOLEAN
+  JSON
+  MEDIA
+  COLOR
+}
+
+enum SectionType {
+  HERO
+  HEADING_TEXT
+  RICH_TEXT
+  IMAGE_TEXT
+  TEXT_IMAGE
+  ICON_CARDS
+  IMAGE_CARDS
+  FEATURE_CARDS
+  PRODUCT_GRID
+  CATEGORY_GRID
+  SUBCATEGORY_GRID
+  BRAND_GRID
+  SPECIALTY_GRID
+  STATISTICS
+  LOGO_STRIP
+  TESTIMONIALS
+  FAQ
+  CTA
+  FORM
+  TABLE
+  COMPARISON_TABLE
+  GALLERY
+  VIDEO
+  BROCHURE_DOWNLOAD
+  RELATED_PRODUCTS
+  RELATED_CATEGORIES
+  RELATED_LOCATIONS
+  TRUST_CERTIFICATIONS
+  TIMELINE
+  PROCESS_STEPS
+  TABS
+  ACCORDION
+}
+
+// ---------------------------------------------------------------------------
+// Identity and access control
+// ---------------------------------------------------------------------------
+
+model Staff {
+  id                 String      @id @default(cuid())
+  email              String      @unique
+  name               String
+  phone              String?
+  passwordHash       String
+  status             StaffStatus @default(ACTIVE)
+  mustChangePassword Boolean     @default(false)
+
+  /// Incremented to invalidate every issued JWT at once — on password change,
+  /// deactivation or role change. Compared in the session callback.
+  tokenVersion Int       @default(0)
+  lastLoginAt  DateTime?
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  avatarId String?
+  avatar   MediaAsset? @relation("StaffAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+
+  permissionOverrides StaffPermissionOverride[]
+  auditLogs           AuditLog[]
+  uploadedMedia       MediaAsset[]              @relation("MediaUploader")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roleId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  name        String
+  description String?
+
+  /// System roles cannot be renamed away or deleted; SUPER_ADMIN additionally
+  /// short-circuits every permission check.
+  isSystem Boolean @default(false)
+
+  staff       Staff[]
+  permissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  module      PermissionModule
+  action      PermissionAction
+  description String?
+
+  roles     RolePermission[]
+  overrides StaffPermissionOverride[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([module, action])
+  @@index([module])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model StaffPermissionOverride {
+  staffId      String
+  permissionId String
+  effect       PermissionEffect
+
+  staff      Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([staffId, permissionId])
+  @@index([permissionId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+/// Append-only by convention: rows are never updated or deleted, which is why
+/// there is no updatedAt. The actor relation is nullable and accompanied by an
+/// email snapshot so history survives staff deletion.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorId    String?
+  actor      Staff?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String?
+
+  action     String
+  module     PermissionModule?
+  entityType String?
+  entityId   String?
+  summary    String?
+
+  /// Sanitised before write. Secrets, password hashes, tokens and recovery
+  /// codes must never reach this column.
+  metadata Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([module])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+/// Typed key/value store for global site settings. `value` holds scalars as
+/// text and is parsed according to `type`; `jsonValue` is used only by JSON
+/// settings, which keeps the common case out of a JSON column.
+model Setting {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  group       String
+  type        SettingType
+  label       String
+  description String?
+  value       String?
+  jsonValue   Json?
+
+  /// Secret settings are never serialised to the client.
+  isSecret Boolean @default(false)
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+}
+
+// ---------------------------------------------------------------------------
+// Media
+// ---------------------------------------------------------------------------
+
+model MediaFolder {
+  id       String  @id @default(cuid())
+  name     String
+  slug     String
+  parentId String?
+
+  parent   MediaFolder?  @relation("MediaFolderTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children MediaFolder[] @relation("MediaFolderTree")
+
+  /// Materialised path ("/products/2026/01") so a subtree can be listed
+  /// without a recursive query.
+  path  String @unique
+  depth Int    @default(0)
+
+  assets MediaAsset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, slug])
+  @@index([parentId])
+}
+
+model MediaAsset {
+  id String @id @default(cuid())
+
+  folderId String?
+  folder   MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  /// Path relative to UPLOAD_ROOT. Generated, never derived from the uploaded
+  /// filename, which neutralises filename-based attacks and collisions.
+  storageKey   String @unique
+  originalName String
+  mimeType     String
+  kind         MediaKind
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  checksum     String?
+
+  altText     String?
+  title       String?
+  caption     String?
+  description String?
+
+  uploadedById String?
+  uploadedBy   Staff?  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  usages      MediaUsage[]
+  staffAvatar Staff[]      @relation("StaffAvatar")
+
+  /// Soft deleted: recovering a wrongly deleted asset that is still referenced
+  /// by published content is a genuine requirement.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([folderId])
+  @@index([kind])
+  @@index([uploadedById])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+/// Reference tracking that powers the "this file is in use" warning before
+/// deletion. Rows are written by the services that attach media, not by hand.
+model MediaUsage {
+  id      String @id @default(cuid())
+  assetId String
+  asset   MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  entityType String
+  entityId   String
+  field      String
+
+  createdAt DateTime @default(now())
+
+  @@unique([assetId, entityType, entityId, field])
+  @@index([entityType, entityId])
+  @@index([assetId])
+}
+
+// ---------------------------------------------------------------------------
+// CMS
+// ---------------------------------------------------------------------------
+
+/// The homepage is the page with the reserved slug "home", so administrators
+/// can reorder its sections like any other page.
+model Page {
+  id     String        @id @default(cuid())
+  slug   String        @unique
+  title  String
+  status ContentStatus @default(DRAFT)
+
+  publishedAt DateTime?
+
+  sections PageSection[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([deletedAt])
+}
+
+/// `content` and `design` are the only JSON columns in the content model. Each
+/// is validated against a per-section-type Zod schema in the section registry,
+/// and `design` accepts only enumerated token values — never raw CSS.
+///
+/// Sections become attachable to categories, brands, specialties, solutions and
+/// location pages in the phases that introduce those entities; pageId becomes
+/// nullable alongside sibling foreign keys at that point.
+model PageSection {
+  id     String @id @default(cuid())
+  pageId String
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  type     SectionType
+  order    Int
+  enabled  Boolean     @default(true)
+  anchorId String?
+
+  content Json
+  design  Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pageId, order])
+  @@index([type])
+}
