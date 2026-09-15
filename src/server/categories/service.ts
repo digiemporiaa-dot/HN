@@ -111,4 +111,54 @@ export function categoryPath(
   return parentSlug ? `/categories/${parentSlug}/${slug}` : `/categories/${slug}`;
 }
 
+export type CategoryChoice = {
+  id: string;
+  name: string;
+  depth: number;
+  parentName: string | null;
+};
+
+/**
+ * Every category a brand may be linked to, ordered as the catalogue reads.
+ *
+ * Both levels are offered: a brand may supply a whole category, or only one
+ * subcategory within it, and forcing the broader claim would overstate what the
+ * company actually sells.
+ */
+export async function linkableCategories(): Promise<CategoryChoice[]> {
+  const rows = await prisma.category.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ depth: "asc" }, { order: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      depth: true,
+      order: true,
+      parentId: true,
+      parent: { select: { name: true, order: true } },
+    },
+  });
+
+  // Sorted so each parent is immediately followed by its own children, which is
+  // how the picker groups them.
+  const parents = rows.filter((row) => row.depth === 0);
+  const childrenByParent = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!row.parentId) continue;
+    const list = childrenByParent.get(row.parentId) ?? [];
+    list.push(row);
+    childrenByParent.set(row.parentId, list);
+  }
+
+  return parents.flatMap((parent) => [
+    { id: parent.id, name: parent.name, depth: 0, parentName: null },
+    ...(childrenByParent.get(parent.id) ?? []).map((child) => ({
+      id: child.id,
+      name: child.name,
+      depth: 1,
+      parentName: parent.name,
+    })),
+  ]);
+}
+
 export { LIST_SELECT as CATEGORY_LIST_SELECT };

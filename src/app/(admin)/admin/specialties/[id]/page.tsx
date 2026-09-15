@@ -15,45 +15,45 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { pickableMedia } from "@/server/media/pickable";
-import { brandPath, findBrand } from "@/server/brands/service";
+import { findSpecialty, specialtyPath } from "@/server/specialties/service";
 import { linkableCategories } from "@/server/categories/service";
-import { deleteBrandAction } from "@/server/brands/actions";
-import { BrandForm } from "../brand-form";
+import { deleteSpecialtyAction } from "@/server/specialties/actions";
+import { SpecialtyForm } from "../specialty-form";
 
 export const metadata: Metadata = {
-  title: "Edit brand",
+  title: "Edit specialty",
   robots: { index: false, follow: false },
 };
 
-export default async function EditBrandPage({
+export default async function EditSpecialtyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requirePermission("BRANDS", "VIEW");
+  await requirePermission("SPECIALTIES", "VIEW");
   const { can } = await currentPermissions();
 
   const { id } = await params;
-  const [brand, categories, mediaOptions] = await Promise.all([
-    findBrand(id),
+  const [specialty, categories, mediaOptions] = await Promise.all([
+    findSpecialty(id),
     linkableCategories(),
     pickableMedia(),
   ]);
-  if (!brand) notFound();
+  if (!specialty) notFound();
 
-  const path = brandPath(brand.slug);
+  const path = specialtyPath(specialty.slug);
 
   return (
     <AdminPage>
       <AdminPageHeader
-        title={brand.name}
+        title={specialty.name}
         description={path}
-        backHref="/admin/brands"
-        backLabel="Back to brands"
+        backHref="/admin/specialties"
+        backLabel="Back to specialties"
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge status={brand.status} />
-            {brand.status === "PUBLISHED" ? (
+            <StatusBadge status={specialty.status} />
+            {specialty.status === "PUBLISHED" ? (
               <Link
                 href={path}
                 target="_blank"
@@ -64,9 +64,9 @@ export default async function EditBrandPage({
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}
-            {can("BRANDS", "DELETE") ? (
-              <form action={deleteBrandAction}>
-                <input type="hidden" name="brandId" value={brand.id} />
+            {can("SPECIALTIES", "DELETE") ? (
+              <form action={deleteSpecialtyAction}>
+                <input type="hidden" name="specialtyId" value={specialty.id} />
                 <Button type="submit" variant="outline" size="sm">
                   <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
                   Delete
@@ -82,25 +82,24 @@ export default async function EditBrandPage({
           <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <BrandForm
+          <SpecialtyForm
             mode="edit"
-            version={brand.updatedAt.toISOString()}
+            version={specialty.updatedAt.toISOString()}
             categories={categories}
             mediaOptions={mediaOptions}
-            canPublish={can("BRANDS", "PUBLISH")}
-            readOnly={!can("BRANDS", "EDIT")}
+            canPublish={can("SPECIALTIES", "PUBLISH")}
+            readOnly={!can("SPECIALTIES", "EDIT")}
             values={{
-              id: brand.id,
-              name: brand.name,
-              slug: brand.slug,
-              shortDescription: brand.shortDescription ?? "",
-              description: brand.description ?? "",
-              websiteUrl: brand.websiteUrl ?? "",
-              logoId: brand.logoId ?? "",
-              bannerId: brand.bannerId ?? "",
-              featured: brand.featured,
-              status: brand.status,
-              categoryIds: brand.categories.map(
+              id: specialty.id,
+              name: specialty.name,
+              slug: specialty.slug,
+              shortDescription: specialty.shortDescription ?? "",
+              description: specialty.description ?? "",
+              imageId: specialty.imageId ?? "",
+              bannerId: specialty.bannerId ?? "",
+              featured: specialty.featured,
+              status: specialty.status,
+              categoryIds: specialty.categories.map(
                 (link: { categoryId: string }) => link.categoryId,
               ),
             }}

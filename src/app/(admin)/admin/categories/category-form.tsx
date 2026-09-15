@@ -4,15 +4,15 @@ import { useActionState, useState } from "react";
 
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import { FormFeedback } from "@/components/admin/form-feedback";
 import {
   createCategoryAction,
   updateCategoryAction,
   type CategoryActionState,
 } from "@/server/categories/actions";
-import { slugifyCategory } from "@/lib/validation/categories";
+import { slugify } from "@/lib/utils/slug";
 import {
   MediaPicker,
   type MediaOption,
@@ -34,29 +34,6 @@ export type CategoryFormValues = {
   /** Set for a subcategory, so the form can show the real public path. */
   parentSlug?: string | null;
 };
-
-function Feedback({ state }: { state: CategoryActionState }) {
-  if (state.error) {
-    return (
-      <div
-        role="alert"
-        className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3"
-      >
-        <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        <span>{state.error}</span>
-      </div>
-    );
-  }
-  if (state.success) {
-    return (
-      <div className="border-success-100 bg-success-50 text-success-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3">
-        <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        <span>{state.success}</span>
-      </div>
-    );
-  }
-  return null;
-}
 
 /**
  * One form for both levels and both modes.
@@ -107,7 +84,7 @@ export function CategoryForm({
       {values.id ? (
         <input type="hidden" name="categoryId" value={values.id} />
       ) : null}
-      <Feedback state={state} />
+      <FormFeedback state={state} />
 
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Name" required error={state.fieldErrors?.name}>
@@ -120,7 +97,7 @@ export function CategoryForm({
                 set("name", event.target.value);
                 // The slug follows the name until it is edited, after which it
                 // is the author's: a published URL must not move on its own.
-                if (!slugTouched) set("slug", slugifyCategory(event.target.value));
+                if (!slugTouched) set("slug", slugify(event.target.value));
               }}
               {...control}
             />

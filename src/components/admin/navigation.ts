@@ -112,7 +112,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/specialties",
         icon: Stethoscope,
         module: "SPECIALTIES",
-        available: false,
+        available: true,
       },
       {
         label: "Solutions",

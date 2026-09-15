@@ -50,15 +50,6 @@ export const slugSchema = z
     "That slug is reserved by the application",
   );
 
-export function slugify(input: string): string {
-  return input
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-}
-
 export const pageSchema = z.object({
   title: z.string().trim().min(2, "Enter a page title").max(200),
   slug: slugSchema,

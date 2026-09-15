@@ -47,12 +47,3 @@ export const moveCategorySchema = z.object({
   categoryId: z.string().min(1),
   direction: z.enum(["up", "down"]),
 });
-
-export function slugifyCategory(input: string): string {
-  return input
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-}

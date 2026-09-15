@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 
-export const BRAND_LIST_SELECT = {
+export const SPECIALTY_LIST_SELECT = {
   id: true,
   slug: true,
   name: true,
@@ -8,11 +8,11 @@ export const BRAND_LIST_SELECT = {
   featured: true,
   order: true,
   updatedAt: true,
-  logo: { select: { storageKey: true } },
+  image: { select: { storageKey: true } },
   _count: { select: { categories: true } },
 } as const;
 
-export type BrandRow = {
+export type SpecialtyRow = {
   id: string;
   slug: string;
   name: string;
@@ -20,12 +20,12 @@ export type BrandRow = {
   featured: boolean;
   order: number;
   updatedAt: Date;
-  logo: { storageKey: string } | null;
+  image: { storageKey: string } | null;
   _count: { categories: number };
 };
 
-export async function findBrand(id: string) {
-  return prisma.brand.findUnique({
+export async function findSpecialty(id: string) {
+  return prisma.specialty.findUnique({
     where: { id },
     select: {
       id: true,
@@ -33,8 +33,7 @@ export async function findBrand(id: string) {
       name: true,
       shortDescription: true,
       description: true,
-      websiteUrl: true,
-      logoId: true,
+      imageId: true,
       bannerId: true,
       featured: true,
       status: true,
@@ -45,6 +44,6 @@ export async function findBrand(id: string) {
   });
 }
 
-export function brandPath(slug: string): string {
-  return `/brands/${slug}`;
+export function specialtyPath(slug: string): string {
+  return `/specialties/${slug}`;
 }

@@ -6,15 +6,15 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { pickableMedia } from "@/server/media/pickable";
 import { linkableCategories } from "@/server/categories/service";
-import { BrandForm } from "../brand-form";
+import { SpecialtyForm } from "../specialty-form";
 
 export const metadata: Metadata = {
-  title: "New brand",
+  title: "New specialty",
   robots: { index: false, follow: false },
 };
 
-export default async function NewBrandPage() {
-  await requirePermission("BRANDS", "CREATE");
+export default async function NewSpecialtyPage() {
+  await requirePermission("SPECIALTIES", "CREATE");
   const { can } = await currentPermissions();
 
   const [categories, mediaOptions] = await Promise.all([
@@ -25,28 +25,27 @@ export default async function NewBrandPage() {
   return (
     <AdminPage width="narrow">
       <AdminPageHeader
-        title="New brand"
-        description="Brands start as a draft. Publish once the page has enough content to stand on its own."
-        backHref="/admin/brands"
-        backLabel="Back to brands"
+        title="New specialty"
+        description="Specialties start as a draft. Publish once the page has enough content to stand on its own."
+        backHref="/admin/specialties"
+        backLabel="Back to specialties"
       />
 
       <Card>
         <CardContent>
-          <BrandForm
+          <SpecialtyForm
             mode="create"
             version="new"
             categories={categories}
             mediaOptions={mediaOptions}
-            canPublish={can("BRANDS", "PUBLISH")}
+            canPublish={can("SPECIALTIES", "PUBLISH")}
             readOnly={false}
             values={{
               name: "",
               slug: "",
               shortDescription: "",
               description: "",
-              websiteUrl: "",
-              logoId: "",
+              imageId: "",
               bannerId: "",
               featured: false,
               status: "DRAFT",

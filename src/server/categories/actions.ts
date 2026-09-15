@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
 import { requirePermission } from "@/server/permissions";
+import { fieldErrorsFrom } from "@/lib/validation/field-errors";
 import { clearUsage, recordUsage } from "@/server/media/service";
 import {
   categoryIdSchema,
@@ -20,19 +21,6 @@ export type CategoryActionState = {
   success?: string;
   fieldErrors?: Record<string, string>;
 };
-
-function fieldErrorsFrom(error: {
-  issues: Array<{ path: PropertyKey[]; message: string }>;
-}): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path[0];
-    if (typeof key === "string" && !fieldErrors[key]) {
-      fieldErrors[key] = issue.message;
-    }
-  }
-  return fieldErrors;
-}
 
 /**
  * Invalidates the screens a category change affects.

@@ -49,12 +49,3 @@ export const brandSchema = z.object({
 });
 
 export const brandIdSchema = z.object({ brandId: z.string().min(1) });
-
-export function slugifyBrand(input: string): string {
-  return input
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
-}

@@ -4,41 +4,19 @@ import { useActionState, useState } from "react";
 
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
-import { AlertCircle, CheckCircle2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button, Field, Input, Select } from "@/components/ui";
+import { FormFeedback } from "@/components/admin/form-feedback";
 import {
   addSectionAction,
   createPageAction,
   updatePageAction,
   type CmsActionState,
 } from "@/server/cms/actions";
-import { slugify } from "@/lib/validation/cms";
+import { slugify } from "@/lib/utils/slug";
 
 const INITIAL: CmsActionState = {};
-
-function Feedback({ state }: { state: CmsActionState }) {
-  if (state.error) {
-    return (
-      <div
-        role="alert"
-        className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3"
-      >
-        <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        <span>{state.error}</span>
-      </div>
-    );
-  }
-  if (state.success) {
-    return (
-      <div className="border-success-100 bg-success-50 text-success-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3">
-        <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        <span>{state.success}</span>
-      </div>
-    );
-  }
-  return null;
-}
 
 export function PageCreateForm() {
   const [state, formAction, pending] = useActionState(
@@ -51,7 +29,7 @@ export function PageCreateForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
-      <Feedback state={state} />
+      <FormFeedback state={state} />
 
       <Field label="Page title" required error={state.fieldErrors?.title}>
         {(control) => (
@@ -126,7 +104,7 @@ export function PageSettingsForm({
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="pageId" value={pageId} />
-      <Feedback state={state} />
+      <FormFeedback state={state} />
 
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Page title" required error={state.fieldErrors?.title}>
@@ -226,7 +204,7 @@ export function AddSectionForm({
       className="border-line bg-surface-subtle flex flex-col gap-4 rounded-lg border border-dashed p-4"
     >
       <input type="hidden" name="pageId" value={pageId} />
-      <Feedback state={state} />
+      <FormFeedback state={state} />
 
       <div className="flex flex-wrap items-end gap-3">
         <Field label="Add a section" className="min-w-60 flex-1">

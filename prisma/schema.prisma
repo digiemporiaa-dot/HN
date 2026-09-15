@@ -395,7 +395,8 @@ model MediaFolder {
 
   assets MediaAsset[]
 
-  brands BrandCategory[]
+  brands      BrandCategory[]
+  specialties CategorySpecialty[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -429,13 +430,15 @@ model MediaAsset {
   uploadedById String?
   uploadedBy   Staff?  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
-  usages          MediaUsage[]
-  staffAvatar     Staff[]          @relation("StaffAvatar")
-  navigationItems NavigationItem[] @relation("NavigationItemImage")
-  categoryImages  Category[]       @relation("CategoryImage")
-  categoryBanners Category[]       @relation("CategoryBanner")
-  brandLogos      Brand[]          @relation("BrandLogo")
-  brandBanners    Brand[]          @relation("BrandBanner")
+  usages           MediaUsage[]
+  staffAvatar      Staff[]          @relation("StaffAvatar")
+  navigationItems  NavigationItem[] @relation("NavigationItemImage")
+  categoryImages   Category[]       @relation("CategoryImage")
+  categoryBanners  Category[]       @relation("CategoryBanner")
+  brandLogos       Brand[]          @relation("BrandLogo")
+  brandBanners     Brand[]          @relation("BrandBanner")
+  specialtyImages  Specialty[]      @relation("SpecialtyImage")
+  specialtyBanners Specialty[]      @relation("SpecialtyBanner")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -634,7 +637,8 @@ model Category {
   /// deleting one by mistake is expensive and restoring it is a real need.
   deletedAt DateTime?
 
-  brands BrandCategory[]
+  brands      BrandCategory[]
+  specialties CategorySpecialty[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -711,4 +715,60 @@ model BrandCategory {
 
   @@id([brandId, categoryId])
   @@index([categoryId])
+}
+
+/// A clinical department or discipline the company equips — ICU, operating
+/// theatre, cardiology.
+///
+/// Distinct from a category: a category is what the equipment *is*, a specialty
+/// is who uses it. The same ventilator belongs to one category but serves
+/// several specialties, which is why the link is a join rather than a column.
+model Specialty {
+  id String @id @default(cuid())
+
+  /// Specialties live at /specialties/<slug>, a single segment.
+  slug String @unique
+  name String
+
+  shortDescription String?
+  description      String?
+
+  imageId String?
+  image   MediaAsset? @relation("SpecialtyImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  bannerId String?
+  banner   MediaAsset? @relation("SpecialtyBanner", fields: [bannerId], references: [id], onDelete: SetNull)
+
+  featured Boolean @default(false)
+  order    Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  categories CategorySpecialty[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([featured])
+  @@index([order])
+  @@index([imageId])
+  @@index([bannerId])
+}
+
+/// Which categories of equipment a specialty uses.
+model CategorySpecialty {
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  specialtyId String
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
+  mediaFolderId String?
+
+  @@id([categoryId, specialtyId])
+  @@index([specialtyId])
 }
