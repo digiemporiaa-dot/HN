@@ -99,9 +99,29 @@ async function resolveMedia(
     const content = (section.content ?? {}) as Record<string, unknown>;
 
     for (const field of definition.fields) {
-      if (field.kind !== "media") continue;
-      const value = content[field.name];
-      if (typeof value === "string" && value) ids.add(value);
+      if (field.kind === "media") {
+        const value = content[field.name];
+        if (typeof value === "string" && value) ids.add(value);
+        continue;
+      }
+
+      // Repeater rows carry images too — a gallery, a set of image cards — and
+      // they are collected here so a twenty-image gallery still costs the page
+      // one query rather than twenty.
+      if (field.kind !== "repeater") continue;
+      const children = field.fields.filter((child) => child.kind === "media");
+      if (children.length === 0) continue;
+
+      const stored = content[field.name];
+      if (!Array.isArray(stored)) continue;
+
+      for (const row of stored) {
+        const source = (row ?? {}) as Record<string, unknown>;
+        for (const child of children) {
+          const value = source[child.name];
+          if (typeof value === "string" && value) ids.add(value);
+        }
+      }
     }
   }
 
@@ -156,7 +176,7 @@ export async function RenderedSections({
     .filter((section) => section.enabled)
     .sort((a, b) => a.order - b.order);
 
-  const [mediaById, entityById] = await Promise.all([
+  const [mediaByIdMap, entityById] = await Promise.all([
     resolveMedia(enabled),
     resolveEntities(entityRequests(enabled)),
   ]);
@@ -186,13 +206,18 @@ export async function RenderedSections({
         const content = parsed.data as Record<string, unknown>;
         const design = normaliseDesign(section.design, section.anchorId);
 
+        // Repeater rows look their own images up by id, so the whole page's
+        // resolved assets travel with every section.
+        const mediaById: Record<string, ResolvedMedia> =
+          Object.fromEntries(mediaByIdMap);
+
         const media: Record<string, ResolvedMedia | null> = {};
         for (const field of definition.fields) {
           if (field.kind !== "media") continue;
           const value = content[field.name];
           media[field.name] =
             typeof value === "string" && value
-              ? (mediaById.get(value) ?? null)
+              ? (mediaByIdMap.get(value) ?? null)
               : null;
         }
 
@@ -225,6 +250,7 @@ export async function RenderedSections({
               content={content}
               design={design}
               media={media}
+              mediaById={mediaById}
               entities={entities}
             />
           </Section>

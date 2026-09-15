@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { BadgeCheck, Download, Quote } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -14,12 +14,20 @@ import type { SectionDesign } from "@/lib/design/section-options";
 import type { ResolvedMedia } from "@/cms/render-page";
 import type { ResolvedEntity } from "@/cms/sections/entities";
 import { RichText } from "@/cms/rich-text";
+import { parseVideoUrl } from "@/cms/video";
+import {
+  GalleryGrid,
+  TabbedPanels,
+  VideoFacade,
+} from "@/cms/sections/client-sections";
 
 export type RendererProps = {
   content: Record<string, unknown>;
   design: SectionDesign;
   /** Resolved URL and alt text for MEDIA fields, keyed by field name. */
   media: Record<string, ResolvedMedia | null>;
+  /** Every resolved asset on the page, for images inside repeater rows. */
+  mediaById: Record<string, ResolvedMedia>;
   /**
    * Catalogue records for ENTITIES fields, keyed by field name, already in the
    * editor's order and already filtered to what is publicly visible.
@@ -509,6 +517,339 @@ function BrochureDownload({ content, entities }: RendererProps) {
   );
 }
 
+/* -------------------------------------------------------------------------
+ * Content sections
+ * ---------------------------------------------------------------------- */
+
+/** The heading block shared by every section that has one. */
+function Header({
+  content,
+  align,
+}: {
+  content: Record<string, unknown>;
+  align?: string;
+}) {
+  const heading = text(content, "heading");
+  const intro = text(content, "intro");
+  if (!heading && !intro) return null;
+
+  return (
+    <SectionHeader
+      overline={text(content, "overline") || undefined}
+      title={heading}
+      description={intro || undefined}
+      align={align === "center" ? "center" : "left"}
+    />
+  );
+}
+
+const row = (item: Record<string, unknown>, key: string): string =>
+  typeof item[key] === "string" ? (item[key] as string) : "";
+
+function ImageCards({ content, design, mediaById }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-10">
+      <Header content={content} align={design.align} />
+
+      <ul
+        className={cn(
+          "grid grid-cols-1 gap-6",
+          columnClass[design.columns ?? "3"] ?? columnClass["3"],
+        )}
+      >
+        {items.map((item, index) => {
+          const image = mediaById[row(item, "image")];
+          const href = row(item, "linkHref");
+          const body = (
+            <>
+              {image ? (
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  loading="lazy"
+                  className="bg-surface-muted aspect-4/3 w-full rounded-md object-cover"
+                />
+              ) : null}
+              <CardContent className="flex flex-col gap-1.5 p-0">
+                <h3 className="text-h4 text-ink">{row(item, "title")}</h3>
+                {row(item, "body") ? (
+                  <p className="text-body-sm text-ink-muted">
+                    {row(item, "body")}
+                  </p>
+                ) : null}
+                {href && row(item, "linkLabel") ? (
+                  <span className="text-body-sm text-primary mt-1 font-medium">
+                    {row(item, "linkLabel")}
+                  </span>
+                ) : null}
+              </CardContent>
+            </>
+          );
+
+          return (
+            <Card
+              key={index}
+              as="li"
+              appearance={design.cardStyle ?? "standard"}
+              interactive={Boolean(href)}
+            >
+              {href ? (
+                <Link href={href} className="flex flex-col gap-3">
+                  {body}
+                </Link>
+              ) : (
+                <div className="flex flex-col gap-3">{body}</div>
+              )}
+            </Card>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function Gallery({ content, design, mediaById }: RendererProps) {
+  const items = rows(content, "items").flatMap((item) => {
+    const media = mediaById[row(item, "image")];
+    return media ? [{ media, caption: row(item, "caption") }] : [];
+  });
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align={design.align} />
+      <GalleryGrid items={items} columns={design.columns ?? "3"} />
+    </div>
+  );
+}
+
+function Video({ content, media }: RendererProps) {
+  const url = text(content, "url");
+  const embed = parseVideoUrl(url);
+  const heading = text(content, "heading");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Header content={content} align="left" />
+
+      {embed ? (
+        <VideoFacade embed={embed} poster={media.poster} label={heading} />
+      ) : url ? (
+        // An address we cannot embed is offered as a link rather than dropped:
+        // the editor put it there on purpose. Wrapped so it sizes to its own
+        // label instead of stretching across the column.
+        <div>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className={buttonStyles({ variant: "outline" })}
+          >
+            Watch the video
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Testimonials({ content, design }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-10">
+      <Header content={content} align={design.align} />
+
+      <ul
+        className={cn(
+          "grid grid-cols-1 gap-6",
+          columnClass[design.columns ?? "3"] ?? columnClass["3"],
+        )}
+      >
+        {items.map((item, index) => (
+          <Card key={index} as="li" appearance={design.cardStyle ?? "standard"}>
+            <CardContent className="flex h-full flex-col gap-4 p-0">
+              <Quote
+                aria-hidden="true"
+                className="text-primary/30 size-7 shrink-0"
+              />
+              <blockquote className="text-body text-ink flex-1">
+                {row(item, "quote")}
+              </blockquote>
+              {row(item, "name") || row(item, "role") ? (
+                <figcaption className="flex flex-col">
+                  {row(item, "name") ? (
+                    <span className="text-body-sm text-ink font-medium">
+                      {row(item, "name")}
+                    </span>
+                  ) : null}
+                  {row(item, "role") ? (
+                    <span className="text-caption text-ink-muted">
+                      {row(item, "role")}
+                    </span>
+                  ) : null}
+                </figcaption>
+              ) : null}
+            </CardContent>
+          </Card>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Certifications({ content, design, mediaById }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align={design.align} />
+
+      <ul
+        className={cn(
+          "grid grid-cols-1 gap-6",
+          columnClass[design.columns ?? "4"] ?? columnClass["4"],
+        )}
+      >
+        {items.map((item, index) => {
+          const image = mediaById[row(item, "image")];
+          return (
+            <li key={index} className="flex items-start gap-3">
+              {image ? (
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  loading="lazy"
+                  className="size-12 shrink-0 object-contain"
+                />
+              ) : (
+                <BadgeCheck
+                  aria-hidden="true"
+                  className="text-primary size-6 shrink-0"
+                />
+              )}
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-body-sm text-ink font-medium">
+                  {row(item, "name")}
+                </span>
+                {row(item, "detail") ? (
+                  <span className="text-caption text-ink-muted">
+                    {row(item, "detail")}
+                  </span>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function Timeline({ content, design }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align={design.align} />
+
+      <ol className="border-line flex flex-col gap-8 border-l pl-6">
+        {items.map((item, index) => (
+          <li key={index} className="relative flex flex-col gap-1">
+            <span
+              aria-hidden="true"
+              className="bg-primary absolute top-2 -left-[27px] size-2.5 rounded-full ring-4 ring-white"
+            />
+            <span className="text-caption text-primary font-medium">
+              {row(item, "when")}
+            </span>
+            <h3 className="text-h4 text-ink">{row(item, "title")}</h3>
+            {row(item, "body") ? (
+              <p className="text-body-sm text-ink-muted">{row(item, "body")}</p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ProcessSteps({ content, design }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-10">
+      <Header content={content} align={design.align} />
+
+      <ol
+        className={cn(
+          "grid grid-cols-1 gap-8",
+          columnClass[design.columns ?? "4"] ?? columnClass["4"],
+        )}
+      >
+        {items.map((item, index) => (
+          <li key={index} className="flex flex-col gap-2">
+            <span className="bg-primary text-body-sm flex size-9 items-center justify-center rounded-full font-medium text-white">
+              {index + 1}
+            </span>
+            <h3 className="text-h4 text-ink">{row(item, "title")}</h3>
+            {row(item, "body") ? (
+              <p className="text-body-sm text-ink-muted">{row(item, "body")}</p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function AccordionSection({ content }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align="left" />
+      {/* The shared component still names its halves question and answer,
+          after the FAQ it was first built for. */}
+      <Accordion
+        items={items.map((item, index) => ({
+          id: String(index),
+          question: row(item, "title"),
+          answer: <RichText value={row(item, "body")} />,
+        }))}
+      />
+    </div>
+  );
+}
+
+function TabsSection({ content }: RendererProps) {
+  const items = rows(content, "items");
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align="left" />
+      <TabbedPanels
+        items={items.map((item) => ({
+          label: row(item, "label"),
+          // Rendered here rather than in the client component: rich text is
+          // markup the server already knows how to produce, and a render
+          // function cannot cross that boundary.
+          content: <RichText value={row(item, "body")} />,
+        }))}
+      />
+    </div>
+  );
+}
+
 /* eslint-enable @next/next/no-img-element */
 
 export const SECTION_RENDERERS: Record<
@@ -532,4 +873,13 @@ export const SECTION_RENDERERS: Record<
   SPECIALTY_GRID: CatalogueGrid,
   LOGO_STRIP: LogoStrip,
   BROCHURE_DOWNLOAD: BrochureDownload,
+  IMAGE_CARDS: ImageCards,
+  GALLERY: Gallery,
+  VIDEO: Video,
+  TESTIMONIALS: Testimonials,
+  TRUST_CERTIFICATIONS: Certifications,
+  TIMELINE: Timeline,
+  PROCESS_STEPS: ProcessSteps,
+  ACCORDION: AccordionSection,
+  TABS: TabsSection,
 };
