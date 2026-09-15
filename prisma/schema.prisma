@@ -397,6 +397,7 @@ model MediaFolder {
 
   brands      BrandCategory[]
   specialties CategorySpecialty[]
+  solutions   SolutionCategory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -439,6 +440,8 @@ model MediaAsset {
   brandBanners     Brand[]          @relation("BrandBanner")
   specialtyImages  Specialty[]      @relation("SpecialtyImage")
   specialtyBanners Specialty[]      @relation("SpecialtyBanner")
+  solutionImages   Solution[]       @relation("SolutionImage")
+  solutionBanners  Solution[]       @relation("SolutionBanner")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -639,6 +642,7 @@ model Category {
 
   brands      BrandCategory[]
   specialties CategorySpecialty[]
+  solutions   SolutionCategory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -771,4 +775,62 @@ model CategorySpecialty {
 
   @@id([categoryId, specialtyId])
   @@index([specialtyId])
+}
+
+/// A packaged offering the company sells — ICU setup, a turnkey theatre, a
+/// hospital fit-out.
+///
+/// Structurally identical to Specialty but a different axis of the catalogue:
+/// a specialty is a department that uses equipment, a solution is a bundle the
+/// company delivers. Keeping them as separate models rather than one table with
+/// a "kind" column means each can grow its own fields — a solution will
+/// eventually carry scope and delivery detail a specialty never needs.
+model Solution {
+  id String @id @default(cuid())
+
+  /// Solutions live at /solutions/<slug>, a single segment.
+  slug String @unique
+  name String
+
+  shortDescription String?
+  description      String?
+
+  imageId String?
+  image   MediaAsset? @relation("SolutionImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  bannerId String?
+  banner   MediaAsset? @relation("SolutionBanner", fields: [bannerId], references: [id], onDelete: SetNull)
+
+  featured Boolean @default(false)
+  order    Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  categories SolutionCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([featured])
+  @@index([order])
+  @@index([imageId])
+  @@index([bannerId])
+}
+
+/// Which categories of equipment a solution includes.
+model SolutionCategory {
+  solutionId String
+  solution   Solution @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
+  mediaFolderId String?
+
+  @@id([solutionId, categoryId])
+  @@index([categoryId])
 }

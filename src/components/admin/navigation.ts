@@ -119,7 +119,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/solutions",
         icon: Blocks,
         module: "SOLUTIONS",
-        available: false,
+        available: true,
       },
     ],
   },
