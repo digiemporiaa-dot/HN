@@ -84,7 +84,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/products",
         icon: Boxes,
         module: "PRODUCTS",
-        available: false,
+        available: true,
       },
       {
         label: "Categories",

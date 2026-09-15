@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { AlertCircle, ExternalLink, Trash2 } from "lucide-react";
 
 import {
   Button,
@@ -27,13 +27,16 @@ export const metadata: Metadata = {
 
 export default async function EditBrandPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("BRANDS", "VIEW");
   const { can } = await currentPermissions();
 
   const { id } = await params;
+  const { error } = await searchParams;
   const [brand, categories, mediaOptions] = await Promise.all([
     findBrand(id),
     linkableCategories(),
@@ -76,6 +79,20 @@ export default async function EditBrandPage({
           </div>
         }
       />
+
+      {error === "has-products" ? (
+        <div
+          role="alert"
+          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3.5"
+        >
+          <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Products still name this brand. Reassign or delete them before
+            deleting the brand — which manufacturer made a device is not
+            detail the catalogue can silently lose.
+          </span>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>

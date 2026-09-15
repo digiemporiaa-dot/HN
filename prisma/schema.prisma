@@ -395,10 +395,6 @@ model MediaFolder {
 
   assets MediaAsset[]
 
-  brands      BrandCategory[]
-  specialties CategorySpecialty[]
-  solutions   SolutionCategory[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -431,17 +427,19 @@ model MediaAsset {
   uploadedById String?
   uploadedBy   Staff?  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
-  usages           MediaUsage[]
-  staffAvatar      Staff[]          @relation("StaffAvatar")
-  navigationItems  NavigationItem[] @relation("NavigationItemImage")
-  categoryImages   Category[]       @relation("CategoryImage")
-  categoryBanners  Category[]       @relation("CategoryBanner")
-  brandLogos       Brand[]          @relation("BrandLogo")
-  brandBanners     Brand[]          @relation("BrandBanner")
-  specialtyImages  Specialty[]      @relation("SpecialtyImage")
-  specialtyBanners Specialty[]      @relation("SpecialtyBanner")
-  solutionImages   Solution[]       @relation("SolutionImage")
-  solutionBanners  Solution[]       @relation("SolutionBanner")
+  usages               MediaUsage[]
+  staffAvatar          Staff[]          @relation("StaffAvatar")
+  navigationItems      NavigationItem[] @relation("NavigationItemImage")
+  categoryImages       Category[]       @relation("CategoryImage")
+  categoryBanners      Category[]       @relation("CategoryBanner")
+  brandLogos           Brand[]          @relation("BrandLogo")
+  brandBanners         Brand[]          @relation("BrandBanner")
+  specialtyImages      Specialty[]      @relation("SpecialtyImage")
+  specialtyBanners     Specialty[]      @relation("SpecialtyBanner")
+  solutionImages       Solution[]       @relation("SolutionImage")
+  solutionBanners      Solution[]       @relation("SolutionBanner")
+  productPrimaryImages Product[]        @relation("ProductPrimaryImage")
+  productGalleryImages ProductImage[]   @relation("ProductGalleryImage")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -643,6 +641,7 @@ model Category {
   brands      BrandCategory[]
   specialties CategorySpecialty[]
   solutions   SolutionCategory[]
+  products    Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -691,6 +690,7 @@ model Brand {
   publishedAt DateTime?
 
   categories BrandCategory[]
+  products   Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -714,8 +714,6 @@ model BrandCategory {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime     @default(now())
-  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
-  mediaFolderId String?
 
   @@id([brandId, categoryId])
   @@index([categoryId])
@@ -750,6 +748,7 @@ model Specialty {
   publishedAt DateTime?
 
   categories CategorySpecialty[]
+  products   ProductSpecialty[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -770,8 +769,6 @@ model CategorySpecialty {
   specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime     @default(now())
-  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
-  mediaFolderId String?
 
   @@id([categoryId, specialtyId])
   @@index([specialtyId])
@@ -808,6 +805,7 @@ model Solution {
   publishedAt DateTime?
 
   categories SolutionCategory[]
+  products   ProductSolution[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -828,9 +826,110 @@ model SolutionCategory {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime     @default(now())
-  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
-  mediaFolderId String?
 
   @@id([solutionId, categoryId])
   @@index([categoryId])
+}
+
+/// A piece of equipment the company supplies.
+///
+/// Deliberately has no price. The business runs on quotations, so a number
+/// here would be a number somebody eventually shows a customer — and medical
+/// equipment pricing is negotiated per order, per configuration and per
+/// institution. Enquiries carry the commercial conversation instead.
+model Product {
+  id String @id @default(cuid())
+
+  /// Products live at /products/<slug>, a single segment.
+  slug String @unique
+  name String
+
+  /// The manufacturer's model or catalogue number, as printed on the device.
+  modelNumber String?
+
+  shortDescription String?
+  description      String?
+
+  /// A product sits in exactly one category: that is what decides its URL in
+  /// the catalogue and which specification template applies. Breadth comes
+  /// from the specialty and solution links instead.
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  /// Restrict rather than SetNull: silently stripping the manufacturer from a
+  /// catalogue of medical equipment is not something an administrator deleting
+  /// a brand would expect.
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Restrict)
+
+  primaryImageId String?
+  primaryImage   MediaAsset? @relation("ProductPrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
+
+  images      ProductImage[]
+  specialties ProductSpecialty[]
+  solutions   ProductSolution[]
+
+  featured Boolean @default(false)
+  order    Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  /// Soft deleted: a product carries a URL, inbound links and enquiry history,
+  /// so deleting one by mistake is expensive and restoring it is a real need.
+  deletedAt DateTime?
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([featured])
+  @@index([publishedAt])
+  @@index([primaryImageId])
+}
+
+/// A product's gallery, ordered.
+model ProductImage {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  mediaId String
+  media   MediaAsset @relation("ProductGalleryImage", fields: [mediaId], references: [id], onDelete: Cascade)
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  /// The same picture twice in one gallery is always a mistake.
+  @@unique([productId, mediaId])
+  @@index([productId, order])
+}
+
+/// Which clinical departments use a product.
+model ProductSpecialty {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  specialtyId String
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([productId, specialtyId])
+  @@index([specialtyId])
+}
+
+/// Which packaged offerings include a product.
+model ProductSolution {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  solutionId String
+  solution   Solution @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, solutionId])
+  @@index([solutionId])
 }

@@ -68,6 +68,60 @@ export function TableSearch({
 }
 
 /* -------------------------------------------------------------------------
+ * Filters
+ * ---------------------------------------------------------------------- */
+
+export type FilterOption = { value: string; label: string };
+
+/**
+ * A single-choice filter held in the URL.
+ *
+ * The URL is the state, so the server does the filtering, a filtered view is
+ * shareable, and the back button undoes a filter the way a visitor expects.
+ */
+export function TableFilter({
+  paramName,
+  label,
+  options,
+  allLabel,
+}: {
+  paramName: string;
+  label: string;
+  options: FilterOption[];
+  allLabel: string;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const value = searchParams.get(paramName) ?? "";
+
+  const apply = (next: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set(paramName, next);
+    else params.delete(paramName);
+    // A changed filter invalidates the current page offset.
+    params.delete("page");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  return (
+    <Select
+      value={value}
+      aria-label={label}
+      onChange={(event) => apply(event.target.value)}
+      className="w-full sm:w-auto"
+    >
+      <option value="">{allLabel}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
+/* -------------------------------------------------------------------------
  * Column visibility — kept in the URL so the view is shareable and the server
  * decides what to render rather than the browser hiding cells after the fact.
  * ---------------------------------------------------------------------- */
@@ -274,7 +328,12 @@ export function BulkActionBar({
           <input key={id} type="hidden" name="ids" value={id} />
         ))}
 
-        <Select name="bulkAction" defaultValue="" required aria-label="Bulk action">
+        <Select
+          name="bulkAction"
+          defaultValue=""
+          required
+          aria-label="Bulk action"
+        >
           <option value="" disabled>
             Choose an action
           </option>

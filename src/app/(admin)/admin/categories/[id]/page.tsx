@@ -90,6 +90,19 @@ export default async function EditCategoryPage({
         }
       />
 
+      {error === "has-products" ? (
+        <div
+          role="alert"
+          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3.5"
+        >
+          <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Products still sit in this category. A product belongs to exactly
+            one category, so move them elsewhere before deleting it.
+          </span>
+        </div>
+      ) : null}
+
       {error === "has-children" ? (
         <div
           role="alert"

@@ -303,7 +303,12 @@ export async function deleteCategoryAction(formData: FormData): Promise<void> {
       id: true,
       name: true,
       depth: true,
-      _count: { select: { children: { where: { deletedAt: null } } } },
+      _count: {
+        select: {
+          children: { where: { deletedAt: null } },
+          products: { where: { deletedAt: null } },
+        },
+      },
     },
   });
   if (!category) redirect("/admin/categories");
@@ -312,6 +317,13 @@ export async function deleteCategoryAction(formData: FormData): Promise<void> {
   // branch of the catalogue — and its URLs — with it.
   if (category._count.children > 0) {
     redirect(`/admin/categories/${category.id}?error=has-children`);
+  }
+
+  // A product sits in exactly one category, so deleting the category would
+  // leave it with nowhere to live. The database refuses it too; this is the
+  // message that explains why.
+  if (category._count.products > 0) {
+    redirect(`/admin/categories/${category.id}?error=has-products`);
   }
 
   await prisma.category.update({

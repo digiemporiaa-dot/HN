@@ -223,9 +223,21 @@ export async function deleteBrandAction(formData: FormData): Promise<void> {
 
   const brand = await prisma.brand.findUnique({
     where: { id: parsed.data.brandId },
-    select: { id: true, name: true, slug: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      _count: { select: { products: { where: { deletedAt: null } } } },
+    },
   });
   if (!brand) redirect("/admin/brands");
+
+  // Refused rather than allowed to strip the manufacturer from every product
+  // that names it. Which brand made a device is not incidental detail on a
+  // medical catalogue.
+  if (brand._count.products > 0) {
+    redirect(`/admin/brands/${brand.id}?error=has-products`);
+  }
 
   // Category links cascade in the database; the media usage rows do not, so
   // they are cleared explicitly or the library would keep counting the logo as
