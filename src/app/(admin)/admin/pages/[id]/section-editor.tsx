@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+
+import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import {
   AlertCircle,
   AlertTriangle,
@@ -51,6 +53,8 @@ export type EditableSection = {
   enabled: boolean;
   /** False when the stored content fails its schema, so the page skips it. */
   complete: boolean;
+  /** Changes only when a write lands, so the editor catches up after a save. */
+  version: string;
   anchorId: string;
   content: Record<string, unknown>;
   design: Record<string, string>;
@@ -161,10 +165,16 @@ export function SectionEditor({
     INITIAL,
   );
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState(() => initialValues(section));
-  const [enabled, setEnabled] = useState(section.enabled);
-  const [anchorId, setAnchorId] = useState(section.anchorId);
-  const [design, setDesign] = useState(section.design);
+  const [values, setValues] = useSyncedState(
+    initialValues(section),
+    section.version,
+  );
+  const [enabled, setEnabled] = useSyncedState(section.enabled, section.version);
+  const [anchorId, setAnchorId] = useSyncedState(
+    section.anchorId,
+    section.version,
+  );
+  const [design, setDesign] = useSyncedState(section.design, section.version);
 
   const setValue = (name: string, next: FieldValue) =>
     setValues((current) => ({ ...current, [name]: next }));

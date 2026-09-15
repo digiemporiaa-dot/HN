@@ -45,6 +45,7 @@ function toEditorNodes(
     highlight: node.highlight,
     imageId: imageIdByItem.get(node.id) ?? null,
     depth: node.depth,
+    version: node.version,
     children: toEditorNodes(node.children, imageIdByItem),
   }));
 }

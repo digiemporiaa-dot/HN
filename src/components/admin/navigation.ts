@@ -6,6 +6,7 @@ import {
   Building2,
   ClipboardList,
   FileText,
+  FolderTree,
   Gauge,
   Image,
   Layers,
@@ -90,7 +91,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/categories",
         icon: Tags,
         module: "CATEGORIES",
-        available: false,
+        available: true,
+      },
+      {
+        label: "Subcategories",
+        href: "/admin/subcategories",
+        icon: FolderTree,
+        module: "CATEGORIES",
+        available: true,
       },
       {
         label: "Brands",

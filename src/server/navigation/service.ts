@@ -65,6 +65,8 @@ export type NavigationNode = {
   highlight: boolean;
   imageUrl: string | null;
   imageAlt: string;
+  /** Changes only when a write lands, so editors can resync on it. */
+  version: string;
   children: NavigationNode[];
 };
 
@@ -79,6 +81,7 @@ type ItemRow = {
   visible: boolean;
   openInNewTab: boolean;
   highlight: boolean;
+  updatedAt: Date;
   image: { storageKey: string; altText: string | null } | null;
 };
 
@@ -105,6 +108,7 @@ function toTree(rows: ItemRow[], includeHidden: boolean): NavigationNode[] {
       highlight: row.highlight,
       imageUrl: row.image ? publicUrlForKey(row.image.storageKey) : null,
       imageAlt: row.image?.altText ?? "",
+      version: row.updatedAt.toISOString(),
       children: [],
     });
   }
@@ -154,6 +158,7 @@ const SELECT = {
   visible: true,
   openInNewTab: true,
   highlight: true,
+  updatedAt: true,
   image: { select: { storageKey: true, altText: true } },
 } as const;
 

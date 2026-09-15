@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+
+import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import {
   AlertCircle,
   AlertTriangle,
@@ -37,6 +39,8 @@ export type EditorNode = {
   imageId: string | null;
   depth: number;
   children: EditorNode[];
+  /** Changes only when a write lands, so the form catches up after a save. */
+  version: string;
 };
 
 export type MenuShape = "HEADER" | "FOOTER" | "LEGAL";
@@ -151,7 +155,7 @@ function ItemForm({
 
   // Controlled: React clears an uncontrolled form once the action resolves,
   // which would discard the editor's work whenever validation fails.
-  const [values, setValues] = useState({
+  const [values, setValues] = useSyncedState({
     label: node.label,
     href: node.href ?? "",
     description: node.description ?? "",
@@ -159,7 +163,7 @@ function ItemForm({
     visible: node.visible,
     openInNewTab: node.openInNewTab,
     highlight: node.highlight,
-  });
+  }, node.version);
 
   const set = <K extends keyof typeof values>(
     key: K,

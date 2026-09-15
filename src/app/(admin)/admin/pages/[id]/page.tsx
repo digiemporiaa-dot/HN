@@ -54,6 +54,7 @@ export default async function EditPagePage({
       title: true,
       slug: true,
       status: true,
+      updatedAt: true,
       sections: {
         orderBy: { order: "asc" },
         select: {
@@ -64,6 +65,7 @@ export default async function EditPagePage({
           anchorId: true,
           content: true,
           design: true,
+          updatedAt: true,
         },
       },
     },
@@ -120,6 +122,7 @@ export default async function EditPagePage({
         id: section.id,
         type: section.type,
         complete,
+        version: section.updatedAt.toISOString(),
         label: definition.label,
         description: definition.description,
         order: section.order,
@@ -179,6 +182,7 @@ export default async function EditPagePage({
             status={page.status}
             canPublish={can("PAGES", "PUBLISH")}
             readOnly={!canEdit}
+            version={page.updatedAt.toISOString()}
           />
         </CardContent>
       </Card>

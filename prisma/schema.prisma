@@ -430,6 +430,8 @@ model MediaAsset {
   usages          MediaUsage[]
   staffAvatar     Staff[]          @relation("StaffAvatar")
   navigationItems NavigationItem[] @relation("NavigationItemImage")
+  categoryImages  Category[]       @relation("CategoryImage")
+  categoryBanners Category[]       @relation("CategoryBanner")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -585,4 +587,58 @@ model NavigationItem {
   @@index([menuId, parentId, order])
   @@index([parentId])
   @@index([imageId])
+}
+
+/// A catalogue category or subcategory.
+///
+/// One model with a self-relation rather than two tables: a subcategory needs
+/// exactly what a category needs — its own slug, image, status, products and
+/// eventually SEO — and two near-identical tables would duplicate every query,
+/// every form and every SEO code path. The admin presents them as separate
+/// screens over this one model.
+model Category {
+  id String @id @default(cuid())
+
+  slug String
+  name String
+
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+
+  /// 0 for a category, 1 for a subcategory. Stored rather than derived so list
+  /// screens can filter by level without walking the tree.
+  depth Int @default(0)
+  order Int @default(0)
+
+  shortDescription String?
+  description      String?
+
+  imageId String?
+  image   MediaAsset? @relation("CategoryImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  bannerId String?
+  banner   MediaAsset? @relation("CategoryBanner", fields: [bannerId], references: [id], onDelete: SetNull)
+
+  /// Surfaced in category grids on the homepage and in the mega menu.
+  featured Boolean @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  /// Soft deleted: a category carries products, URLs and inbound links, so
+  /// deleting one by mistake is expensive and restoring it is a real need.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, slug])
+  @@index([parentId, order])
+  @@index([status])
+  @@index([depth])
+  @@index([deletedAt])
+  @@index([featured])
+  @@index([imageId])
+  @@index([bannerId])
 }

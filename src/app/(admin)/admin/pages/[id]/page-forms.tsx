@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+
+import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { AlertCircle, CheckCircle2, Plus } from "lucide-react";
 
 import { Button, Field, Input, Select } from "@/components/ui";
@@ -110,6 +112,7 @@ export function PageSettingsForm({
   status,
   canPublish,
   readOnly,
+  version,
 }: {
   pageId: string;
   title: string;
@@ -117,12 +120,14 @@ export function PageSettingsForm({
   status: string;
   canPublish: boolean;
   readOnly: boolean;
+  /** Changes only when a write lands, so the form catches up after a save. */
+  version: string;
 }) {
   const [state, formAction, pending] = useActionState(
     updatePageAction,
     INITIAL,
   );
-  const [values, setValues] = useState({ title, slug, status });
+  const [values, setValues] = useSyncedState({ title, slug, status }, version);
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
