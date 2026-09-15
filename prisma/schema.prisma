@@ -53,6 +53,7 @@ enum PermissionModule {
   BRANDS
   SPECIALTIES
   SOLUTIONS
+  APPLICATIONS
   LOCATIONS
   PAGES
   BLOGS
@@ -440,6 +441,7 @@ model MediaAsset {
   solutionBanners      Solution[]       @relation("SolutionBanner")
   productPrimaryImages Product[]        @relation("ProductPrimaryImage")
   productGalleryImages ProductImage[]   @relation("ProductGalleryImage")
+  productDocuments     ProductDocument[] @relation("ProductDocumentFile")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -642,6 +644,8 @@ model Category {
   specialties CategorySpecialty[]
   solutions   SolutionCategory[]
   products    Product[]
+
+  specTemplate SpecTemplate?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -869,6 +873,15 @@ model Product {
   specialties ProductSpecialty[]
   solutions   ProductSolution[]
 
+  specGroups   ProductSpecGroup[]
+  documents    ProductDocument[]
+  applications ProductApplication[]
+
+  /// Two sides of one table: what this product points at, and what points at
+  /// it. The second exists so deleting a product can clear the links naming it.
+  relatedFrom ProductRelated[] @relation("ProductRelatedFrom")
+  relatedTo   ProductRelated[] @relation("ProductRelatedTo")
+
   featured Boolean @default(false)
   order    Int     @default(0)
 
@@ -932,4 +945,201 @@ model ProductSolution {
 
   @@id([productId, solutionId])
   @@index([solutionId])
+}
+
+// ---------------------------------------------------------------------------
+// Product information
+// ---------------------------------------------------------------------------
+
+/// What a document is, which decides how the product page labels and groups it.
+enum DocumentKind {
+  BROCHURE
+  DATASHEET
+  MANUAL
+  CERTIFICATE
+  CASE_STUDY
+  OTHER
+}
+
+/// The specification fields a category's products are expected to fill in.
+///
+/// A template exists so two ventilators can be compared line by line instead of
+/// each carrying whatever the person entering it happened to think of. It is
+/// applied to a product on request and copied, never linked: once a product has
+/// its own specifications, editing the template must not silently rewrite what
+/// is already published.
+model SpecTemplate {
+  id   String @id @default(cuid())
+  name String
+
+  /// One per category. The template only makes products comparable if there is
+  /// a single answer to "what fields does this category use".
+  categoryId String   @unique
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  groups SpecTemplateGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SpecTemplateGroup {
+  id String @id @default(cuid())
+
+  templateId String
+  template   SpecTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  label String
+  order Int    @default(0)
+
+  fields SpecTemplateField[]
+
+  @@index([templateId, order])
+}
+
+model SpecTemplateField {
+  id String @id @default(cuid())
+
+  groupId String
+  group   SpecTemplateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  label String
+
+  /// "mm", "kg", "L/min" — kept apart from the value so a specification table
+  /// can align units in their own column.
+  unit  String?
+  order Int     @default(0)
+
+  @@index([groupId, order])
+}
+
+/// A product's own specifications, grouped as they are displayed.
+model ProductSpecGroup {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  label String
+  order Int    @default(0)
+
+  items ProductSpecItem[]
+
+  @@index([productId, order])
+}
+
+model ProductSpecItem {
+  id String @id @default(cuid())
+
+  groupId String
+  group   ProductSpecGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  label String
+  value String
+  unit  String?
+  order Int     @default(0)
+
+  @@index([groupId, order])
+}
+
+/// A downloadable file attached to a product.
+model ProductDocument {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  mediaId String
+  media   MediaAsset @relation("ProductDocumentFile", fields: [mediaId], references: [id], onDelete: Cascade)
+
+  /// The label shown to a visitor, which is rarely the uploaded filename.
+  title String
+  kind  DocumentKind @default(BROCHURE)
+
+  /// Whether the file is released only after an enquiry. Stored here so the
+  /// decision lives with the document; the gate itself is enforced by the
+  /// download route once the lead capture exists.
+  gated Boolean @default(false)
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, mediaId])
+  @@index([productId, order])
+  @@index([mediaId])
+}
+
+/// What a product is used for.
+///
+/// A third axis, distinct from the other two: a specialty is the department
+/// that owns the equipment, a solution is the package the company delivers, and
+/// an application is the procedure the device is bought to perform.
+model Application {
+  id   String @id @default(cuid())
+  slug String @unique
+  name String
+
+  description String?
+  order       Int     @default(0)
+
+  products ProductApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+model ProductApplication {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@id([productId, applicationId])
+  @@index([applicationId])
+}
+
+/// Products an editor has chosen to show alongside another.
+///
+/// Deliberately one-directional: "buy this cart with this monitor" does not
+/// imply the reverse, and an automatic back-link would fill accessory pages
+/// with every machine that happens to use them.
+model ProductRelated {
+  productId String
+  product   Product @relation("ProductRelatedFrom", fields: [productId], references: [id], onDelete: Cascade)
+
+  relatedId String
+  related   Product @relation("ProductRelatedTo", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  order Int @default(0)
+
+  @@id([productId, relatedId])
+  @@index([relatedId])
+}
+
+/// A question and answer attached to any record that can carry one.
+///
+/// Polymorphic in the same way MediaUsage is: FAQs hang off products now and
+/// off categories, solutions and pages later, and a foreign key per owner would
+/// mean a migration every time another screen wants them. The cost is the same
+/// one MediaUsage pays — no referential integrity — so rows are cleared
+/// explicitly when their owner is deleted.
+model Faq {
+  id String @id @default(cuid())
+
+  entityType String
+  entityId   String
+
+  question String
+  answer   String
+  order    Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId, order])
 }

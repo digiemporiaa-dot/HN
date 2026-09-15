@@ -1,7 +1,4 @@
-import {
-  PermissionAction,
-  PermissionModule,
-} from "@/generated/prisma/enums";
+import { PermissionAction, PermissionModule } from "@/generated/prisma/enums";
 
 /**
  * The authoritative definition of the permission surface.
@@ -21,6 +18,8 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
   BRANDS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
   SPECIALTIES: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
   SOLUTIONS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
+  // No PUBLISH: an application is a label on a product, not a page of its own.
+  APPLICATIONS: ["VIEW", "CREATE", "EDIT", "DELETE"],
   LOCATIONS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
   PAGES: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
   BLOGS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
@@ -44,6 +43,7 @@ export const MODULE_LABELS: Record<PermissionModule, string> = {
   BRANDS: "Brands",
   SPECIALTIES: "Specialties",
   SOLUTIONS: "Solutions",
+  APPLICATIONS: "Applications",
   LOCATIONS: "Locations",
   PAGES: "Pages",
   BLOGS: "Blogs",
@@ -147,6 +147,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("BRANDS", "VIEW"),
       ...only("SPECIALTIES", "VIEW"),
       ...only("SOLUTIONS", "VIEW"),
+      ...only("APPLICATIONS", "VIEW"),
       ...only("LOCATIONS", "VIEW"),
     ],
   },
@@ -164,6 +165,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("BRANDS", "VIEW"),
       ...only("SPECIALTIES", "VIEW"),
       ...only("SOLUTIONS", "VIEW"),
+      ...only("APPLICATIONS", "VIEW"),
     ],
   },
   {
@@ -182,6 +184,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("BRANDS", "VIEW", "CREATE", "EDIT", "PUBLISH"),
       ...only("SPECIALTIES", "VIEW", "CREATE", "EDIT", "PUBLISH"),
       ...only("SOLUTIONS", "VIEW", "CREATE", "EDIT", "PUBLISH"),
+      ...everything("APPLICATIONS"),
       ...only("FORMS", "VIEW", "CREATE", "EDIT"),
       // Deliberately view-only: location pages are the highest SEO risk surface
       // and publishing them belongs to the SEO Manager.
@@ -206,6 +209,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("BRANDS", "VIEW", "EDIT"),
       ...only("SPECIALTIES", "VIEW", "EDIT"),
       ...only("SOLUTIONS", "VIEW", "EDIT"),
+      ...only("APPLICATIONS", "VIEW", "EDIT"),
       ...only("MEDIA", "VIEW"),
     ],
   },

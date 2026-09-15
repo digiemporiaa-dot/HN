@@ -26,7 +26,13 @@ import {
   deleteCategoryAction,
   moveCategoryAction,
 } from "@/server/categories/actions";
+import { specTemplateFor } from "@/server/products/info-service";
+import {
+  saveSpecTemplateAction,
+  deleteSpecTemplateAction,
+} from "@/server/spec-templates/actions";
 import { CategoryForm } from "../category-form";
+import { SpecTemplateEditor } from "./spec-template-editor";
 
 export const metadata: Metadata = {
   title: "Edit category",
@@ -46,9 +52,10 @@ export default async function EditCategoryPage({
   const { id } = await params;
   const { error } = await searchParams;
 
-  const [category, mediaOptions] = await Promise.all([
+  const [category, mediaOptions, specTemplate] = await Promise.all([
     findCategory(id),
     pickableMedia(),
+    specTemplateFor(id),
   ]);
   if (!category) notFound();
 
@@ -81,7 +88,10 @@ export default async function EditCategoryPage({
               <form action={deleteCategoryAction}>
                 <input type="hidden" name="categoryId" value={category.id} />
                 <Button type="submit" variant="outline" size="sm">
-                  <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
                   Delete
                 </Button>
               </form>
@@ -199,7 +209,11 @@ export default async function EditCategoryPage({
                   {canEdit ? (
                     <div className="flex items-center gap-0.5">
                       <form action={moveCategoryAction}>
-                        <input type="hidden" name="categoryId" value={child.id} />
+                        <input
+                          type="hidden"
+                          name="categoryId"
+                          value={child.id}
+                        />
                         <input type="hidden" name="direction" value="up" />
                         <Button
                           type="submit"
@@ -212,7 +226,11 @@ export default async function EditCategoryPage({
                         </Button>
                       </form>
                       <form action={moveCategoryAction}>
-                        <input type="hidden" name="categoryId" value={child.id} />
+                        <input
+                          type="hidden"
+                          name="categoryId"
+                          value={child.id}
+                        />
                         <input type="hidden" name="direction" value="down" />
                         <Button
                           type="submit"
@@ -232,6 +250,66 @@ export default async function EditCategoryPage({
           )}
         </section>
       ) : null}
+
+      {can("PRODUCTS", "VIEW") ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Specification template</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-body-sm text-ink-muted">
+              The fields products in this category are expected to specify, so
+              two of them can be compared line by line. Applying it to a product
+              copies these fields in; editing it afterwards never changes a
+              product that has already been filled in.
+            </p>
+
+            <SpecTemplateEditor
+              categoryId={category.id}
+              saveAction={saveSpecTemplateAction}
+              readOnly={!can("PRODUCTS", "EDIT")}
+              version={specTemplateSignature(specTemplate)}
+              name={specTemplate?.name ?? `${category.name} specifications`}
+              groups={(specTemplate?.groups ?? []).map((group) => ({
+                label: group.label,
+                fields: group.fields.map((field) => ({
+                  label: field.label,
+                  unit: field.unit ?? "",
+                })),
+              }))}
+            />
+
+            {specTemplate && can("PRODUCTS", "EDIT") ? (
+              <form action={deleteSpecTemplateAction}>
+                <input type="hidden" name="categoryId" value={category.id} />
+                <Button type="submit" variant="ghost" size="sm">
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
+                  Remove the template
+                </Button>
+              </form>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
     </AdminPage>
   );
+}
+
+/**
+ * A version string that changes only when the template has been written.
+ *
+ * Rows are recreated on every save, so their ids are the cheapest honest signal
+ * that a write landed — and on a rejected save they are unchanged, which is
+ * what keeps the editor's unsaved work on screen.
+ */
+function specTemplateSignature(
+  template: Awaited<ReturnType<typeof specTemplateFor>>,
+): string {
+  if (!template) return "none";
+  return `${template.id}:${template.groups
+    .map((group) => `${group.id}(${group.fields.map((f) => f.id).join(",")})`)
+    .join("|")}`;
 }
