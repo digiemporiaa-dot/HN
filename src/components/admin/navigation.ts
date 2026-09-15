@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   MapPin,
   Newspaper,
+  Route,
   ScrollText,
   Search,
   Settings,
@@ -130,6 +131,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: Newspaper,
         module: "BLOGS",
         available: false,
+      },
+      {
+        label: "Navigation",
+        href: "/admin/navigation",
+        icon: Route,
+        module: "NAVIGATION",
+        available: true,
       },
       {
         label: "Media",

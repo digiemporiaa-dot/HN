@@ -56,6 +56,7 @@ enum PermissionModule {
   LOCATIONS
   PAGES
   BLOGS
+  NAVIGATION
   MEDIA
   FORMS
   SEO
@@ -409,7 +410,7 @@ model MediaAsset {
 
   /// Path relative to UPLOAD_ROOT. Generated, never derived from the uploaded
   /// filename, which neutralises filename-based attacks and collisions.
-  storageKey   String @unique
+  storageKey   String    @unique
   originalName String
   mimeType     String
   kind         MediaKind
@@ -426,8 +427,9 @@ model MediaAsset {
   uploadedById String?
   uploadedBy   Staff?  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
-  usages      MediaUsage[]
-  staffAvatar Staff[]      @relation("StaffAvatar")
+  usages          MediaUsage[]
+  staffAvatar     Staff[]          @relation("StaffAvatar")
+  navigationItems NavigationItem[] @relation("NavigationItemImage")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -446,7 +448,7 @@ model MediaAsset {
 /// Reference tracking that powers the "this file is in use" warning before
 /// deletion. Rows are written by the services that attach media, not by hand.
 model MediaUsage {
-  id      String @id @default(cuid())
+  id      String     @id @default(cuid())
   assetId String
   asset   MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
@@ -511,4 +513,76 @@ model PageSection {
 
   @@index([pageId, order])
   @@index([type])
+}
+
+/// Where a menu renders. One menu per location today; the enum rather than a
+/// boolean leaves room for a second header variant without a migration.
+enum NavigationLocation {
+  HEADER
+  FOOTER
+  LEGAL
+}
+
+model NavigationMenu {
+  id String @id @default(cuid())
+
+  /// Stable programmatic handle. The renderer asks for a menu by key, so a menu
+  /// can be renamed in the admin without breaking the layout that draws it.
+  key      String             @unique
+  name     String
+  location NavigationLocation
+
+  description String?
+
+  /// System menus are seeded and cannot be deleted: the public layout expects
+  /// them to exist, and an empty menu is recoverable while a missing one is not.
+  isSystem Boolean @default(true)
+
+  items NavigationItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([location])
+}
+
+/// One entry in a menu tree.
+///
+/// Depth is capped at two by the editor (top level, column, link) because that
+/// is what a mega menu can present legibly; the column is stored as a normal
+/// item with children rather than as a separate model, so reordering and
+/// visibility work identically at every level.
+model NavigationItem {
+  id String @id @default(cuid())
+
+  menuId String
+  menu   NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   NavigationItem?  @relation("NavigationItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children NavigationItem[] @relation("NavigationItemChildren")
+
+  label       String
+  /// Optional: a mega-menu column heading is a label with no destination of
+  /// its own. Validated against the same scheme allowlist as CMS links.
+  href        String?
+  description String?
+
+  order Int
+  depth Int @default(0)
+
+  visible      Boolean @default(true)
+  openInNewTab Boolean @default(false)
+  /// Renders as a button rather than a link — for a single call to action.
+  highlight    Boolean @default(false)
+
+  imageId String?
+  image   MediaAsset? @relation("NavigationItemImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([menuId, parentId, order])
+  @@index([parentId])
+  @@index([imageId])
 }
