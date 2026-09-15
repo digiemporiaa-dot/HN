@@ -16,6 +16,7 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
+import { catalogueChoices } from "@/server/cms/catalogue-choices";
 import { publicUrlForKey } from "@/server/storage/paths";
 import { deletePageAction } from "@/server/cms/actions";
 import {
@@ -72,6 +73,8 @@ export default async function EditPagePage({
   });
 
   if (!page) notFound();
+
+  const catalogue = await catalogueChoices();
 
   const assets = await prisma.mediaAsset.findMany({
     where: { deletedAt: null, kind: { in: [...PICKABLE_KINDS] } },
@@ -202,6 +205,7 @@ export default async function EditPagePage({
                 key={section.id}
                 section={section}
                 mediaOptions={mediaOptions}
+                catalogue={catalogue}
                 isFirst={index === 0}
                 isLast={index === sections.length - 1}
                 readOnly={!canEdit}

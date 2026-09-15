@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -11,6 +12,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import type { SectionDesign } from "@/lib/design/section-options";
 import type { ResolvedMedia } from "@/cms/render-page";
+import type { ResolvedEntity } from "@/cms/sections/entities";
 import { RichText } from "@/cms/rich-text";
 
 export type RendererProps = {
@@ -18,6 +20,11 @@ export type RendererProps = {
   design: SectionDesign;
   /** Resolved URL and alt text for MEDIA fields, keyed by field name. */
   media: Record<string, ResolvedMedia | null>;
+  /**
+   * Catalogue records for ENTITIES fields, keyed by field name, already in the
+   * editor's order and already filtered to what is publicly visible.
+   */
+  entities: Record<string, ResolvedEntity[]>;
 };
 
 const text = (content: Record<string, unknown>, key: string): string =>
@@ -305,6 +312,203 @@ function CallToAction({ content, design }: RendererProps) {
   );
 }
 
+/* -------------------------------------------------------------------------
+ * Catalogue sections
+ *
+ * These render records rather than copy, so a product renamed or withdrawn in
+ * the catalogue changes on every page that shows it without anyone editing
+ * those pages. The resolver has already dropped anything unpublished, so an
+ * empty list here means there is nothing to show and the section says nothing
+ * at all rather than announcing a heading over a gap.
+ * ---------------------------------------------------------------------- */
+
+function GridHeader({
+  content,
+  align,
+}: {
+  content: Record<string, unknown>;
+  align?: string;
+}) {
+  const heading = text(content, "heading");
+  const intro = text(content, "intro");
+  if (!heading && !intro) return null;
+
+  return (
+    <SectionHeader
+      overline={text(content, "overline") || undefined}
+      title={heading}
+      description={intro || undefined}
+      align={align === "center" ? "center" : "left"}
+    />
+  );
+}
+
+function EntityCard({
+  entity,
+  cardStyle,
+}: {
+  entity: ResolvedEntity;
+  cardStyle?: SectionDesign["cardStyle"];
+}) {
+  return (
+    <Card as="li" appearance={cardStyle ?? "standard"} interactive>
+      <Link href={entity.href} className="group flex h-full flex-col gap-3">
+        {entity.image ? (
+          <img
+            src={entity.image.url}
+            alt={entity.image.alt}
+            loading="lazy"
+            className="bg-surface-muted aspect-4/3 w-full rounded-md object-contain"
+          />
+        ) : null}
+
+        <CardContent className="flex flex-1 flex-col gap-1.5 p-0">
+          {entity.meta ? (
+            <span className="text-caption text-ink-subtle">{entity.meta}</span>
+          ) : null}
+          <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
+            {entity.name}
+          </span>
+          {entity.summary ? (
+            <span className="text-body-sm text-ink-muted line-clamp-3">
+              {entity.summary}
+            </span>
+          ) : null}
+        </CardContent>
+      </Link>
+    </Card>
+  );
+}
+
+function CatalogueGrid({ content, design, entities }: RendererProps) {
+  const items = entities.items ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <GridHeader content={content} align={design.align} />
+
+      <ul
+        className={cn(
+          "grid grid-cols-1 gap-5",
+          columnClass[design.columns ?? "3"] ?? columnClass["3"],
+        )}
+      >
+        {items.map((entity) => (
+          <EntityCard
+            key={entity.id}
+            entity={entity}
+            cardStyle={design.cardStyle}
+          />
+        ))}
+      </ul>
+
+      <Actions
+        primaryLabel={text(content, "ctaLabel")}
+        primaryHref={text(content, "ctaHref")}
+        secondaryLabel=""
+        secondaryHref=""
+        align={design.align}
+      />
+    </div>
+  );
+}
+
+function LogoStrip({ content, entities }: RendererProps) {
+  const items = entities.items ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {text(content, "heading") ? (
+        <h2 className="text-h4 text-ink-muted text-center">
+          {text(content, "heading")}
+        </h2>
+      ) : null}
+
+      <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+        {items.map((entity) => (
+          <li key={entity.id}>
+            <Link
+              href={entity.href}
+              className="opacity-70 transition-opacity hover:opacity-100"
+            >
+              {entity.image ? (
+                <img
+                  src={entity.image.url}
+                  alt={entity.image.alt || entity.name}
+                  loading="lazy"
+                  className="max-h-12 w-auto object-contain"
+                />
+              ) : (
+                <span className="text-body-sm text-ink-muted font-medium">
+                  {entity.name}
+                </span>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const DOCUMENT_LABELS: Record<string, string> = {
+  BROCHURE: "Brochure",
+  DATASHEET: "Datasheet",
+  MANUAL: "User manual",
+  CERTIFICATE: "Certificate",
+  CASE_STUDY: "Case study",
+  OTHER: "Document",
+};
+
+const fileSize = (bytes: number) =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+function BrochureDownload({ content, entities }: RendererProps) {
+  const product = (entities.items ?? [])[0];
+  if (!product || product.documents.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionHeader
+        title={text(content, "heading") || product.name}
+        description={text(content, "intro") || undefined}
+        align="left"
+      />
+
+      <ul className="flex flex-col gap-2">
+        {product.documents.map((document) => (
+          <li key={document.href}>
+            <a
+              href={document.href}
+              target="_blank"
+              rel="noreferrer"
+              className="border-line bg-surface hover:border-line-strong flex items-center gap-3 rounded-md border p-4 transition-colors"
+            >
+              <Download
+                aria-hidden="true"
+                className="text-primary size-5 shrink-0"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="text-body-sm text-ink block font-medium">
+                  {document.title}
+                </span>
+                <span className="text-caption text-ink-subtle block">
+                  {DOCUMENT_LABELS[document.kind] ?? "Document"} ·{" "}
+                  {fileSize(document.sizeBytes)}
+                </span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* eslint-enable @next/next/no-img-element */
 
 export const SECTION_RENDERERS: Record<
@@ -319,4 +523,13 @@ export const SECTION_RENDERERS: Record<
   ICON_CARDS: IconCards,
   FAQ: Faq,
   CTA: CallToAction,
+  // One grid renderer for all five: they differ in which table they read, which
+  // the resolver has already settled by the time a card is drawn.
+  PRODUCT_GRID: CatalogueGrid,
+  CATEGORY_GRID: CatalogueGrid,
+  SUBCATEGORY_GRID: CatalogueGrid,
+  BRAND_GRID: CatalogueGrid,
+  SPECIALTY_GRID: CatalogueGrid,
+  LOGO_STRIP: LogoStrip,
+  BROCHURE_DOWNLOAD: BrochureDownload,
 };

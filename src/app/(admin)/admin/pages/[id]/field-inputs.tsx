@@ -16,7 +16,8 @@ export type MediaOption = {
 
 /** A repeater row is a flat map of its own scalar fields. */
 export type RepeaterRow = Record<string, string>;
-export type FieldValue = string | RepeaterRow[];
+/** A scalar, a repeater's rows, or an ordered list of catalogue ids. */
+export type FieldValue = string | RepeaterRow[] | string[];
 
 type ControlProps = {
   id: string;

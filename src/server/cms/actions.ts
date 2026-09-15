@@ -313,14 +313,16 @@ export async function updateSectionAction(
   const schema = contentSchemaFor(section.type);
   if (!definition || !schema) return { error: "That section type is not available." };
 
-  // Content arrives as flat form fields; repeaters are posted as JSON because
-  // a nested list cannot be expressed in form encoding without inventing one.
+  // Content arrives as flat form fields. Repeaters and catalogue selections are
+  // posted as JSON because neither a nested list nor an ordered one can be
+  // expressed in form encoding without inventing a convention for it.
   const raw: Record<string, unknown> = {};
   for (const field of definition.fields) {
-    if (field.kind === "repeater") {
+    if (field.kind === "repeater" || field.kind === "entities") {
       const json = String(formData.get(field.name) ?? "[]");
       try {
-        raw[field.name] = JSON.parse(json);
+        const parsedJson: unknown = JSON.parse(json);
+        raw[field.name] = Array.isArray(parsedJson) ? parsedJson : [];
       } catch {
         raw[field.name] = [];
       }

@@ -41,6 +41,8 @@ import {
   type MediaOption,
   type RepeaterRow,
 } from "./field-inputs";
+import { EntityPicker } from "./entity-picker";
+import type { CatalogueChoices } from "@/server/cms/catalogue-choices";
 
 const INITIAL: CmsActionState = {};
 
@@ -92,7 +94,13 @@ function initialValues(section: EditableSection): Record<string, FieldValue> {
   for (const field of section.fields) {
     const stored = section.content[field.name];
 
-    if (field.kind === "repeater") {
+    if (field.kind === "entities") {
+      values[field.name] = Array.isArray(stored)
+        ? (stored as unknown[]).filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          )
+        : [];
+    } else if (field.kind === "repeater") {
       values[field.name] = Array.isArray(stored)
         ? (stored as unknown[]).map((row) => {
             const source = (row ?? {}) as Record<string, unknown>;
@@ -150,12 +158,14 @@ function IconForm({
 export function SectionEditor({
   section,
   mediaOptions,
+  catalogue,
   isFirst,
   isLast,
   readOnly,
 }: {
   section: EditableSection;
   mediaOptions: MediaOption[];
+  catalogue: CatalogueChoices;
   isFirst: boolean;
   isLast: boolean;
   readOnly: boolean;
@@ -287,7 +297,37 @@ export function SectionEditor({
 
           <div className="grid gap-5 md:grid-cols-2">
             {section.fields.map((field) =>
-              field.kind === "repeater" ? (
+              field.kind === "entities" ? (
+                <Field
+                  key={field.name}
+                  label={field.label}
+                  help={field.help}
+                  error={state.fieldErrors?.[field.name]}
+                  className="md:col-span-2"
+                >
+                  {() => (
+                    <>
+                      {/* Posted as JSON: the selection is ordered, which form
+                          encoding cannot express. */}
+                      <input
+                        type="hidden"
+                        name={field.name}
+                        value={JSON.stringify(
+                          (values[field.name] as string[]) ?? [],
+                        )}
+                      />
+                      <EntityPicker
+                        entity={field.entity}
+                        value={(values[field.name] as string[]) ?? []}
+                        choices={catalogue[field.entity]}
+                        max={field.max}
+                        disabled={readOnly}
+                        onChange={(next) => setValue(field.name, next)}
+                      />
+                    </>
+                  )}
+                </Field>
+              ) : field.kind === "repeater" ? (
                 <RepeaterField
                   key={field.name}
                   field={field}

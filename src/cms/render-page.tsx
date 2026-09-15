@@ -14,6 +14,12 @@ import {
   type SectionDesign,
 } from "@/lib/design/section-options";
 import { contentSchemaFor, getSectionDefinition } from "./sections/definitions";
+import {
+  entityKey,
+  resolveEntities,
+  type EntityRequest,
+  type ResolvedEntity,
+} from "./sections/entities";
 import { SECTION_RENDERERS } from "./sections/renderers";
 
 export type StoredSection = {
@@ -44,7 +50,11 @@ function normaliseDesign(raw: unknown, anchorId: string | null): SectionDesign {
       : fallback;
 
   return {
-    spacing: pick(source.spacing, SECTION_SPACING, DEFAULT_SECTION_DESIGN.spacing),
+    spacing: pick(
+      source.spacing,
+      SECTION_SPACING,
+      DEFAULT_SECTION_DESIGN.spacing,
+    ),
     container: pick(
       source.container,
       SECTION_CONTAINER,
@@ -56,7 +66,11 @@ function normaliseDesign(raw: unknown, anchorId: string | null): SectionDesign {
       DEFAULT_SECTION_DESIGN.background,
     ),
     align: pick(source.align, SECTION_ALIGN, DEFAULT_SECTION_DESIGN.align!),
-    columns: pick(source.columns, SECTION_COLUMNS, DEFAULT_SECTION_DESIGN.columns!),
+    columns: pick(
+      source.columns,
+      SECTION_COLUMNS,
+      DEFAULT_SECTION_DESIGN.columns!,
+    ),
     cardStyle: pick(
       source.cardStyle,
       CARD_STYLE,
@@ -108,6 +122,31 @@ async function resolveMedia(
   );
 }
 
+/** Collects every catalogue selection on the page so they load in one pass. */
+function entityRequests(sections: StoredSection[]): EntityRequest[] {
+  const requests: EntityRequest[] = [];
+
+  for (const section of sections) {
+    const definition = getSectionDefinition(section.type);
+    if (!definition) continue;
+    const content = (section.content ?? {}) as Record<string, unknown>;
+
+    for (const field of definition.fields) {
+      if (field.kind !== "entities") continue;
+      const value = content[field.name];
+      if (!Array.isArray(value)) continue;
+
+      requests.push({
+        kind: field.entity,
+        ids: value.filter((id): id is string => typeof id === "string" && !!id),
+        withDocuments: field.withDocuments ?? false,
+      });
+    }
+  }
+
+  return requests;
+}
+
 export async function RenderedSections({
   sections,
 }: {
@@ -117,7 +156,10 @@ export async function RenderedSections({
     .filter((section) => section.enabled)
     .sort((a, b) => a.order - b.order);
 
-  const mediaById = await resolveMedia(enabled);
+  const [mediaById, entityById] = await Promise.all([
+    resolveMedia(enabled),
+    resolveEntities(entityRequests(enabled)),
+  ]);
 
   return (
     <>
@@ -154,6 +196,23 @@ export async function RenderedSections({
               : null;
         }
 
+        // Kept in the order the editor arranged, with anything unpublished or
+        // deleted simply absent rather than rendered as a gap.
+        const entities: Record<string, ResolvedEntity[]> = {};
+        for (const field of definition.fields) {
+          if (field.kind !== "entities") continue;
+          const ids = content[field.name];
+          entities[field.name] = Array.isArray(ids)
+            ? ids.flatMap((id) => {
+                const found =
+                  typeof id === "string"
+                    ? entityById.get(entityKey(field.entity, id))
+                    : undefined;
+                return found ? [found] : [];
+              })
+            : [];
+        }
+
         return (
           <Section
             key={section.id}
@@ -162,7 +221,12 @@ export async function RenderedSections({
             background={design.background}
             anchorId={design.anchorId}
           >
-            <Renderer content={content} design={design} media={media} />
+            <Renderer
+              content={content}
+              design={design}
+              media={media}
+              entities={entities}
+            />
           </Section>
         );
       })}

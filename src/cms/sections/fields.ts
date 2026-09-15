@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { EntityKind } from "./entity-kinds";
+
 /**
  * Section content is described by field specifications rather than hand-written
  * per-type forms and per-type schemas.
@@ -61,6 +63,25 @@ export type FieldSpec =
       options: Array<{ value: string; label: string }>;
     }
   | {
+      /**
+       * An ordered selection of catalogue records — products, categories,
+       * brands, specialties.
+       *
+       * The section stores ids, not copies. A product renamed in the catalogue
+       * is renamed on every page that shows it, which is the whole reason these
+       * sections exist rather than an editor retyping the range into a repeater.
+       */
+      kind: "entities";
+      name: string;
+      label: string;
+      help?: string;
+      entity: EntityKind;
+      min?: number;
+      max: number;
+      /** Set where the section renders a product's documents rather than a card. */
+      withDocuments?: boolean;
+    }
+  | {
       kind: "repeater";
       name: string;
       label: string;
@@ -94,7 +115,10 @@ function schemaForField(field: FieldSpec): z.ZodTypeAny {
     case "text":
     case "textarea":
     case "richtext": {
-      let schema = z.string().trim().max(field.maxLength ?? 5000);
+      let schema = z
+        .string()
+        .trim()
+        .max(field.maxLength ?? 5000);
       if (field.required) schema = schema.min(1, `${field.label} is required`);
       return field.required ? schema : schema.default("");
     }
@@ -108,8 +132,19 @@ function schemaForField(field: FieldSpec): z.ZodTypeAny {
         : linkSchema.default("");
     case "select":
       return z
-        .enum(field.options.map((option) => option.value) as [string, ...string[]])
+        .enum(
+          field.options.map((option) => option.value) as [string, ...string[]],
+        )
         .catch(field.options[0].value);
+    case "entities": {
+      const schema = z.array(z.string().trim().min(1)).max(field.max);
+      return field.min
+        ? schema.min(
+            field.min,
+            `Choose at least ${field.min} for ${field.label}`,
+          )
+        : schema.default([]);
+    }
     case "repeater":
       return z
         .array(buildContentSchema(field.fields))
@@ -133,10 +168,14 @@ export function buildDefaults(fields: FieldSpec[]): Record<string, unknown> {
   for (const field of fields) {
     defaults[field.name] =
       field.kind === "repeater"
-        ? Array.from({ length: field.min ?? 0 }, () => buildDefaults(field.fields))
-        : field.kind === "select"
-          ? field.options[0].value
-          : "";
+        ? Array.from({ length: field.min ?? 0 }, () =>
+            buildDefaults(field.fields),
+          )
+        : field.kind === "entities"
+          ? []
+          : field.kind === "select"
+            ? field.options[0].value
+            : "";
   }
   return defaults;
 }
