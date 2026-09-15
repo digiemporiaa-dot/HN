@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
+import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
@@ -18,13 +19,6 @@ import {
 } from "@/app/(admin)/admin/pages/[id]/field-inputs";
 
 const INITIAL: CategoryActionState = {};
-
-const STATUS_OPTIONS = [
-  { value: "DRAFT", label: "Draft — not visible publicly" },
-  { value: "REVIEW", label: "In review — not visible publicly" },
-  { value: "PUBLISHED", label: "Published — live on the site" },
-  { value: "ARCHIVED", label: "Archived — not visible publicly" },
-];
 
 export type CategoryFormValues = {
   id?: string;
@@ -190,7 +184,7 @@ export function CategoryForm({
               onChange={(event) => set("status", event.target.value)}
               {...control}
             >
-              {STATUS_OPTIONS.map((option) => (
+              {CONTENT_STATUS_OPTIONS.map((option) => (
                 <option
                   key={option.value}
                   value={option.value}

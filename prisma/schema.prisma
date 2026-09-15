@@ -395,6 +395,8 @@ model MediaFolder {
 
   assets MediaAsset[]
 
+  brands BrandCategory[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -432,6 +434,8 @@ model MediaAsset {
   navigationItems NavigationItem[] @relation("NavigationItemImage")
   categoryImages  Category[]       @relation("CategoryImage")
   categoryBanners Category[]       @relation("CategoryBanner")
+  brandLogos      Brand[]          @relation("BrandLogo")
+  brandBanners    Brand[]          @relation("BrandBanner")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -630,6 +634,8 @@ model Category {
   /// deleting one by mistake is expensive and restoring it is a real need.
   deletedAt DateTime?
 
+  brands BrandCategory[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -641,4 +647,68 @@ model Category {
   @@index([featured])
   @@index([imageId])
   @@index([bannerId])
+}
+
+/// A manufacturer whose equipment the company supplies.
+///
+/// Not soft-deleted: unlike a category or product, a brand carries no content
+/// of its own that would be unrecoverable, and the plan confines soft deletion
+/// to the entities where restore is a genuine requirement.
+model Brand {
+  id String @id @default(cuid())
+
+  /// Brands live at /brands/<slug>, a single segment, so the slug is unique
+  /// across the whole table rather than within a parent.
+  slug String @unique
+  name String
+
+  shortDescription String?
+  description      String?
+
+  /// The manufacturer's own site. Stored so a brand page can credit the source
+  /// rather than implying the equipment is made in-house.
+  websiteUrl String?
+
+  logoId String?
+  logo   MediaAsset? @relation("BrandLogo", fields: [logoId], references: [id], onDelete: SetNull)
+
+  bannerId String?
+  banner   MediaAsset? @relation("BrandBanner", fields: [bannerId], references: [id], onDelete: SetNull)
+
+  /// Surfaced in brand strips on the homepage and category pages.
+  featured Boolean @default(false)
+  order    Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  categories BrandCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([featured])
+  @@index([order])
+  @@index([logoId])
+  @@index([bannerId])
+}
+
+/// Which categories a brand supplies equipment for.
+///
+/// An explicit join rather than an implicit many-to-many, so the pairing can
+/// carry its own ordering later without a migration that rewrites the table.
+model BrandCategory {
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+  mediaFolder   MediaFolder? @relation(fields: [mediaFolderId], references: [id])
+  mediaFolderId String?
+
+  @@id([brandId, categoryId])
+  @@index([categoryId])
 }

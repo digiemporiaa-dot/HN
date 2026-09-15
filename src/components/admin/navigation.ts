@@ -105,7 +105,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/brands",
         icon: BadgeCheck,
         module: "BRANDS",
-        available: false,
+        available: true,
       },
       {
         label: "Specialties",

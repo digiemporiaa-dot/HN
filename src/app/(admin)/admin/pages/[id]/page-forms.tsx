@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
+import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
 import { AlertCircle, CheckCircle2, Plus } from "lucide-react";
 
 import { Button, Field, Input, Select } from "@/components/ui";
@@ -15,13 +16,6 @@ import {
 import { slugify } from "@/lib/validation/cms";
 
 const INITIAL: CmsActionState = {};
-
-const STATUS_OPTIONS = [
-  { value: "DRAFT", label: "Draft — not visible publicly" },
-  { value: "REVIEW", label: "In review — not visible publicly" },
-  { value: "PUBLISHED", label: "Published — live on the site" },
-  { value: "ARCHIVED", label: "Archived — not visible publicly" },
-];
 
 function Feedback({ state }: { state: CmsActionState }) {
   if (state.error) {
@@ -189,7 +183,7 @@ export function PageSettingsForm({
               }
               {...control}
             >
-              {STATUS_OPTIONS.map((option) => (
+              {CONTENT_STATUS_OPTIONS.map((option) => (
                 <option
                   key={option.value}
                   value={option.value}
