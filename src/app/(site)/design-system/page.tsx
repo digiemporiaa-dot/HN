@@ -44,7 +44,19 @@ const PALETTES = [
   { name: "Steel", prefix: "steel" },
 ];
 
-const SHADES = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"];
+const SHADES = [
+  "50",
+  "100",
+  "200",
+  "300",
+  "400",
+  "500",
+  "600",
+  "700",
+  "800",
+  "900",
+  "950",
+];
 
 export default function DesignSystemPage() {
   return (
@@ -77,7 +89,9 @@ export default function DesignSystemPage() {
                         backgroundColor: `var(--color-${palette.prefix}-${shade})`,
                       }}
                     />
-                    <span className="text-caption text-ink-subtle">{shade}</span>
+                    <span className="text-caption text-ink-subtle">
+                      {shade}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -187,7 +201,10 @@ export default function DesignSystemPage() {
       </Section>
 
       <Section spacing="large" background="light">
-        <SectionHeader title="Empty, loading and error states" className="mb-8" />
+        <SectionHeader
+          title="Empty, loading and error states"
+          className="mb-8"
+        />
         <div className="grid gap-6 lg:grid-cols-3">
           <EmptyState
             title="No products found"

@@ -199,6 +199,8 @@ export type CatalogueFilters = {
   categorySlug?: string;
   brandSlug?: string;
   specialtySlug?: string;
+  solutionSlug?: string;
+  applicationSlug?: string;
   page: number;
   pageSize: number;
 };
@@ -229,6 +231,16 @@ export async function publicProductListing(filters: CatalogueFilters) {
     ...(filters.specialtySlug
       ? {
           specialties: { some: { specialty: { slug: filters.specialtySlug } } },
+        }
+      : {}),
+    ...(filters.solutionSlug
+      ? { solutions: { some: { solution: { slug: filters.solutionSlug } } } }
+      : {}),
+    ...(filters.applicationSlug
+      ? {
+          applications: {
+            some: { application: { slug: filters.applicationSlug } },
+          },
         }
       : {}),
     ...(filters.query
