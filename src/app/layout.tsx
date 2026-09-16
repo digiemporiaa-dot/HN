@@ -37,6 +37,13 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       images: settings.ogImageUrl ? [settings.ogImageUrl] : undefined,
     },
+    // A staging site says so on every page. robots.txt asks politely; this is
+    // the instruction crawlers actually honour. It is inherited rather than
+    // forced — a page that sets its own robots wins — but the only pages that
+    // do are already asking not to be indexed.
+    ...(settings.seo.noindex
+      ? { robots: { index: false, follow: false } }
+      : {}),
   };
 }
 

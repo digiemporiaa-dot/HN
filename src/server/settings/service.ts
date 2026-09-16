@@ -112,7 +112,17 @@ export const getSiteSettings = cache(async () => {
       defaultTitle: values["seo.defaultTitle"] ?? "HN Medical System",
       titleTemplate: values["seo.titleTemplate"] ?? "%s | HN Medical System",
       defaultDescription:
-        values["seo.defaultDescription"] ?? values["company.description"] ?? null,
+        values["seo.defaultDescription"] ??
+        values["company.description"] ??
+        null,
+      /**
+       * Whole-site opt-out of indexing, for staging deployments.
+       *
+       * Read as a string because every setting is stored as one; anything that
+       * is not exactly "true" leaves the site indexable, so a malformed value
+       * can never silently hide a production site from search.
+       */
+      noindex: values["seo.noindex"] === "true",
     },
 
     analytics: {

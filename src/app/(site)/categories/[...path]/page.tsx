@@ -60,10 +60,11 @@ export async function generateMetadata({
       type: "website",
       images: category.banner ? [{ url: category.banner.url }] : undefined,
     },
-    robots:
-      category.status === "PUBLISHED"
-        ? undefined
-        : { index: false, follow: false },
+    // Spread rather than set to undefined, so a published page inherits the
+    // site-wide robots setting instead of replacing it.
+    ...(category.status === "PUBLISHED"
+      ? {}
+      : { robots: { index: false, follow: false } }),
   };
 }
 

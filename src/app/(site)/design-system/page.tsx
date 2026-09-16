@@ -63,6 +63,7 @@ export default function DesignSystemPage() {
     <>
       <Section spacing="large" background="light">
         <Breadcrumb
+          structuredData={false}
           items={[{ label: "Home", href: "/" }, { label: "Design system" }]}
           className="mb-8"
         />

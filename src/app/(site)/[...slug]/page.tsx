@@ -91,8 +91,11 @@ export async function generateMetadata({
     title: page.title,
     alternates: { canonical: `/${page.slug}` },
     // Drafts must never be indexed even while a signed-in editor previews them.
-    robots:
-      page.status === "PUBLISHED" ? undefined : { index: false, follow: false },
+    // Spread rather than set to undefined, so a published page inherits the
+    // site-wide robots setting instead of replacing it.
+    ...(page.status === "PUBLISHED"
+      ? {}
+      : { robots: { index: false, follow: false } }),
   };
 }
 

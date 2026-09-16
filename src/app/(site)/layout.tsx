@@ -2,6 +2,11 @@ import { getSiteSettings } from "@/server/settings/service";
 import { BrandTheme } from "@/components/site/brand-theme";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  organizationJsonLd,
+  websiteJsonLd,
+} from "@/server/seo/structured-data";
 
 /**
  * Structural shell for the public website.
@@ -21,6 +26,11 @@ export default async function SiteLayout({
         primary={settings.primaryColor}
         secondary={settings.secondaryColor}
       />
+
+      {/* Site-wide structured data: who the company is, and that the catalogue
+          is searchable. Both are facts the settings already hold. */}
+      <JsonLd data={organizationJsonLd(settings)} />
+      <JsonLd data={websiteJsonLd(settings)} />
 
       <SiteHeader settings={settings} />
 

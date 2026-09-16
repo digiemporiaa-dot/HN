@@ -60,10 +60,11 @@ export async function taxonomyMetadata(
           ? [{ url: record.image.url }]
           : undefined,
     },
-    robots:
-      record.status === "PUBLISHED"
-        ? undefined
-        : { index: false, follow: false },
+    // Spread rather than set to undefined, so a published page inherits the
+    // site-wide robots setting instead of replacing it.
+    ...(record.status === "PUBLISHED"
+      ? {}
+      : { robots: { index: false, follow: false } }),
   };
 }
 

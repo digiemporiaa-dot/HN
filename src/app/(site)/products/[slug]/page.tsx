@@ -26,6 +26,8 @@ import {
   type PublicProduct,
 } from "@/server/products/public";
 import { productPath } from "@/server/products/service";
+import { JsonLd } from "@/components/seo/json-ld";
+import { productJsonLd } from "@/server/seo/structured-data";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -74,10 +76,12 @@ export async function generateMetadata({
         : undefined,
     },
     // A draft must never be indexed, even while a signed-in editor previews it.
-    robots:
-      product.status === "PUBLISHED"
-        ? undefined
-        : { index: false, follow: false },
+    // Spread rather than set to undefined: an explicitly present `robots` key
+    // replaces the one inherited from the root layout, which would quietly
+    // defeat the site-wide staging opt-out on every published page.
+    ...(product.status === "PUBLISHED"
+      ? {}
+      : { robots: { index: false, follow: false } }),
   };
 }
 
@@ -117,6 +121,24 @@ export default async function ProductPage({ params }: RouteParams) {
       {published ? null : (
         <PreviewBanner id={product.id} status={product.status} />
       )}
+
+      {/* Only published products are described to search engines: a draft is
+          noindex anyway, and structured data for a page nobody may see would
+          be an assertion about something that does not exist yet. */}
+      {published ? (
+        <JsonLd
+          data={productJsonLd({
+            name: product.name,
+            path: productPath(product.slug),
+            description: product.shortDescription,
+            modelNumber: product.modelNumber,
+            images: product.gallery.map((image) => image.url),
+            brandName:
+              product.brand?.status === "PUBLISHED" ? product.brand.name : null,
+            categoryName: product.category.name,
+          })}
+        />
+      ) : null}
 
       <Container className="pt-6">
         <Breadcrumb items={trail} />

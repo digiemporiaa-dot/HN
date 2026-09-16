@@ -59,8 +59,7 @@ export const SETTING_GROUPS: Array<{
   {
     key: "seo",
     label: "Default SEO",
-    description:
-      "Fallbacks for pages that do not set their own metadata.",
+    description: "Fallbacks for pages that do not set their own metadata.",
   },
   {
     key: "analytics",
@@ -157,11 +156,41 @@ export const SETTINGS: SettingDefinition[] = [
   },
 
   // --- social --------------------------------------------------------------
-  { key: "social.linkedin", group: "social", type: "STRING", label: "LinkedIn URL", maxLength: 300 },
-  { key: "social.facebook", group: "social", type: "STRING", label: "Facebook URL", maxLength: 300 },
-  { key: "social.instagram", group: "social", type: "STRING", label: "Instagram URL", maxLength: 300 },
-  { key: "social.youtube", group: "social", type: "STRING", label: "YouTube URL", maxLength: 300 },
-  { key: "social.x", group: "social", type: "STRING", label: "X (Twitter) URL", maxLength: 300 },
+  {
+    key: "social.linkedin",
+    group: "social",
+    type: "STRING",
+    label: "LinkedIn URL",
+    maxLength: 300,
+  },
+  {
+    key: "social.facebook",
+    group: "social",
+    type: "STRING",
+    label: "Facebook URL",
+    maxLength: 300,
+  },
+  {
+    key: "social.instagram",
+    group: "social",
+    type: "STRING",
+    label: "Instagram URL",
+    maxLength: 300,
+  },
+  {
+    key: "social.youtube",
+    group: "social",
+    type: "STRING",
+    label: "YouTube URL",
+    maxLength: 300,
+  },
+  {
+    key: "social.x",
+    group: "social",
+    type: "STRING",
+    label: "X (Twitter) URL",
+    maxLength: 300,
+  },
 
   // --- branding ------------------------------------------------------------
   {
@@ -169,7 +198,8 @@ export const SETTINGS: SettingDefinition[] = [
     group: "branding",
     type: "MEDIA",
     label: "Logo",
-    description: "Shown in the site header. SVG or PNG with transparency works best.",
+    description:
+      "Shown in the site header. SVG or PNG with transparency works best.",
   },
   {
     key: "branding.favicon",
@@ -228,6 +258,15 @@ export const SETTINGS: SettingDefinition[] = [
     label: "Default social share image",
     description: "Used when a page has no image of its own. 1200×630 is ideal.",
   },
+  {
+    key: "seo.noindex",
+    group: "seo",
+    type: "BOOLEAN",
+    label: "Ask search engines not to index this site",
+    description:
+      "For staging and pre-launch sites. Turns the whole site away in robots.txt and adds a noindex tag to every page. Leave off in production.",
+    defaultValue: "false",
+  },
 
   // --- analytics -----------------------------------------------------------
   {
@@ -248,9 +287,29 @@ export const SETTINGS: SettingDefinition[] = [
   },
 
   // --- legal ---------------------------------------------------------------
-  { key: "legal.privacyUrl", group: "legal", type: "STRING", label: "Privacy policy URL", defaultValue: "/privacy", maxLength: 300 },
-  { key: "legal.termsUrl", group: "legal", type: "STRING", label: "Terms of use URL", defaultValue: "/terms", maxLength: 300 },
-  { key: "legal.cookiesUrl", group: "legal", type: "STRING", label: "Cookie policy URL", maxLength: 300 },
+  {
+    key: "legal.privacyUrl",
+    group: "legal",
+    type: "STRING",
+    label: "Privacy policy URL",
+    defaultValue: "/privacy",
+    maxLength: 300,
+  },
+  {
+    key: "legal.termsUrl",
+    group: "legal",
+    type: "STRING",
+    label: "Terms of use URL",
+    defaultValue: "/terms",
+    maxLength: 300,
+  },
+  {
+    key: "legal.cookiesUrl",
+    group: "legal",
+    type: "STRING",
+    label: "Cookie policy URL",
+    maxLength: 300,
+  },
 ];
 
 export const SETTINGS_BY_KEY = new Map(
