@@ -11,6 +11,7 @@ import {
   productApplicationsSchema,
   productDocumentsSchema,
   productFaqsSchema,
+  productPointsSchema,
   productRelatedSchema,
   productSpecsSchema,
   readJsonArray,
@@ -504,4 +505,89 @@ export async function saveProductFaqsAction(
 
   revalidateProduct();
   return { success: "Questions saved." };
+}
+
+/* -------------------------------------------------------------------------
+ * Highlights and features
+ * ---------------------------------------------------------------------- */
+
+export async function saveProductPointsAction(
+  _previous: InfoActionState,
+  formData: FormData,
+): Promise<InfoActionState> {
+  const actor = await requirePermission("PRODUCTS", "EDIT");
+
+  // Both lists arrive as JSON from the editor's own state rather than as named
+  // inputs, for the same reason the other panels do: order matters, and a row
+  // scrolled out of view is still a row.
+  const highlights = readJsonArray(formData.get("highlights"))
+    .map((entry) => ({
+      title: String(
+        ((entry ?? {}) as Record<string, unknown>).title ?? "",
+      ).trim(),
+    }))
+    // An empty box is an unfinished row, not an error worth blocking a save for.
+    .filter((row) => row.title);
+
+  const features = readJsonArray(formData.get("features"))
+    .map((entry) => {
+      const row = (entry ?? {}) as Record<string, unknown>;
+      return {
+        title: String(row.title ?? "").trim(),
+        body: String(row.body ?? "").trim(),
+      };
+    })
+    .filter((row) => row.title || row.body);
+
+  const parsed = productPointsSchema.safeParse({
+    productId: formData.get("productId"),
+    highlights,
+    features,
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
+
+  const product = await liveProduct(parsed.data.productId);
+  if (!product) return { error: "That product no longer exists." };
+
+  // The whole table is rewritten, which is what makes reordering a save rather
+  // than a sequence of moves. Both lists go in one transaction so a product can
+  // never be left with new highlights and the old features.
+  await prisma.$transaction([
+    prisma.productPoint.deleteMany({ where: { productId: product.id } }),
+    prisma.productPoint.createMany({
+      data: [
+        ...parsed.data.highlights.map((row, index) => ({
+          productId: product.id,
+          kind: "HIGHLIGHT" as const,
+          title: row.title,
+          body: null,
+          order: index,
+        })),
+        ...parsed.data.features.map((row, index) => ({
+          productId: product.id,
+          kind: "FEATURE" as const,
+          title: row.title,
+          body: row.body || null,
+          order: index,
+        })),
+      ],
+    }),
+  ]);
+
+  await recordAuditEvent({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: "PRODUCT_POINTS_UPDATED",
+    module: "PRODUCTS",
+    entityType: "Product",
+    entityId: product.id,
+    summary: `Highlights and features for ${product.name}`,
+    metadata: {
+      highlights: parsed.data.highlights.length,
+      features: parsed.data.features.length,
+    },
+  });
+
+  revalidateProduct();
+  return { success: "Highlights and features saved." };
 }

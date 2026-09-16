@@ -28,6 +28,7 @@ import {
   productFaqs,
   productApplicationLinks,
   productInfoCounts,
+  productPoints,
   productRelated,
   productSpecs,
   relatableProducts,
@@ -43,6 +44,7 @@ import {
   saveProductApplicationsAction,
   saveProductDocumentsAction,
   saveProductFaqsAction,
+  saveProductPointsAction,
   saveProductRelatedAction,
   saveProductSpecsAction,
 } from "@/server/products/info-actions";
@@ -52,6 +54,7 @@ import { DocumentEditor } from "./document-editor";
 import { ApplicationsEditor } from "./applications-editor";
 import { RelatedEditor } from "./related-editor";
 import { FaqEditor } from "./faq-editor";
+import { PointsEditor } from "./points-editor";
 
 export const metadata: Metadata = {
   title: "Edit product",
@@ -60,6 +63,7 @@ export const metadata: Metadata = {
 
 const TABS = [
   { key: "details", label: "Details" },
+  { key: "points", label: "Highlights" },
   { key: "specs", label: "Specifications" },
   { key: "documents", label: "Documents" },
   { key: "applications", label: "Applications" },
@@ -170,6 +174,9 @@ export default async function EditProductPage({
       </nav>
 
       {tab === "details" ? <DetailsPanel id={id} /> : null}
+      {tab === "points" ? (
+        <PointsPanel productId={product.id} readOnly={readOnly} />
+      ) : null}
       {tab === "specs" ? (
         <SpecsPanel
           productId={product.id}
@@ -200,6 +207,34 @@ export default async function EditProductPage({
  * documents and a dozen related products should not pay for all of them to
  * render the one panel someone opened.
  * ---------------------------------------------------------------------- */
+
+async function PointsPanel({
+  productId,
+  readOnly,
+}: {
+  productId: string;
+  readOnly: boolean;
+}) {
+  const points = await productPoints(productId);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Highlights and features</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <PointsEditor
+          productId={productId}
+          highlights={points.highlights}
+          features={points.features}
+          version={points.signature}
+          saveAction={saveProductPointsAction}
+          readOnly={readOnly}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 async function DetailsPanel({ id }: { id: string }) {
   const { can } = await currentPermissions();

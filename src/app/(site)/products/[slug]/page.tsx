@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Mail, MessageCircle, Phone } from "lucide-react";
+import { Check, Download, Mail, MessageCircle, Phone } from "lucide-react";
 
 import {
   Accordion,
@@ -30,6 +30,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { productJsonLd } from "@/server/seo/structured-data";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { AddToQuoteButton } from "@/components/site/quote-basket";
+import { StickyQuoteBar } from "@/components/site/sticky-quote-bar";
 import { submitEnquiryAction } from "@/server/leads/actions";
 
 type RouteParams = { params: Promise<{ slug: string }> };
@@ -180,15 +181,38 @@ export default async function ProductPage({ params }: RouteParams) {
               </p>
             ) : null}
 
-            <EnquiryPanel product={product} settings={settings} />
+            <EnquiryPanel
+              id="enquiry-panel"
+              product={product}
+              settings={settings}
+            />
 
             <TaxonomyLinks product={product} />
           </div>
         </div>
       </Section>
 
+      {product.highlights.length > 0 ? (
+        <Section spacing="compact" container="standard" background="light">
+          {/* No heading. These are the four or five things a buyer should see
+              on the way past, and a heading over them would only slow that
+              down — the section below is where the explaining happens. */}
+          <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {product.highlights.map((point) => (
+              <li key={point.id} className="flex items-start gap-3">
+                <Check
+                  aria-hidden="true"
+                  className="text-primary mt-0.5 size-5 shrink-0"
+                />
+                <span className="text-body text-ink">{point.title}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
       {product.description ? (
-        <Section spacing="normal" container="standard" background="light">
+        <Section spacing="normal" container="standard">
           <SectionHeader title="About this product" align="left" />
           <div className="prose-hn mt-6 max-w-[70ch]">
             <RichText value={product.description} />
@@ -196,10 +220,55 @@ export default async function ProductPage({ params }: RouteParams) {
         </Section>
       ) : null}
 
+      {product.features.length > 0 ? (
+        <Section spacing="normal" container="standard" background="light">
+          <SectionHeader
+            title="Features"
+            description="What the equipment does, and what that means in a working department."
+            align="left"
+          />
+          <ul className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+            {product.features.map((point) => (
+              <li key={point.id} className="flex flex-col gap-1.5">
+                <h3 className="text-body text-ink font-medium">
+                  {point.title}
+                </h3>
+                {point.body ? (
+                  <p className="text-body-sm text-ink-muted">{point.body}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      {product.applications.length > 0 ? (
+        <Section spacing="normal" container="standard">
+          <SectionHeader
+            title="Where it is used"
+            description="Procedures and departments this equipment is supplied for."
+            align="left"
+          />
+          <ul className="mt-8 flex flex-wrap gap-3">
+            {product.applications.map((row) => (
+              <li key={row.slug}>
+                <Link
+                  href={`/applications/${row.slug}`}
+                  className="border-line bg-surface hover:border-line-strong text-body-sm text-ink inline-flex rounded-full border px-4 py-2 transition-colors"
+                >
+                  {row.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
       {product.specGroups.length > 0 ? (
         <Section
           spacing="normal"
           container="standard"
+          background="light"
           anchorId="specifications"
         >
           <SectionHeader title="Specifications" align="left" />
@@ -208,31 +277,30 @@ export default async function ProductPage({ params }: RouteParams) {
             {product.specGroups.map((group) => (
               <div key={group.id} className="flex flex-col gap-3">
                 <h3 className="text-h4 text-ink">{group.label}</h3>
-                <div className="border-line overflow-x-auto rounded-lg border">
-                  <table className="w-full text-left">
-                    <tbody className="divide-line divide-y">
-                      {group.items.map((item) => (
-                        <tr key={item.id}>
-                          <th
-                            scope="row"
-                            className="text-body-sm text-ink-muted w-1/3 px-4 py-3 font-normal"
-                          >
-                            {item.label}
-                          </th>
-                          <td className="text-body-sm text-ink px-4 py-3">
-                            {item.value || "—"}
-                            {item.value && item.unit ? (
-                              <span className="text-ink-muted">
-                                {" "}
-                                {item.unit}
-                              </span>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {/* A definition list rather than a table, and stacked until
+                    there is room for two columns. A specification label is a
+                    phrase — "Central illuminance" — and a third of a phone is
+                    not enough for one, so on a narrow screen the value goes
+                    underneath rather than the label breaking across four
+                    lines. */}
+                <dl className="border-line bg-surface divide-line divide-y rounded-lg border">
+                  {group.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:gap-4"
+                    >
+                      <dt className="text-body-sm text-ink-muted sm:w-2/5 sm:shrink-0">
+                        {item.label}
+                      </dt>
+                      <dd className="text-body-sm text-ink">
+                        {item.value || "—"}
+                        {item.value && item.unit ? (
+                          <span className="text-ink-muted"> {item.unit}</span>
+                        ) : null}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             ))}
           </div>
@@ -240,7 +308,7 @@ export default async function ProductPage({ params }: RouteParams) {
       ) : null}
 
       {product.documents.length > 0 ? (
-        <Section spacing="normal" container="standard" background="light">
+        <Section spacing="normal" container="standard">
           <SectionHeader title="Documents" align="left" />
           <ul className="mt-6 flex max-w-[70ch] flex-col gap-2">
             {product.documents.map((document) => (
@@ -293,21 +361,6 @@ export default async function ProductPage({ params }: RouteParams) {
         </Section>
       ) : null}
 
-      {product.faqs.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="Questions" align="left" />
-          <div className="mt-6 max-w-[70ch]">
-            <Accordion
-              items={product.faqs.map((faq) => ({
-                id: faq.id,
-                question: faq.question,
-                answer: <RichText value={faq.answer} />,
-              }))}
-            />
-          </div>
-        </Section>
-      ) : null}
-
       {product.related.length > 0 ? (
         <Section spacing="normal" container="standard" background="light">
           <SectionHeader title="Related products" align="left" />
@@ -330,8 +383,82 @@ export default async function ProductPage({ params }: RouteParams) {
           </ul>
         </Section>
       ) : null}
+
+      {product.faqs.length > 0 ? (
+        <Section spacing="normal" container="standard">
+          <SectionHeader title="Questions" align="left" />
+          <div className="mt-6 max-w-[70ch]">
+            <Accordion
+              items={product.faqs.map((faq) => ({
+                id: faq.id,
+                question: faq.question,
+                answer: <RichText value={faq.answer} />,
+              }))}
+            />
+          </div>
+        </Section>
+      ) : null}
+
+      <Section spacing="large" container="standard" background="dark">
+        <div className="flex flex-col items-start gap-6">
+          <SectionHeader
+            title={`Ask us about the ${product.name}`}
+            description="Tell us the department, the configuration and the timeline. We reply within one working day."
+            align="left"
+          />
+          <div className="flex flex-wrap gap-3">
+            <EnquiryDialog
+              action={submitEnquiryAction}
+              productId={product.id}
+              triggerLabel="Request a quotation"
+              triggerClassName={buttonStyles({ size: "lg" })}
+              title={`Request a quotation — ${reference(product)}`}
+              description="We reply within one working day."
+              submitLabel="Send enquiry"
+            />
+            <AddToQuoteButton productId={product.id} size="lg" />
+          </div>
+        </div>
+      </Section>
+
+      {/* Follows the reader down a page that is long by design. It shows only
+          once the panel at the top has scrolled away, so it never competes
+          with the control it stands in for. */}
+      <StickyQuoteBar watchId="enquiry-panel">
+        <div className="min-w-0 flex-1">
+          <p className="text-body-sm text-ink truncate font-medium">
+            {product.name}
+          </p>
+          <p className="text-caption text-ink-muted hidden sm:block">
+            Quoted to your requirement
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <AddToQuoteButton
+            productId={product.id}
+            size="sm"
+            className="hidden sm:inline-flex"
+          />
+          <EnquiryDialog
+            action={submitEnquiryAction}
+            productId={product.id}
+            triggerLabel="Request a quotation"
+            triggerClassName={buttonStyles({ size: "sm" })}
+            title={`Request a quotation — ${reference(product)}`}
+            description="We reply within one working day."
+            submitLabel="Send enquiry"
+          />
+        </div>
+      </StickyQuoteBar>
     </>
   );
+}
+
+/** How a product is named back to someone asking about it. */
+function reference(product: PublicProduct): string {
+  return product.modelNumber
+    ? `${product.name} (${product.modelNumber})`
+    : product.name;
 }
 
 function PreviewBanner({ id, status }: { id: string; status: string }) {
@@ -356,14 +483,16 @@ function PreviewBanner({ id, status }: { id: string; status: string }) {
 /**
  * How to ask about this product.
  *
- * A quotation form belongs to the RFQ module, which is not built yet, so this
- * uses the contact details an administrator has actually entered — and shows
- * nothing at all rather than a dead button if none have been.
+ * Four ways of asking, and the last three appear only if an administrator has
+ * entered the details behind them: a dead mailto is worse than no button. The
+ * quotation form is always here, because it is ours rather than a mail client's.
  */
 function EnquiryPanel({
+  id,
   product,
   settings,
 }: {
+  id?: string;
   product: PublicProduct;
   settings: {
     email: string | null;
@@ -371,19 +500,20 @@ function EnquiryPanel({
     whatsapp: string | null;
   };
 }) {
-  const reference = product.modelNumber
-    ? `${product.name} (${product.modelNumber})`
-    : product.name;
+  const name = reference(product);
 
   const mailto = settings.email
-    ? `mailto:${settings.email}?subject=${encodeURIComponent(`Quotation request: ${reference}`)}`
+    ? `mailto:${settings.email}?subject=${encodeURIComponent(`Quotation request: ${name}`)}`
     : null;
   const whatsapp = settings.whatsapp
-    ? `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`I would like a quotation for ${reference}.`)}`
+    ? `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`I would like a quotation for ${name}.`)}`
     : null;
 
   return (
-    <div className="border-line bg-surface-muted flex flex-col gap-3 rounded-lg border p-5">
+    <div
+      id={id}
+      className="border-line bg-surface-muted flex flex-col gap-3 rounded-lg border p-5"
+    >
       <p className="text-body-sm text-ink">
         This product is quoted to your requirement — configuration, accessories
         and installation all affect the price.
@@ -395,7 +525,7 @@ function EnquiryPanel({
           productId={product.id}
           triggerLabel="Request a quotation"
           triggerClassName={buttonStyles({ size: "lg" })}
-          title={`Request a quotation — ${reference}`}
+          title={`Request a quotation — ${name}`}
           description="We reply within one working day."
           submitLabel="Send enquiry"
         />
@@ -452,13 +582,8 @@ function TaxonomyLinks({ product }: { product: PublicProduct }) {
         href: solutionPath(row.slug),
       })),
     },
-    {
-      label: "Applications",
-      items: product.applications.map((row) => ({
-        name: row.name,
-        href: `/applications/${row.slug}`,
-      })),
-    },
+    // Applications are deliberately absent: they have a section of their own
+    // further down the page, and the same list twice is a list nobody reads.
   ].filter((group) => group.items.length > 0);
 
   if (groups.length === 0) return null;

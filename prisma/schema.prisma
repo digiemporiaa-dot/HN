@@ -878,6 +878,7 @@ model Product {
   specGroups   ProductSpecGroup[]
   documents    ProductDocument[]
   applications ProductApplication[]
+  points       ProductPoint[]
   leads        Lead[]
   rfqItems     RfqItem[]
 
@@ -1047,6 +1048,40 @@ model ProductSpecItem {
 }
 
 /// A downloadable file attached to a product.
+/// What kind of selling point a line is.
+///
+/// Both are short lists an administrator writes by hand, and they are kept in
+/// one table because they differ only in where they appear: a highlight is a
+/// phrase beside the picture, a feature is a claim with a sentence under it.
+enum ProductPointKind {
+  HIGHLIGHT
+  FEATURE
+}
+
+/// One highlight or feature on a product page.
+///
+/// Deliberately not derived from the specification table. A specification is a
+/// measurement; a highlight is a decision about which measurement matters to a
+/// buyer, and that is editorial work the specification rows cannot do.
+model ProductPoint {
+  id        String       @id @default(cuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  kind ProductPointKind
+
+  title String
+  /// The sentence under a feature. Highlights are the title alone.
+  body  String?
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, kind, order])
+}
+
 model ProductDocument {
   id String @id @default(cuid())
 

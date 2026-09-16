@@ -42,7 +42,10 @@ export function Modal({
       aria-describedby={description ? descriptionId : undefined}
       onClick={handleBackdropClick}
       className={cn(
-        "bg-surface text-ink m-auto w-[calc(100vw-2rem)] rounded-xl p-0 shadow-xl",
+        // The dialog is drawn in the top layer but still inherits its
+        // ancestors' custom properties, so it resets them: a modal opened from
+        // a dark section is the same modal as one opened from the page.
+        "surface-reset bg-surface text-ink m-auto w-[calc(100vw-2rem)] rounded-xl p-0 shadow-xl",
         "backdrop:bg-navy-950/60 backdrop:backdrop-blur-[2px]",
         sizeClass[size],
       )}

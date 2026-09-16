@@ -54,6 +54,30 @@ export async function productRelated(productId: string) {
   }));
 }
 
+/**
+ * The highlights and features of a product, split into the two lists the
+ * editor shows. One query rather than two: they are saved together, so reading
+ * them apart would only invite the two halves to disagree.
+ */
+export async function productPoints(productId: string) {
+  const rows = await prisma.productPoint.findMany({
+    where: { productId },
+    orderBy: [{ kind: "asc" }, { order: "asc" }],
+    select: { id: true, kind: true, title: true, body: true },
+  });
+
+  return {
+    highlights: rows
+      .filter((row) => row.kind === "HIGHLIGHT")
+      .map((row) => ({ title: row.title })),
+    features: rows
+      .filter((row) => row.kind === "FEATURE")
+      .map((row) => ({ title: row.title, body: row.body ?? "" })),
+    /** Changes whenever a save lands, which is what resyncs the editor. */
+    signature: rows.map((row) => row.id).join(":"),
+  };
+}
+
 export async function productFaqs(productId: string) {
   return prisma.faq.findMany({
     where: { entityType: "Product", entityId: productId },
@@ -177,6 +201,7 @@ export async function productInfoCounts(productId: string) {
             documents: true,
             applications: true,
             relatedFrom: true,
+            points: true,
           },
         },
       },
@@ -190,6 +215,7 @@ export async function productInfoCounts(productId: string) {
     specs: product?._count.specGroups ?? 0,
     documents: product?._count.documents ?? 0,
     applications: product?._count.applications ?? 0,
+    points: product?._count.points ?? 0,
     related: product?._count.relatedFrom ?? 0,
     faqs,
   };

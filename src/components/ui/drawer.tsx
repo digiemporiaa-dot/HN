@@ -44,7 +44,10 @@ export function Drawer({
       className={cn(
         // `open:flex` rather than `flex`: a bare display value would override the
         // user-agent `display: none` and leave the drawer visible while closed.
-        "bg-surface text-ink m-0 max-w-none flex-col p-0 shadow-xl open:flex",
+        // Resets the surface tokens for the same reason Modal does: the top
+        // layer draws it over everything, but it still inherits from whatever
+        // it was rendered inside.
+        "surface-reset bg-surface text-ink m-0 max-w-none flex-col p-0 shadow-xl open:flex",
         "backdrop:bg-navy-950/60 backdrop:backdrop-blur-[2px]",
         sideClass[side],
       )}

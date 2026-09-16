@@ -72,6 +72,26 @@
    * This is how CMS sections get a dark or brand background without each
    * component needing to know which background it is sitting on.
    */
+  /*
+   * Back to the page's own colours, wherever the element happens to sit.
+   *
+   * An element in the top layer — a dialog — is drawn over everything, but it
+   * still inherits custom properties from its DOM ancestors. Without this, the
+   * same modal is light when opened from the page and dark when opened from a
+   * dark section, which makes one control look like two.
+   */
+  .surface-reset {
+    --color-surface: #ffffff;
+    --color-surface-subtle: var(--color-steel-50);
+    --color-surface-muted: var(--color-steel-100);
+    --color-ink: var(--color-navy-950);
+    --color-ink-muted: var(--color-steel-600);
+    --color-ink-subtle: var(--color-steel-500);
+    --color-line: var(--color-steel-200);
+    --color-line-strong: var(--color-steel-300);
+    --color-ring: var(--color-medical-600);
+  }
+
   .surface-default {
     background-color: var(--color-canvas);
   }

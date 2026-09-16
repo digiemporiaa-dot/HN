@@ -72,6 +72,10 @@ export async function publicProduct(slug: string) {
       applications: {
         select: { application: { select: { name: true, slug: true } } },
       },
+      points: {
+        orderBy: [{ kind: "asc" }, { order: "asc" }],
+        select: { id: true, kind: true, title: true, body: true },
+      },
       specGroups: {
         orderBy: { order: "asc" },
         select: {
@@ -154,6 +158,14 @@ export async function publicProduct(slug: string) {
       .map((row) => row.solution)
       .filter((row) => row.status === "PUBLISHED"),
     applications: product.applications.map((row) => row.application),
+    // Split here rather than on the page: the page should not have to know
+    // that two lists which look nothing alike share a table.
+    highlights: product.points
+      .filter((row) => row.kind === "HIGHLIGHT")
+      .map((row) => ({ id: row.id, title: row.title })),
+    features: product.points
+      .filter((row) => row.kind === "FEATURE")
+      .map((row) => ({ id: row.id, title: row.title, body: row.body })),
     specGroups: product.specGroups,
     // A gated document is listed by name and size but carries no href. Its
     // file is reachable only through a grant issued after an enquiry, and the

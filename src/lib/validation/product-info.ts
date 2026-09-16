@@ -125,3 +125,34 @@ export function readJsonArray(value: FormDataEntryValue | null): unknown[] {
     return [];
   }
 }
+
+/**
+ * Highlights and features.
+ *
+ * A highlight is a phrase — "18-inch surgical LED panel" — and carries no body.
+ * A feature is a claim with a sentence explaining it. Both are written by an
+ * editor rather than derived from the specification table, because deciding
+ * which measurement matters to a buyer is editorial work a table cannot do.
+ */
+export const productPointsSchema = z.object({
+  productId: z.string().min(1),
+  highlights: z
+    .array(
+      z.object({
+        title: z
+          .string()
+          .trim()
+          .min(1, "Every highlight needs a line of text")
+          .max(160, "A highlight is a phrase, not a paragraph"),
+      }),
+    )
+    .max(12, "12 highlights is the limit"),
+  features: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1, "Every feature needs a title").max(160),
+        body: z.string().trim().max(600).default(""),
+      }),
+    )
+    .max(20, "20 features is the limit"),
+});
