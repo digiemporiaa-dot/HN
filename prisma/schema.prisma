@@ -626,6 +626,12 @@ model Category {
   shortDescription String?
   description      String?
 
+  /// What a procurement officer needs before raising a tender: installation,
+  /// warranty, service cover, what a quotation for this range normally
+  /// includes. Separate from the description because it answers a different
+  /// question — "what is this" against "how do we buy it".
+  procurementInfo String?
+
   imageId String?
   image   MediaAsset? @relation("CategoryImage", fields: [imageId], references: [id], onDelete: SetNull)
 

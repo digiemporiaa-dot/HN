@@ -25,7 +25,6 @@ import {
   applicationChoices,
   pickableDocuments,
   productDocuments,
-  productFaqs,
   productApplicationLinks,
   productInfoCounts,
   productPoints,
@@ -43,7 +42,6 @@ import {
   applySpecTemplateAction,
   saveProductApplicationsAction,
   saveProductDocumentsAction,
-  saveProductFaqsAction,
   saveProductPointsAction,
   saveProductRelatedAction,
   saveProductSpecsAction,
@@ -53,8 +51,10 @@ import { SpecEditor } from "./spec-editor";
 import { DocumentEditor } from "./document-editor";
 import { ApplicationsEditor } from "./applications-editor";
 import { RelatedEditor } from "./related-editor";
-import { FaqEditor } from "./faq-editor";
+import { FaqEditor } from "@/components/admin/faq-editor";
 import { PointsEditor } from "./points-editor";
+import { saveFaqsAction } from "@/server/faqs/actions";
+import { entityFaqs, faqSignature } from "@/server/faqs/service";
 
 export const metadata: Metadata = {
   title: "Edit product",
@@ -442,7 +442,7 @@ async function FaqsPanel({
   productId: string;
   readOnly: boolean;
 }) {
-  const faqs = await productFaqs(productId);
+  const faqs = await entityFaqs("Product", productId);
 
   return (
     <Card>
@@ -451,10 +451,11 @@ async function FaqsPanel({
       </CardHeader>
       <CardContent>
         <FaqEditor
-          productId={productId}
+          entityType="Product"
+          entityId={productId}
           readOnly={readOnly}
-          saveAction={saveProductFaqsAction}
-          version={faqs.map((row) => row.id).join("|") || "none"}
+          saveAction={saveFaqsAction}
+          version={faqSignature(faqs)}
           faqs={faqs.map((row) => ({
             question: row.question,
             answer: row.answer,

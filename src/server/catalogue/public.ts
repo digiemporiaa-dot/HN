@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { publicUrlForKey } from "@/server/storage/paths";
-import type { PublicImage } from "@/server/products/public";
+import type { ProductCardData, PublicImage } from "@/server/products/public";
 
 /**
  * Public reads for the taxonomy landing pages.
@@ -241,9 +241,28 @@ export async function publicCategory(segments: string[]) {
           },
         },
       },
+      procurementInfo: true,
       brands: {
+        orderBy: { brand: { order: "asc" } },
         select: {
-          brand: { select: { name: true, slug: true, status: true } },
+          brand: {
+            select: { name: true, slug: true, status: true, logo: IMAGE },
+          },
+        },
+      },
+      specialties: {
+        orderBy: { specialty: { order: "asc" } },
+        select: {
+          specialty: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              shortDescription: true,
+              status: true,
+              image: IMAGE,
+            },
+          },
         },
       },
     },
@@ -277,10 +296,122 @@ export async function publicCategory(segments: string[]) {
       image: toImage(child.image, child.name),
       productCount: child._count.products,
     })),
+    procurementInfo: row.procurementInfo,
     brands: row.brands
       .map((link) => link.brand)
-      .filter((brand) => brand.status === "PUBLISHED"),
+      .filter((brand) => brand.status === "PUBLISHED")
+      .map((brand) => ({
+        name: brand.name,
+        slug: brand.slug,
+        logo: toImage(brand.logo, brand.name),
+      })),
+    // Draft taxonomy is dropped rather than linked: an unpublished specialty
+    // has no page to send anyone to.
+    specialties: row.specialties
+      .map((link) => link.specialty)
+      .filter((specialty) => specialty.status === "PUBLISHED")
+      .map((specialty) => ({
+        id: specialty.id,
+        name: specialty.name,
+        slug: specialty.slug,
+        summary: specialty.shortDescription,
+        image: toImage(specialty.image, specialty.name),
+      })),
   };
+}
+
+/**
+ * The procedures the published products in a category are supplied for.
+ *
+ * Derived from the products rather than stored against the category, because
+ * that is the only version of this fact that cannot go stale: a category
+ * "used in cardiac theatres" whose cardiac products have all been withdrawn
+ * would otherwise keep saying so.
+ */
+export async function categoryApplications(
+  categoryIds: string[],
+): Promise<Array<{ name: string; slug: string; productCount: number }>> {
+  if (categoryIds.length === 0) return [];
+
+  const rows = await prisma.productApplication.findMany({
+    where: {
+      product: {
+        deletedAt: null,
+        status: "PUBLISHED",
+        categoryId: { in: categoryIds },
+      },
+    },
+    select: {
+      application: { select: { name: true, slug: true, order: true } },
+    },
+  });
+
+  const counted = new Map<
+    string,
+    { name: string; slug: string; order: number; productCount: number }
+  >();
+  for (const row of rows) {
+    const existing = counted.get(row.application.slug);
+    if (existing) {
+      existing.productCount += 1;
+    } else {
+      counted.set(row.application.slug, {
+        name: row.application.name,
+        slug: row.application.slug,
+        order: row.application.order,
+        productCount: 1,
+      });
+    }
+  }
+
+  return [...counted.values()]
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+    .map(({ name, slug, productCount }) => ({ name, slug, productCount }));
+}
+
+/**
+ * The products an administrator has marked as worth showing first.
+ *
+ * Only ever a short row above the full grid, never a replacement for it: if
+ * nothing in a category is flagged, the page simply does not have the row.
+ */
+export async function categoryFeaturedProducts(
+  categoryIds: string[],
+  limit = 4,
+): Promise<ProductCardData[]> {
+  if (categoryIds.length === 0) return [];
+
+  const rows = await prisma.product.findMany({
+    where: {
+      deletedAt: null,
+      status: "PUBLISHED",
+      featured: true,
+      categoryId: { in: categoryIds },
+    },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      modelNumber: true,
+      shortDescription: true,
+      category: { select: { name: true } },
+      brand: { select: { name: true, status: true } },
+      primaryImage: IMAGE,
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    modelNumber: row.modelNumber,
+    shortDescription: row.shortDescription,
+    categoryName: row.category.name,
+    brandName: row.brand?.status === "PUBLISHED" ? row.brand.name : null,
+    image: toImage(row.primaryImage, row.name),
+  }));
 }
 
 export type PublicCategory = NonNullable<

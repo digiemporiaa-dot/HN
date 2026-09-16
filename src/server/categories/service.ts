@@ -82,6 +82,7 @@ export async function findCategory(id: string) {
       order: true,
       shortDescription: true,
       description: true,
+      procurementInfo: true,
       imageId: true,
       bannerId: true,
       featured: true,

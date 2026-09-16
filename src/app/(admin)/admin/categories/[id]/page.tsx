@@ -31,6 +31,9 @@ import {
   saveSpecTemplateAction,
   deleteSpecTemplateAction,
 } from "@/server/spec-templates/actions";
+import { saveFaqsAction } from "@/server/faqs/actions";
+import { entityFaqs, faqSignature } from "@/server/faqs/service";
+import { FaqEditor } from "@/components/admin/faq-editor";
 import { CategoryForm } from "../category-form";
 import { SpecTemplateEditor } from "./spec-template-editor";
 
@@ -52,10 +55,11 @@ export default async function EditCategoryPage({
   const { id } = await params;
   const { error } = await searchParams;
 
-  const [category, mediaOptions, specTemplate] = await Promise.all([
+  const [category, mediaOptions, specTemplate, faqs] = await Promise.all([
     findCategory(id),
     pickableMedia(),
     specTemplateFor(id),
+    entityFaqs("Category", id),
   ]);
   if (!category) notFound();
 
@@ -156,6 +160,7 @@ export default async function EditCategoryPage({
               slug: category.slug,
               shortDescription: category.shortDescription ?? "",
               description: category.description ?? "",
+              procurementInfo: category.procurementInfo ?? "",
               imageId: category.imageId ?? "",
               bannerId: category.bannerId ?? "",
               featured: category.featured,
@@ -163,6 +168,28 @@ export default async function EditCategoryPage({
               parentId: category.parentId ?? "",
               parentSlug: category.parent?.slug ?? null,
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Questions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* The same editor and the same action the product screen uses: the
+              FAQ table is keyed by entity type and id, so there is nothing
+              here that needs its own copy. */}
+          <FaqEditor
+            entityType="Category"
+            entityId={category.id}
+            readOnly={!canEdit}
+            saveAction={saveFaqsAction}
+            version={faqSignature(faqs)}
+            faqs={faqs.map((row) => ({
+              question: row.question,
+              answer: row.answer,
+            }))}
           />
         </CardContent>
       </Card>

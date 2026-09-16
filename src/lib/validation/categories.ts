@@ -28,6 +28,8 @@ export const categorySchema = z.object({
   slug: categorySlugSchema,
   shortDescription: z.string().trim().max(300).default(""),
   description: z.string().trim().max(20000).default(""),
+  /** How this range is bought, rather than what it is. */
+  procurementInfo: z.string().trim().max(20000).default(""),
   imageId: z.string().trim().max(40).default(""),
   bannerId: z.string().trim().max(40).default(""),
   featured: z.boolean().default(false),

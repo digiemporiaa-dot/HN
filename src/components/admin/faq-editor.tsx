@@ -4,10 +4,12 @@ import { useActionState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button, Input, Textarea } from "@/components/ui";
-import { FormFeedback } from "@/components/admin/form-feedback";
-import { RowControls, moveItem } from "@/components/admin/row-controls";
+import { FormFeedback } from "./form-feedback";
+import { RowControls, moveItem } from "./row-controls";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import type { InfoActionState } from "@/server/products/info-actions";
+
+export type FaqEntityType = "Product" | "Category";
 
 export type FaqRow = { question: string; answer: string };
 
@@ -18,15 +20,25 @@ type InfoAction = (
 
 const INITIAL: InfoActionState = {};
 
-/** Questions buyers ask about this product, in the order they should appear. */
+/**
+ * Questions buyers ask, in the order they should appear.
+ *
+ * Shared by every screen that owns FAQs, because the FAQ table is keyed by
+ * entity type and id rather than by product: one editor and one save action,
+ * so a question attached to a category behaves exactly like one attached to a
+ * product. The entity type is posted, but it is not trusted — the action maps
+ * it to the permission it requires.
+ */
 export function FaqEditor({
-  productId,
+  entityType,
+  entityId,
   faqs: initial,
   version,
   saveAction,
   readOnly,
 }: {
-  productId: string;
+  entityType: "Product" | "Category";
+  entityId: string;
   faqs: FaqRow[];
   version: string;
   saveAction: InfoAction;
@@ -44,7 +56,8 @@ export function FaqEditor({
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
-      <input type="hidden" name="productId" value={productId} />
+      <input type="hidden" name="entityType" value={entityType} />
+      <input type="hidden" name="entityId" value={entityId} />
       <input type="hidden" name="faqs" value={JSON.stringify(rows)} />
 
       <FormFeedback state={state} />

@@ -5,7 +5,14 @@ import { useActionState, useState } from "react";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
 
-import { Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import {
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import {
   createCategoryAction,
@@ -26,6 +33,7 @@ export type CategoryFormValues = {
   slug: string;
   shortDescription: string;
   description: string;
+  procurementInfo: string;
   imageId: string;
   bannerId: string;
   featured: boolean;
@@ -212,6 +220,25 @@ export function CategoryForm({
           )}
         </Field>
 
+        <Field
+          label="Procurement information"
+          help="Installation, warranty, service cover — what a hospital's purchase team needs before raising a tender. Appears as its own section on the category page."
+          error={state.fieldErrors?.procurementInfo}
+          className="md:col-span-2"
+        >
+          {(control) => (
+            <Textarea
+              name="procurementInfo"
+              value={form.procurementInfo}
+              disabled={readOnly}
+              rows={6}
+              maxLength={20000}
+              onChange={(event) => set("procurementInfo", event.target.value)}
+              {...control}
+            />
+          )}
+        </Field>
+
         <Field label="Card image" help="Used in category grids and menus.">
           {(control) => (
             <>
@@ -227,7 +254,10 @@ export function CategoryForm({
           )}
         </Field>
 
-        <Field label="Banner image" help="Used at the top of the category page.">
+        <Field
+          label="Banner image"
+          help="Used at the top of the category page."
+        >
           {(control) => (
             <>
               <input type="hidden" name="bannerId" value={form.bannerId} />

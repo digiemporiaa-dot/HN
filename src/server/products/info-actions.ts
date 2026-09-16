@@ -10,7 +10,6 @@ import { fieldErrorsFrom } from "@/lib/validation/field-errors";
 import {
   productApplicationsSchema,
   productDocumentsSchema,
-  productFaqsSchema,
   productPointsSchema,
   productRelatedSchema,
   productSpecsSchema,
@@ -444,67 +443,6 @@ export async function saveProductRelatedAction(
 
   revalidateProduct();
   return { success: "Related products saved." };
-}
-
-/* -------------------------------------------------------------------------
- * FAQs
- * ---------------------------------------------------------------------- */
-
-export async function saveProductFaqsAction(
-  _previous: InfoActionState,
-  formData: FormData,
-): Promise<InfoActionState> {
-  const actor = await requirePermission("PRODUCTS", "EDIT");
-
-  const raw = readJsonArray(formData.get("faqs"))
-    .map((entry) => {
-      const row = (entry ?? {}) as Record<string, unknown>;
-      return {
-        question: String(row.question ?? "").trim(),
-        answer: String(row.answer ?? "").trim(),
-      };
-    })
-    // A pair of empty boxes is an unfinished row, not an error worth blocking
-    // the save for.
-    .filter((row) => row.question || row.answer);
-
-  const parsed = productFaqsSchema.safeParse({
-    productId: formData.get("productId"),
-    faqs: raw,
-  });
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
-
-  const product = await liveProduct(parsed.data.productId);
-  if (!product) return { error: "That product no longer exists." };
-
-  await prisma.$transaction([
-    prisma.faq.deleteMany({
-      where: { entityType: "Product", entityId: product.id },
-    }),
-    prisma.faq.createMany({
-      data: parsed.data.faqs.map((row, index) => ({
-        entityType: "Product",
-        entityId: product.id,
-        question: row.question,
-        answer: row.answer,
-        order: index,
-      })),
-    }),
-  ]);
-
-  await recordAuditEvent({
-    actorId: actor.id,
-    actorEmail: actor.email,
-    action: "PRODUCT_FAQS_UPDATED",
-    module: "PRODUCTS",
-    entityType: "Product",
-    entityId: product.id,
-    summary: `FAQs for ${product.name}`,
-    metadata: { faqs: parsed.data.faqs.length },
-  });
-
-  revalidateProduct();
-  return { success: "Questions saved." };
 }
 
 /* -------------------------------------------------------------------------

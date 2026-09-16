@@ -70,8 +70,17 @@ export const productRelatedSchema = z.object({
     .max(12, "12 related products is the limit"),
 });
 
-export const productFaqsSchema = z.object({
-  productId: z.string().min(1),
+/**
+ * The FAQ table is keyed by entity type and id, so one schema covers every
+ * screen that owns questions. The type is an enum rather than a free string:
+ * the action maps it to the permission it requires, and a value it does not
+ * recognise must fail here rather than reach that map.
+ */
+export const faqEntityTypeSchema = z.enum(["Product", "Category"]);
+
+export const faqsSchema = z.object({
+  entityType: faqEntityTypeSchema,
+  entityId: z.string().min(1),
   faqs: z
     .array(
       z.object({

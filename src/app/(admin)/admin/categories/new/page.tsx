@@ -41,7 +41,9 @@ export default async function NewCategoryPage({
       <AdminPageHeader
         title={parentId ? "New subcategory" : "New category"}
         description="Categories start as a draft. Publish once the page has enough content to stand on its own."
-        backHref={parentId ? `/admin/categories/${parentId}` : "/admin/categories"}
+        backHref={
+          parentId ? `/admin/categories/${parentId}` : "/admin/categories"
+        }
         backLabel="Back"
       />
 
@@ -59,6 +61,7 @@ export default async function NewCategoryPage({
               slug: "",
               shortDescription: "",
               description: "",
+              procurementInfo: "",
               imageId: "",
               bannerId: "",
               featured: false,

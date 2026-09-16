@@ -78,14 +78,6 @@ export async function productPoints(productId: string) {
   };
 }
 
-export async function productFaqs(productId: string) {
-  return prisma.faq.findMany({
-    where: { entityType: "Product", entityId: productId },
-    orderBy: { order: "asc" },
-    select: { id: true, question: true, answer: true },
-  });
-}
-
 /**
  * Files an editor may attach to a product.
  *

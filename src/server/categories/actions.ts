@@ -58,6 +58,7 @@ function readForm(formData: FormData) {
     slug: formData.get("slug"),
     shortDescription: formData.get("shortDescription") ?? "",
     description: formData.get("description") ?? "",
+    procurementInfo: formData.get("procurementInfo") ?? "",
     imageId: formData.get("imageId") ?? "",
     bannerId: formData.get("bannerId") ?? "",
     featured: formData.get("featured") === "on",
@@ -103,9 +104,12 @@ export async function createCategoryAction(
       select: { id: true, depth: true },
     });
     // Checked rather than trusted: the parent id comes from the form.
-    if (!parent) return { fieldErrors: { parentId: "Choose a parent category." } };
+    if (!parent)
+      return { fieldErrors: { parentId: "Choose a parent category." } };
     if (parent.depth >= MAX_CATEGORY_DEPTH) {
-      return { fieldErrors: { parentId: "That category cannot hold subcategories." } };
+      return {
+        fieldErrors: { parentId: "That category cannot hold subcategories." },
+      };
     }
     parentId = parent.id;
     depth = parent.depth + 1;
@@ -140,6 +144,7 @@ export async function createCategoryAction(
       order: (last?.order ?? -1) + 1,
       shortDescription: parsed.data.shortDescription || null,
       description: parsed.data.description || null,
+      procurementInfo: parsed.data.procurementInfo || null,
       imageId: parsed.data.imageId || null,
       bannerId: parsed.data.bannerId || null,
       featured: parsed.data.featured,
@@ -212,6 +217,7 @@ export async function updateCategoryAction(
       slug: parsed.data.slug,
       shortDescription: parsed.data.shortDescription || null,
       description: parsed.data.description || null,
+      procurementInfo: parsed.data.procurementInfo || null,
       imageId: parsed.data.imageId || null,
       bannerId: parsed.data.bannerId || null,
       featured: parsed.data.featured,
