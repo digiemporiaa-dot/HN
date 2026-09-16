@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { contentTypeForExtension } from "@/server/storage/config";
 import { readFileStream, statFile } from "@/server/storage/files";
+import { isGatedStorageKey } from "@/server/leads/service";
 import {
   extensionOf,
   isValidStorageKey,
@@ -30,6 +31,18 @@ export async function GET(
 
   const contentType = contentTypeForExtension(extensionOf(storageKey));
   if (!contentType) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  // Gated documents are not served here at any price. A brochure traded for an
+  // enquiry would otherwise be reachable by anyone who learned its storage key,
+  // which would make the gate a matter of not linking to the file rather than a
+  // control. Only documents are checked: images are most of the traffic and can
+  // never be gated.
+  if (
+    contentType === "application/pdf" &&
+    (await isGatedStorageKey(storageKey))
+  ) {
     return new NextResponse("Not found", { status: 404 });
   }
 

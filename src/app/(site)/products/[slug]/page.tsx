@@ -28,6 +28,8 @@ import {
 import { productPath } from "@/server/products/service";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productJsonLd } from "@/server/seo/structured-data";
+import { EnquiryDialog } from "@/components/site/enquiry-form";
+import { submitEnquiryAction } from "@/server/leads/actions";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -241,27 +243,49 @@ export default async function ProductPage({ params }: RouteParams) {
           <SectionHeader title="Documents" align="left" />
           <ul className="mt-6 flex max-w-[70ch] flex-col gap-2">
             {product.documents.map((document) => (
-              <li key={document.id}>
-                <a
-                  href={document.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="border-line bg-surface hover:border-line-strong flex items-center gap-3 rounded-md border p-4 transition-colors"
-                >
-                  <Download
-                    aria-hidden="true"
-                    className="text-primary size-5 shrink-0"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="text-body-sm text-ink block font-medium">
-                      {document.title}
-                    </span>
-                    <span className="text-caption text-ink-subtle block">
-                      {DOCUMENT_LABELS[document.kind] ?? "Document"} ·{" "}
-                      {fileSize(document.sizeBytes)}
-                    </span>
+              <li
+                key={document.id}
+                className="border-line bg-surface flex flex-wrap items-center gap-3 rounded-md border p-4"
+              >
+                <Download
+                  aria-hidden="true"
+                  className="text-primary size-5 shrink-0"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="text-body-sm text-ink block font-medium">
+                    {document.title}
                   </span>
-                </a>
+                  <span className="text-caption text-ink-subtle block">
+                    {DOCUMENT_LABELS[document.kind] ?? "Document"} ·{" "}
+                    {fileSize(document.sizeBytes)}
+                    {document.gated ? " · sent after a short enquiry" : ""}
+                  </span>
+                </span>
+
+                {document.href ? (
+                  <a
+                    href={document.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={buttonStyles({ variant: "outline", size: "sm" })}
+                  >
+                    Download
+                  </a>
+                ) : (
+                  <EnquiryDialog
+                    action={submitEnquiryAction}
+                    productId={product.id}
+                    documentId={document.id}
+                    triggerLabel="Request this document"
+                    triggerClassName={buttonStyles({
+                      variant: "outline",
+                      size: "sm",
+                    })}
+                    title={document.title}
+                    description="Tell us who you are and we will send it straight over."
+                    submitLabel="Send and download"
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -357,8 +381,6 @@ function EnquiryPanel({
     ? `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`I would like a quotation for ${reference}.`)}`
     : null;
 
-  if (!mailto && !settings.phone && !whatsapp) return null;
-
   return (
     <div className="border-line bg-surface-muted flex flex-col gap-3 rounded-lg border p-5">
       <p className="text-body-sm text-ink">
@@ -367,10 +389,22 @@ function EnquiryPanel({
       </p>
 
       <div className="flex flex-wrap gap-3">
+        <EnquiryDialog
+          action={submitEnquiryAction}
+          productId={product.id}
+          triggerLabel="Request a quotation"
+          triggerClassName={buttonStyles({ size: "lg" })}
+          title={`Request a quotation — ${reference}`}
+          description="We reply within one working day."
+          submitLabel="Send enquiry"
+        />
         {mailto ? (
-          <a href={mailto} className={buttonStyles({ size: "lg" })}>
+          <a
+            href={mailto}
+            className={buttonStyles({ variant: "outline", size: "lg" })}
+          >
             <Mail aria-hidden="true" className="size-4" />
-            Request a quotation
+            Email us
           </a>
         ) : null}
         {settings.phone ? (

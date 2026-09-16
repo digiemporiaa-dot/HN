@@ -83,15 +83,13 @@ export async function publicProduct(slug: string) {
         },
       },
       documents: {
-        // Gated documents are withheld until the enquiry flow exists to gate
-        // them. Listing a file the site cannot withhold would hand it over
-        // rather than trade it for an enquiry.
-        where: { gated: false, media: { deletedAt: null } },
+        where: { media: { deletedAt: null } },
         orderBy: { order: "asc" },
         select: {
           id: true,
           title: true,
           kind: true,
+          gated: true,
           media: { select: { storageKey: true, sizeBytes: true } },
         },
       },
@@ -156,11 +154,15 @@ export async function publicProduct(slug: string) {
       .filter((row) => row.status === "PUBLISHED"),
     applications: product.applications.map((row) => row.application),
     specGroups: product.specGroups,
+    // A gated document is listed by name and size but carries no href. Its
+    // file is reachable only through a grant issued after an enquiry, and the
+    // media route refuses it outright, so there is nothing here to leak.
     documents: product.documents.map((row) => ({
       id: row.id,
       title: row.title,
       kind: row.kind,
-      href: publicUrlForKey(row.media.storageKey),
+      gated: row.gated,
+      href: row.gated ? null : publicUrlForKey(row.media.storageKey),
       sizeBytes: row.media.sizeBytes,
     })),
     related: product.relatedFrom

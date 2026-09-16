@@ -66,7 +66,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/leads",
         icon: ClipboardList,
         module: "LEADS",
-        available: false,
+        available: true,
       },
       {
         label: "RFQs",

@@ -163,6 +163,8 @@ model Staff {
 
   permissionOverrides StaffPermissionOverride[]
   auditLogs           AuditLog[]
+  assignedLeads       Lead[]                    @relation("LeadOwner")
+  leadNotes           LeadNote[]                @relation("LeadNoteAuthor")
   uploadedMedia       MediaAsset[]              @relation("MediaUploader")
   twoFactorSecret     TwoFactorSecret?
   recoveryCodes       RecoveryCode[]
@@ -876,6 +878,7 @@ model Product {
   specGroups   ProductSpecGroup[]
   documents    ProductDocument[]
   applications ProductApplication[]
+  leads        Lead[]
 
   /// Two sides of one table: what this product points at, and what points at
   /// it. The second exists so deleting a product can clear the links naming it.
@@ -1061,6 +1064,8 @@ model ProductDocument {
   /// download route once the lead capture exists.
   gated Boolean @default(false)
 
+  grants DocumentGrant[]
+
   order Int @default(0)
 
   createdAt DateTime @default(now())
@@ -1142,4 +1147,131 @@ model Faq {
   updatedAt DateTime @updatedAt
 
   @@index([entityType, entityId, order])
+}
+
+// ---------------------------------------------------------------------------
+// Enquiries
+// ---------------------------------------------------------------------------
+
+/// Where an enquiry came from. Kept as an enum rather than free text because
+/// every report anyone will ever ask for starts by grouping on it.
+enum LeadSource {
+  PRODUCT_ENQUIRY
+  DOCUMENT_DOWNLOAD
+  CONTACT_FORM
+  RFQ
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  QUOTED
+  WON
+  LOST
+}
+
+/// Someone who got in touch.
+model Lead {
+  id String @id @default(cuid())
+
+  /// Human-readable and quoted in correspondence: HN-2026-0001.
+  reference String @unique
+
+  name         String
+  email        String
+  phone        String?
+  organisation String?
+  city         String?
+
+  message String?
+
+  source LeadSource
+  status LeadStatus @default(NEW)
+
+  /// The product asked about, kept as a link and as a name.
+  ///
+  /// The link is for reporting; the name is what the enquiry actually said. A
+  /// product can be renamed or withdrawn afterwards, and an enquiry is a record
+  /// of a conversation, not a live view of the catalogue.
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String?
+
+  assignedToId String?
+  assignedTo   Staff?  @relation("LeadOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  /// What was agreed to and when, stored as the wording shown at the time.
+  /// Consent that cannot be evidenced is not consent.
+  consentedAt DateTime?
+  consentText String?
+
+  /// Kept only so abuse can be investigated. Never shown in the interface and
+  /// never exported.
+  ipAddress String?
+  userAgent String?
+
+  notes  LeadNote[]
+  grants DocumentGrant[]
+
+  /// Soft deleted: an enquiry is a commercial record, and deleting one by
+  /// mistake loses a conversation nobody can reconstruct.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([source, createdAt])
+  @@index([assignedToId])
+  @@index([email])
+  @@index([productId])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+model LeadNote {
+  id String @id @default(cuid())
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  authorId String?
+  author   Staff?  @relation("LeadNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  /// Who wrote it, kept as text so a note still reads correctly after the
+  /// author's account is removed.
+  authorName String
+
+  body String
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+/// Permission for one enquirer to download one gated document.
+///
+/// The token is the whole of the authorisation, so it is long, random and
+/// expiring. Gated files are never reachable through the ordinary media route;
+/// this row is the only way to one.
+model DocumentGrant {
+  id    String @id @default(cuid())
+  token String @unique
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  documentId String
+  document   ProductDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  expiresAt        DateTime
+  downloadCount    Int       @default(0)
+  lastDownloadedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([documentId])
+  @@index([expiresAt])
 }
