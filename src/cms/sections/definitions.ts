@@ -755,6 +755,31 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       },
     ],
   },
+  {
+    type: "FORM",
+    label: "Enquiry form",
+    description:
+      "A contact form. Submissions arrive in Leads like every other enquiry.",
+    designOptions: [...BASE_DESIGN],
+    design: { container: "narrow" },
+    fields: [
+      { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      {
+        kind: "textarea",
+        name: "intro",
+        label: "Intro",
+        maxLength: 600,
+        rows: 3,
+      },
+      {
+        kind: "text",
+        name: "submitLabel",
+        label: "Button label",
+        maxLength: 40,
+        help: "Defaults to “Send enquiry”.",
+      },
+    ],
+  },
 ];
 
 export const SECTION_DEFINITIONS_BY_TYPE = new Map(

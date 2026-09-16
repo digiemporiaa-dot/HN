@@ -21,6 +21,8 @@ import {
   RATE_LIMIT_WINDOW_MINUTES,
 } from "./throttle";
 import { GRANT_TTL_DAYS, newGrantToken, nextLeadReference } from "./service";
+import { sendMail } from "@/server/mail/send";
+import { leadNotification } from "@/server/mail/templates";
 
 export type EnquiryState = {
   error?: string;
@@ -115,7 +117,15 @@ export async function submitEnquiryAction(
       })
     : null;
 
-  const source = document ? "DOCUMENT_DOWNLOAD" : "PRODUCT_ENQUIRY";
+  // Derived from what the submission actually carries rather than from a field
+  // the form could claim: a request with a gated document is a document
+  // request, one naming a product is a product enquiry, and one with neither
+  // came from a form on a page.
+  const source = document
+    ? "DOCUMENT_DOWNLOAD"
+    : product
+      ? "PRODUCT_ENQUIRY"
+      : "CONTACT_FORM";
 
   // The reference is unique at the column, so a collision between two enquiries
   // arriving together fails the insert rather than duplicating a number.
@@ -180,6 +190,37 @@ export async function submitEnquiryAction(
     metadata: { source, productId: product?.id ?? null },
     ipAddress: context.ipAddress,
     userAgent: context.userAgent,
+  });
+
+  // Notification comes after the enquiry is committed, and its outcome never
+  // changes the answer the visitor gets. Their enquiry is safely recorded; a
+  // mail server having a bad afternoon is the sales team's problem to see on
+  // the deliveries screen, not a reason to tell a hospital that their request
+  // failed.
+  const notification = leadNotification({
+    reference: lead.reference,
+    name: parsed.data.name,
+    email: parsed.data.email,
+    phone: parsed.data.phone || null,
+    organisation: parsed.data.organisation || null,
+    city: parsed.data.city || null,
+    message: parsed.data.message || null,
+    productName: product
+      ? product.modelNumber
+        ? `${product.name} (${product.modelNumber})`
+        : product.name
+      : null,
+    source,
+    leadId: lead.id,
+  });
+
+  await sendMail({
+    kind: "lead.notification",
+    subject: notification.subject,
+    text: notification.text,
+    html: notification.html,
+    entityType: "Lead",
+    entityId: lead.id,
   });
 
   revalidatePath("/admin/leads");

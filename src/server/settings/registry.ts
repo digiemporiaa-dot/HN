@@ -15,7 +15,8 @@ export type SettingGroup =
   | "branding"
   | "seo"
   | "analytics"
-  | "legal";
+  | "legal"
+  | "mail";
 
 export type SettingDefinition = {
   key: string;
@@ -65,6 +66,12 @@ export const SETTING_GROUPS: Array<{
     key: "analytics",
     label: "Analytics",
     description: "Measurement IDs. Scripts load only when an ID is present.",
+  },
+  {
+    key: "mail",
+    label: "Email",
+    description:
+      "Outgoing mail. Until a host is set, enquiries are still recorded but nobody is notified.",
   },
   {
     key: "legal",
@@ -284,6 +291,67 @@ export const SETTINGS: SettingDefinition[] = [
     label: "Google Tag Manager container ID",
     placeholder: "GTM-XXXXXXX",
     maxLength: 40,
+  },
+
+  // --- mail ----------------------------------------------------------------
+  {
+    key: "mail.host",
+    group: "mail",
+    type: "STRING",
+    label: "SMTP host",
+    placeholder: "smtp.example.com",
+    description: "Leave blank to disable outgoing email entirely.",
+    maxLength: 200,
+  },
+  {
+    key: "mail.port",
+    group: "mail",
+    type: "NUMBER",
+    label: "SMTP port",
+    defaultValue: "587",
+    description: "587 for STARTTLS, 465 for implicit TLS.",
+  },
+  {
+    key: "mail.secure",
+    group: "mail",
+    type: "BOOLEAN",
+    label: "Connect over TLS immediately",
+    description:
+      "On for port 465. Off for 587, which upgrades to TLS after connecting.",
+    defaultValue: "false",
+  },
+  {
+    key: "mail.user",
+    group: "mail",
+    type: "STRING",
+    label: "SMTP username",
+    maxLength: 200,
+  },
+  {
+    key: "mail.password",
+    group: "mail",
+    type: "STRING",
+    label: "SMTP password",
+    isSecret: true,
+    maxLength: 400,
+  },
+  {
+    key: "mail.from",
+    group: "mail",
+    type: "STRING",
+    label: "Send from",
+    description: "The address notifications appear to come from.",
+    placeholder: "website@example.com",
+    maxLength: 200,
+  },
+  {
+    key: "mail.notifyTo",
+    group: "mail",
+    type: "STRING",
+    label: "Notify these addresses",
+    description:
+      "Comma separated. Blank falls back to the contact email address.",
+    maxLength: 400,
   },
 
   // --- legal ---------------------------------------------------------------

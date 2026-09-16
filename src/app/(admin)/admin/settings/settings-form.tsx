@@ -3,7 +3,14 @@
 import { useActionState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import {
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import {
   updateSettingsGroupAction,
   type SettingsActionState,
@@ -18,6 +25,10 @@ export type SettingField = {
   description?: string;
   placeholder?: string;
   value: string;
+  /** True for a setting whose value is never sent to the browser. */
+  isSecret?: boolean;
+  /** Whether one is stored, so the field can say so without revealing it. */
+  isSet?: boolean;
 };
 
 export function SettingsGroupForm({
@@ -71,7 +82,29 @@ export function SettingsGroupForm({
               className={wide ? "md:col-span-2" : undefined}
             >
               {(props) =>
-                field.type === "TEXT" ? (
+                field.isSecret ? (
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      name={field.key}
+                      type="password"
+                      autoComplete="new-password"
+                      defaultValue=""
+                      placeholder={
+                        field.isSet
+                          ? "Stored — leave blank to keep it"
+                          : (field.placeholder ?? "")
+                      }
+                      disabled={readOnly}
+                      {...props}
+                    />
+                    {field.isSet && !readOnly ? (
+                      <label className="text-caption text-ink-muted flex items-center gap-2">
+                        <Checkbox name={`${field.key}.clear`} />
+                        Remove the stored value
+                      </label>
+                    ) : null}
+                  </div>
+                ) : field.type === "TEXT" ? (
                   <Textarea
                     name={field.key}
                     defaultValue={field.value}

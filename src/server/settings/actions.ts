@@ -30,6 +30,7 @@ const GROUP_KEYS: SettingGroup[] = [
   "seo",
   "analytics",
   "legal",
+  "mail",
 ];
 
 function isGroup(value: string): value is SettingGroup {
@@ -49,7 +50,8 @@ function validate(
 
   if (definition.type === "COLOR") {
     const hex = normaliseHexColor(value);
-    if (!hex) return { error: "Enter a colour as a hex code, for example #1f66dc." };
+    if (!hex)
+      return { error: "Enter a colour as a hex code, for example #1f66dc." };
 
     // The primary colour is a button background with white text on it. A
     // choice that fails contrast is refused here rather than silently shipped.
@@ -78,7 +80,10 @@ function validate(
     return { value: hex };
   }
 
-  if (definition.key === "contact.email" && !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(value)) {
+  if (
+    definition.key === "contact.email" &&
+    !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(value)
+  ) {
     return { error: "Enter a valid email address." };
   }
 
@@ -86,10 +91,7 @@ function validate(
     return { error: "Digits only, including the country code." };
   }
 
-  if (
-    definition.group === "social" &&
-    !/^https:\/\/[^\s]+$/i.test(value)
-  ) {
+  if (definition.group === "social" && !/^https:\/\/[^\s]+$/i.test(value)) {
     return { error: "Enter a full https:// URL." };
   }
 
@@ -100,10 +102,7 @@ function validate(
     return { error: "Enter a path starting with / or a full https:// URL." };
   }
 
-  if (
-    definition.key === "seo.titleTemplate" &&
-    !value.includes("%s")
-  ) {
+  if (definition.key === "seo.titleTemplate" && !value.includes("%s")) {
     return { error: "The template must contain %s for the page title." };
   }
 
@@ -125,7 +124,19 @@ export async function updateSettingsGroupAction(
 
   for (const definition of definitions) {
     const raw = formData.get(definition.key);
-    const result = validate(definition, typeof raw === "string" ? raw : "");
+    const text = typeof raw === "string" ? raw : "";
+
+    // A secret is never sent to the browser, so the form cannot post it back.
+    // Blank therefore means "leave it alone" rather than "clear it"; clearing
+    // one is done with the button beside the field.
+    if (definition.isSecret && text.trim() === "") {
+      if (formData.get(`${definition.key}.clear`) === "on") {
+        values[definition.key] = null;
+      }
+      continue;
+    }
+
+    const result = validate(definition, text);
 
     if ("error" in result) fieldErrors[definition.key] = result.error;
     else values[definition.key] = result.value;

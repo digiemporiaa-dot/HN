@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Download } from "lucide-react";
 
 import { buttonStyles, EmptyState, Badge } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
@@ -119,6 +120,21 @@ export default async function LeadsPage({
       <AdminPageHeader
         title="Leads"
         description="Every enquiry from the website, newest first."
+        actions={
+          can("LEADS", "EXPORT") ? (
+            <a
+              href={buildQueryHref(
+                "/api/admin/leads/export",
+                {},
+                { status, source },
+              )}
+              className={buttonStyles({ variant: "outline" })}
+            >
+              <Download aria-hidden="true" className="size-4" />
+              Export CSV
+            </a>
+          ) : null
+        }
       />
 
       <DataTable<LeadRow>

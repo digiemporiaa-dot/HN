@@ -15,6 +15,8 @@ import type { ResolvedMedia } from "@/cms/render-page";
 import type { ResolvedEntity } from "@/cms/sections/entities";
 import { RichText } from "@/cms/rich-text";
 import { parseVideoUrl } from "@/cms/video";
+import { EnquiryForm } from "@/components/site/enquiry-form";
+import { submitEnquiryAction } from "@/server/leads/actions";
 import {
   GalleryGrid,
   TabbedPanels,
@@ -850,6 +852,21 @@ function TabsSection({ content }: RendererProps) {
   );
 }
 
+function FormSection({ content }: RendererProps) {
+  return (
+    <div className="flex flex-col gap-8">
+      <Header content={content} align="left" />
+      {/* No product and no document, so the action files it as a contact form.
+          The source is decided by what the submission carries, not by anything
+          this section could assert. */}
+      <EnquiryForm
+        action={submitEnquiryAction}
+        submitLabel={text(content, "submitLabel") || "Send enquiry"}
+      />
+    </div>
+  );
+}
+
 /* eslint-enable @next/next/no-img-element */
 
 export const SECTION_RENDERERS: Record<
@@ -882,4 +899,5 @@ export const SECTION_RENDERERS: Record<
   PROCESS_STEPS: ProcessSteps,
   ACCORDION: AccordionSection,
   TABS: TabsSection,
+  FORM: FormSection,
 };

@@ -130,6 +130,22 @@ export const getSiteSettings = cache(async () => {
       gtmId: values["analytics.gtmId"] ?? null,
     },
 
+    /**
+     * Outgoing mail.
+     *
+     * The password is deliberately absent: this object is passed to client
+     * components and serialised into every page, so a secret in here would be
+     * published. The transport reads it separately, on the server only.
+     */
+    mail: {
+      host: values["mail.host"] ?? null,
+      port: Number.parseInt(values["mail.port"] ?? "587", 10) || 587,
+      secure: values["mail.secure"] === "true",
+      user: values["mail.user"] ?? null,
+      from: values["mail.from"] ?? null,
+      notifyTo: values["mail.notifyTo"] ?? null,
+    },
+
     legal: {
       privacyUrl: values["legal.privacyUrl"] ?? null,
       termsUrl: values["legal.termsUrl"] ?? null,

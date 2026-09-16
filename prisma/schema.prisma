@@ -1275,3 +1275,47 @@ model DocumentGrant {
   @@index([documentId])
   @@index([expiresAt])
 }
+
+/// A record of every message the system tried to send.
+///
+/// Mail fails quietly by nature — a wrong password, a blocked port, a
+/// greylisting relay — and a notification nobody received looks exactly like
+/// one nobody sent. This makes the difference visible without opening a log.
+model MailDelivery {
+  id String @id @default(cuid())
+
+  /// What the message was about, e.g. "lead.notification".
+  kind String
+
+  /// Recipients as sent, comma separated. Always addresses an administrator
+  /// configured, never anything a visitor typed.
+  recipients String
+  subject    String
+
+  status   MailStatus @default(PENDING)
+  attempts Int        @default(0)
+
+  /// The transport's own words, trimmed. Useful for "relay refused" and no use
+  /// at all for anything else, so it is never shown to a visitor.
+  error String?
+
+  /// What the message was about, when there is a record to point at.
+  entityType String?
+  entityId   String?
+
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([kind, createdAt])
+  @@index([entityType, entityId])
+}
+
+enum MailStatus {
+  PENDING
+  SENT
+  FAILED
+  /// No transport is configured, so nothing was attempted.
+  SKIPPED
+}
