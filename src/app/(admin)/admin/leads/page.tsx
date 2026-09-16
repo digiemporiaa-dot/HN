@@ -11,7 +11,12 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { LEAD_LIST_SELECT, type LeadRow } from "@/server/leads/service";
-import { LEAD_SOURCES, LEAD_STATUSES } from "@/lib/validation/leads";
+import {
+  LEAD_PRIORITIES,
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCES,
+  LEAD_STATUSES,
+} from "@/lib/validation/leads";
 import {
   buildQueryHref,
   readPageParam,
@@ -35,12 +40,7 @@ const SORTABLE = {
 const STATUS_VALUES = new Set<string>(LEAD_STATUSES.map((s) => s.value));
 const SOURCE_VALUES = new Set<string>(LEAD_SOURCES);
 
-const SOURCE_LABELS: Record<string, string> = {
-  PRODUCT_ENQUIRY: "Product enquiry",
-  DOCUMENT_DOWNLOAD: "Document request",
-  CONTACT_FORM: "Contact form",
-  RFQ: "Quotation request",
-};
+const PRIORITY_VALUES = new Set<string>(LEAD_PRIORITIES.map((p) => p.value));
 
 const STATUS_TONE: Record<
   string,
@@ -49,9 +49,23 @@ const STATUS_TONE: Record<
   NEW: "info",
   CONTACTED: "neutral",
   QUALIFIED: "neutral",
-  QUOTED: "warning",
+  QUOTATION_SENT: "warning",
+  NEGOTIATION: "warning",
   WON: "success",
   LOST: "danger",
+};
+
+/**
+ * Only the two priorities worth interrupting someone for are coloured.
+ *
+ * Colouring all four would make the column a stripe of noise and leave nothing
+ * standing out, which is the opposite of what a priority is for.
+ */
+const PRIORITY_TONE: Record<string, "neutral" | "warning" | "danger"> = {
+  LOW: "neutral",
+  NORMAL: "neutral",
+  HIGH: "warning",
+  URGENT: "danger",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -66,7 +80,7 @@ export default async function LeadsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("LEADS", "VIEW");
-  const { can } = await currentPermissions();
+  const { can, staff } = await currentPermissions();
 
   const params = await searchParams;
   const page = readPageParam(params.page);
@@ -80,15 +94,29 @@ export default async function LeadsPage({
 
   const rawStatus = readStringParam(params.status);
   const rawSource = readStringParam(params.source);
+  const rawPriority = readStringParam(params.priority);
+  const rawOwner = readStringParam(params.owner);
+  // Every filter is checked against what exists rather than passed through, so
+  // a hand-edited URL cannot reach the query builder.
   const status =
     rawStatus && STATUS_VALUES.has(rawStatus) ? rawStatus : undefined;
   const source =
     rawSource && SOURCE_VALUES.has(rawSource) ? rawSource : undefined;
+  const priority =
+    rawPriority && PRIORITY_VALUES.has(rawPriority) ? rawPriority : undefined;
+  const owner =
+    rawOwner === "mine" || rawOwner === "none" ? rawOwner : undefined;
+  const viewer = owner === "mine" ? staff : null;
 
   const where: Prisma.LeadWhereInput = {
     deletedAt: null,
     ...(status ? { status: status as Prisma.LeadWhereInput["status"] } : {}),
     ...(source ? { source: source as Prisma.LeadWhereInput["source"] } : {}),
+    ...(priority
+      ? { priority: priority as Prisma.LeadWhereInput["priority"] }
+      : {}),
+    ...(owner === "none" ? { assignedToId: null } : {}),
+    ...(owner === "mine" && viewer ? { assignedToId: viewer.id } : {}),
     ...(query
       ? {
           OR: [
@@ -113,7 +141,7 @@ export default async function LeadsPage({
     prisma.lead.count({ where: { deletedAt: { not: null } } }),
   ]);
 
-  const filtered = Boolean(query || status || source);
+  const filtered = Boolean(query || status || source || priority || owner);
 
   return (
     <AdminPage>
@@ -126,7 +154,7 @@ export default async function LeadsPage({
               href={buildQueryHref(
                 "/api/admin/leads/export",
                 {},
-                { status, source },
+                { status, source, priority },
               )}
               className={buttonStyles({ variant: "outline" })}
             >
@@ -166,8 +194,26 @@ export default async function LeadsPage({
               allLabel="Any source"
               options={LEAD_SOURCES.map((value) => ({
                 value,
-                label: SOURCE_LABELS[value] ?? value,
+                label: LEAD_SOURCE_LABELS[value] ?? value,
               }))}
+            />
+            <TableFilter
+              paramName="priority"
+              label="Filter by priority"
+              allLabel="Any priority"
+              options={LEAD_PRIORITIES.map((entry) => ({
+                value: entry.value,
+                label: entry.label,
+              }))}
+            />
+            <TableFilter
+              paramName="owner"
+              label="Filter by owner"
+              allLabel="Anyone"
+              options={[
+                { value: "mine", label: "Assigned to me" },
+                { value: "none", label: "Unassigned" },
+              ]}
             />
           </>
         }
@@ -224,7 +270,21 @@ export default async function LeadsPage({
               row.productName ??
               (row._count.items > 0
                 ? `${row._count.items} ${row._count.items === 1 ? "product" : "products"}`
-                : (SOURCE_LABELS[row.source] ?? "—")),
+                : (row.categoryName ?? LEAD_SOURCE_LABELS[row.source] ?? "—")),
+          },
+          {
+            key: "priority",
+            header: "Priority",
+            priority: "meta",
+            cell: (row) =>
+              row.priority === "NORMAL" ? (
+                <span className="text-ink-subtle">—</span>
+              ) : (
+                <Badge tone={PRIORITY_TONE[row.priority] ?? "neutral"}>
+                  {LEAD_PRIORITIES.find((p) => p.value === row.priority)
+                    ?.label ?? row.priority}
+                </Badge>
+              ),
           },
           {
             key: "status",

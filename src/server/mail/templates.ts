@@ -1,6 +1,7 @@
 import "server-only";
 
 import { appUrl } from "@/lib/site-config";
+import { LEAD_SOURCE_LABELS } from "@/lib/validation/leads";
 
 /**
  * The message a new enquiry produces.
@@ -22,6 +23,8 @@ export type LeadNotification = {
   city: string | null;
   message: string | null;
   productName: string | null;
+  categoryName?: string | null;
+  landingPage?: string | null;
   /** The list on a quotation request. Names come from the catalogue, notes do not. */
   items?: Array<{
     productName: string;
@@ -33,12 +36,7 @@ export type LeadNotification = {
   leadId: string;
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  PRODUCT_ENQUIRY: "Product enquiry",
-  DOCUMENT_DOWNLOAD: "Document request",
-  CONTACT_FORM: "Contact form",
-  RFQ: "Quotation request",
-};
+const SOURCE_LABELS = LEAD_SOURCE_LABELS;
 
 /** Escapes text for the HTML part. The plain-text part needs no escaping. */
 const escape = (value: string) =>
@@ -68,6 +66,12 @@ export function leadNotification(lead: LeadNotification): {
     ...(lead.city ? ([["City", lead.city]] as Array<[string, string]>) : []),
     ...(lead.productName
       ? ([["Product", lead.productName]] as Array<[string, string]>)
+      : []),
+    ...(lead.categoryName
+      ? ([["Category", lead.categoryName]] as Array<[string, string]>)
+      : []),
+    ...(lead.landingPage
+      ? ([["Sent from", lead.landingPage]] as Array<[string, string]>)
       : []),
     ["Source", label],
   ];

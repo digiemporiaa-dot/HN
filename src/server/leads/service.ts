@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import { prisma } from "@/server/db";
 import type { Prisma } from "@/generated/prisma/client";
+import { leadContextSchema } from "@/lib/validation/leads";
 
 /** How long a download link stays usable. Long enough to find the email. */
 export const GRANT_TTL_DAYS = 14;
@@ -17,6 +18,8 @@ export const LEAD_LIST_SELECT = {
   source: true,
   status: true,
   productName: true,
+  categoryName: true,
+  priority: true,
   createdAt: true,
   assignedTo: { select: { id: true, name: true } },
   _count: { select: { items: true } },
@@ -31,6 +34,8 @@ export type LeadRow = {
   source: string;
   status: string;
   productName: string | null;
+  categoryName: string | null;
+  priority: string;
   createdAt: Date;
   assignedTo: { id: string; name: string } | null;
   _count: { items: number };
@@ -83,6 +88,42 @@ export async function requestContext(): Promise<{
  * Returns null once the attempts run out, which the caller reports rather than
  * pretending the enquiry was saved.
  */
+/**
+ * Where an enquiry was sent from, as the form reported it.
+ *
+ * The browser posts these because only the browser knows them: the page a form
+ * sits on and the campaign parameters in its address bar are gone by the time a
+ * server action runs. They are therefore treated as what they are — a claim,
+ * clamped and stored for a person to read, never used to decide anything.
+ */
+export function readLeadContext(formData: FormData): {
+  landingPage: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmTerm: string | null;
+  utmContent: string | null;
+} {
+  const context = leadContextSchema.safeParse({
+    landingPage: formData.get("landingPage") ?? "",
+    utmSource: formData.get("utmSource") ?? "",
+    utmMedium: formData.get("utmMedium") ?? "",
+    utmCampaign: formData.get("utmCampaign") ?? "",
+    utmTerm: formData.get("utmTerm") ?? "",
+    utmContent: formData.get("utmContent") ?? "",
+  });
+
+  const data = context.success ? context.data : null;
+  return {
+    landingPage: data?.landingPage || null,
+    utmSource: data?.utmSource || null,
+    utmMedium: data?.utmMedium || null,
+    utmCampaign: data?.utmCampaign || null,
+    utmTerm: data?.utmTerm || null,
+    utmContent: data?.utmContent || null,
+  };
+}
+
 export async function createLeadWithReference(
   data: Omit<Prisma.LeadUncheckedCreateInput, "reference">,
   items?: Prisma.RfqItemCreateWithoutLeadInput[],
@@ -124,13 +165,53 @@ export async function findLead(id: string) {
       message: true,
       source: true,
       status: true,
+      priority: true,
       productName: true,
+      categoryName: true,
+      landingPage: true,
+      utmSource: true,
+      utmMedium: true,
+      utmCampaign: true,
+      utmTerm: true,
+      utmContent: true,
       consentedAt: true,
       consentText: true,
       createdAt: true,
       updatedAt: true,
       assignedToId: true,
       product: { select: { id: true, name: true, slug: true } },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          parent: { select: { slug: true } },
+        },
+      },
+      formSubmission: {
+        select: {
+          id: true,
+          answers: true,
+          form: {
+            select: {
+              id: true,
+              name: true,
+              fields: {
+                orderBy: { order: "asc" },
+                select: { key: true, label: true },
+              },
+            },
+          },
+          files: {
+            select: {
+              id: true,
+              fieldKey: true,
+              originalName: true,
+              sizeBytes: true,
+            },
+          },
+        },
+      },
       // The list on a quotation request, in the order it was sent. The name and
       // model number are the snapshot taken when it arrived: what was asked for
       // does not change because the catalogue since did.

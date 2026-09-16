@@ -40,8 +40,16 @@ const COLUMNS = [
   "Phone",
   "Organisation",
   "City",
+  "Priority",
   "Product",
+  "Category",
   "Products requested",
+  "Landing page",
+  "UTM source",
+  "UTM medium",
+  "UTM campaign",
+  "UTM term",
+  "UTM content",
   "Owner",
   "Message",
   "Consent given",
@@ -53,12 +61,14 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
   const source = url.searchParams.get("source");
+  const priority = url.searchParams.get("priority");
 
   const leads = await prisma.lead.findMany({
     where: {
       deletedAt: null,
       ...(status ? { status: status as never } : {}),
       ...(source ? { source: source as never } : {}),
+      ...(priority ? { priority: priority as never } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: 10000,
@@ -72,7 +82,15 @@ export async function GET(request: Request) {
       phone: true,
       organisation: true,
       city: true,
+      priority: true,
       productName: true,
+      categoryName: true,
+      landingPage: true,
+      utmSource: true,
+      utmMedium: true,
+      utmCampaign: true,
+      utmTerm: true,
+      utmContent: true,
       items: {
         orderBy: { order: "asc" },
         select: {
@@ -99,7 +117,9 @@ export async function GET(request: Request) {
       lead.phone,
       lead.organisation,
       lead.city,
+      lead.priority,
       lead.productName,
+      lead.categoryName,
       // A quotation request's whole list in one cell, one line per product, so
       // a row still reads as a row in a spreadsheet.
       lead.items
@@ -110,6 +130,12 @@ export async function GET(request: Request) {
             (item.notes ? ` - ${item.notes.replace(/\s+/g, " ")}` : ""),
         )
         .join("\n"),
+      lead.landingPage,
+      lead.utmSource,
+      lead.utmMedium,
+      lead.utmCampaign,
+      lead.utmTerm,
+      lead.utmContent,
       lead.assignedTo?.name ?? "",
       lead.message,
       lead.consentedAt,
@@ -126,7 +152,7 @@ export async function GET(request: Request) {
     action: "LEADS_EXPORTED",
     module: "LEADS",
     summary: `Exported ${leads.length} enquir${leads.length === 1 ? "y" : "ies"}`,
-    metadata: { status, source, count: leads.length },
+    metadata: { status, source, priority, count: leads.length },
   });
 
   const stamp = new Date().toISOString().slice(0, 10);

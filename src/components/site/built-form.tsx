@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import type { FormSubmitState } from "@/server/forms/submit";
 import type { PublicForm, PublicFormField } from "@/server/forms/service";
+import { LeadContextFields } from "./lead-context";
 
 type SubmitAction = (
   previous: FormSubmitState,
@@ -73,6 +74,7 @@ export function BuiltForm({
     >
       <input type="hidden" name="formKey" value={form.key} />
       <input type="hidden" name="startedAt" value={startedAt} />
+      <LeadContextFields />
 
       {/* A field no person ever sees. Hidden from assistive technology and out
           of the tab order, so filling it in identifies a machine. */}

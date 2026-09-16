@@ -62,6 +62,7 @@ export default async function EditFormPage({
     required: field.required,
     hidden: field.hidden,
     options: field.options ?? "",
+    mapsTo: field.mapsTo,
   }));
 
   // Changes whenever a save lands, which is what resyncs an open builder.

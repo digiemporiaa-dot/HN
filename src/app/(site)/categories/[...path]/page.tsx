@@ -372,8 +372,12 @@ export default async function CategoryPage({
             description="Tell us the department, the configuration and the timeline. Everything in this range is quoted to requirement, and we reply within one working day."
             align="left"
           />
+          {/* The category travels with the enquiry, so a lead records which
+              range it came from rather than arriving as an unattributed
+              contact-form submission. */}
           <EnquiryDialog
             action={submitEnquiryAction}
+            categoryId={category.id}
             triggerLabel="Request a quotation"
             triggerClassName={buttonStyles({ size: "lg" })}
             title={`Request a quotation — ${category.name}`}

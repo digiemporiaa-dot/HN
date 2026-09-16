@@ -5,6 +5,7 @@ import { readFileStream, statFile } from "@/server/storage/files";
 import { extensionOf, StoragePathError } from "@/server/storage/paths";
 import { prisma } from "@/server/db";
 import { resolveGrant } from "@/server/leads/service";
+import { recordLeadActivity } from "@/server/leads/activity";
 
 /**
  * Serves a gated document to whoever holds its grant.
@@ -43,6 +44,14 @@ export async function GET(
     await prisma.documentGrant.update({
       where: { id: grant.id },
       data: { downloadCount: { increment: 1 }, lastDownloadedAt: new Date() },
+    });
+
+    // On the lead's own timeline too, so "did they ever open it" is answered
+    // where the salesperson is already looking rather than in a second place.
+    await recordLeadActivity({
+      leadId: grant.leadId,
+      kind: "DOCUMENT_DOWNLOADED",
+      summary: `Downloaded ${grant.document.title}`,
     });
 
     const safeTitle =

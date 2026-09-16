@@ -16,6 +16,7 @@ import { RowControls, moveItem } from "@/components/admin/row-controls";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import {
   CHOICE_TYPES,
+  FORM_FIELD_MAPPINGS,
   FORM_FIELD_TYPES,
   type FormFieldType,
 } from "@/lib/validation/forms";
@@ -25,6 +26,8 @@ export type BuilderField = {
   /** Empty on a field that has never been saved. The server assigns it. */
   key: string;
   type: FormFieldType;
+  /** What this answer contributes to a lead, if anything. */
+  mapsTo: string;
   label: string;
   placeholder: string;
   help: string;
@@ -43,6 +46,7 @@ const INITIAL: FormActionState = {};
 const BLANK: BuilderField = {
   key: "",
   type: "TEXT",
+  mapsTo: "NONE",
   label: "",
   placeholder: "",
   help: "",
@@ -136,7 +140,7 @@ export function FieldBuilder({
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Field label="Type">
                   {(control) => (
                     <Select
@@ -171,6 +175,33 @@ export function FieldBuilder({
                       }
                       {...control}
                     />
+                  )}
+                </Field>
+
+                <Field
+                  label="Contributes to"
+                  help="Mark the email question so submissions reach the leads pipeline."
+                >
+                  {(control) => (
+                    <Select
+                      value={row.mapsTo}
+                      disabled={
+                        readOnly ||
+                        row.type === "FILE" ||
+                        row.type === "CHECKBOX"
+                      }
+                      aria-label={`Field ${index + 1} mapping`}
+                      onChange={(event) =>
+                        update(index, { mapsTo: event.target.value })
+                      }
+                      {...control}
+                    >
+                      {FORM_FIELD_MAPPINGS.map((mapping) => (
+                        <option key={mapping.value} value={mapping.value}>
+                          {mapping.label}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                 </Field>
 

@@ -12,6 +12,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { CONSENT_TEXT } from "@/lib/validation/leads";
+import { LeadContextFields } from "./lead-context";
 import type { RfqLine } from "@/lib/validation/rfq";
 import type { EnquiryState } from "@/server/leads/actions";
 
@@ -32,6 +33,7 @@ const INITIAL: EnquiryState = {};
 export function EnquiryForm({
   action,
   productId,
+  categoryId,
   documentId,
   lines,
   submitLabel,
@@ -39,6 +41,8 @@ export function EnquiryForm({
 }: {
   action: EnquiryAction;
   productId?: string;
+  /** Set when the enquiry came from a category page rather than a product. */
+  categoryId?: string;
   /** Set when the enquiry is the price of a gated document. */
   documentId?: string;
   /**
@@ -126,6 +130,9 @@ export function EnquiryForm({
       {productId ? (
         <input type="hidden" name="productId" value={productId} />
       ) : null}
+      {categoryId ? (
+        <input type="hidden" name="categoryId" value={categoryId} />
+      ) : null}
       {documentId ? (
         <input type="hidden" name="documentId" value={documentId} />
       ) : null}
@@ -133,6 +140,7 @@ export function EnquiryForm({
         <input type="hidden" name="lines" value={JSON.stringify(lines)} />
       ) : null}
       <input type="hidden" name="startedAt" value={startedAt} />
+      <LeadContextFields />
 
       {/* A field no person ever sees. Hidden from assistive technology and
           taken out of the tab order, so filling it in identifies a machine. */}
@@ -279,6 +287,7 @@ export function EnquiryForm({
 export function EnquiryDialog({
   action,
   productId,
+  categoryId,
   documentId,
   triggerLabel,
   triggerClassName,
@@ -288,6 +297,7 @@ export function EnquiryDialog({
 }: {
   action: EnquiryAction;
   productId?: string;
+  categoryId?: string;
   documentId?: string;
   /** The label and the styling of the button that opens the dialog. Passed as
    *  a class rather than an element so no button ends up inside another. */
@@ -319,6 +329,7 @@ export function EnquiryDialog({
         <EnquiryForm
           action={action}
           productId={productId}
+          categoryId={categoryId}
           documentId={documentId}
           submitLabel={submitLabel}
         />

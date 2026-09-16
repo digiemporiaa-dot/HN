@@ -10,6 +10,9 @@ import { fieldErrorsFrom } from "@/lib/validation/field-errors";
 import {
   CONSENT_TEXT,
   enquirySchema,
+  LEAD_PRIORITIES,
+  LEAD_SOURCE_LABELS,
+  LEAD_STATUSES,
   leadIdSchema,
   leadNoteSchema,
   leadUpdateSchema,
@@ -23,8 +26,10 @@ import {
   createLeadWithReference,
   GRANT_TTL_DAYS,
   newGrantToken,
+  readLeadContext,
   requestContext,
 } from "./service";
+import { recordLeadActivity } from "./activity";
 import { sendMail } from "@/server/mail/send";
 import { leadNotification } from "@/server/mail/templates";
 
@@ -92,6 +97,7 @@ export async function submitEnquiryAction(
   }
 
   const productId = String(formData.get("productId") ?? "");
+  const categoryId = String(formData.get("categoryId") ?? "");
   const documentId = String(formData.get("documentId") ?? "");
 
   // Both are resolved from the database rather than trusted from the form: the
@@ -101,6 +107,13 @@ export async function submitEnquiryAction(
     ? await prisma.product.findFirst({
         where: { id: productId, deletedAt: null, status: "PUBLISHED" },
         select: { id: true, name: true, modelNumber: true },
+      })
+    : null;
+
+  const category = categoryId
+    ? await prisma.category.findFirst({
+        where: { id: categoryId, deletedAt: null, status: "PUBLISHED" },
+        select: { id: true, name: true },
       })
     : null;
 
@@ -119,7 +132,9 @@ export async function submitEnquiryAction(
     ? "DOCUMENT_DOWNLOAD"
     : product
       ? "PRODUCT_ENQUIRY"
-      : "CONTACT_FORM";
+      : category
+        ? "CATEGORY_ENQUIRY"
+        : "CONTACT_FORM";
 
   const lead = await createLeadWithReference({
     name: parsed.data.name,
@@ -135,10 +150,13 @@ export async function submitEnquiryAction(
         ? `${product.name} (${product.modelNumber})`
         : product.name
       : null,
+    categoryId: category?.id ?? null,
+    categoryName: category?.name ?? null,
     consentedAt: new Date(),
     consentText: CONSENT_TEXT,
     ipAddress: context.ipAddress,
     userAgent: context.userAgent,
+    ...readLeadContext(formData),
   });
 
   if (!lead) {
@@ -146,6 +164,12 @@ export async function submitEnquiryAction(
       error: "We could not record your enquiry just now. Please try again.",
     };
   }
+
+  await recordLeadActivity({
+    leadId: lead.id,
+    kind: "CREATED",
+    summary: `Enquiry received — ${LEAD_SOURCE_LABELS[source] ?? source}`,
+  });
 
   let downloadUrl: string | undefined;
   if (document) {
@@ -190,6 +214,8 @@ export async function submitEnquiryAction(
         ? `${product.name} (${product.modelNumber})`
         : product.name
       : null,
+    categoryName: category?.name ?? null,
+    landingPage: readLeadContext(formData).landingPage,
     source,
     leadId: lead.id,
   });
@@ -231,13 +257,30 @@ export async function updateLeadAction(
   const parsed = leadUpdateSchema.safeParse({
     leadId: formData.get("leadId"),
     status: formData.get("status"),
+    priority: formData.get("priority"),
     assignedToId: formData.get("assignedToId") ?? "",
   });
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
+  // A field error here has no field of its own on this form to sit beside, and
+  // the shared banner shows only `error`. Reported as one rather than left to
+  // be swallowed: a save that refuses in silence looks like a save that worked.
+  if (!parsed.success) {
+    const errors = fieldErrorsFrom(parsed.error);
+    return {
+      error: "That change could not be saved. Please reload and try again.",
+      fieldErrors: errors,
+    };
+  }
 
   const lead = await prisma.lead.findFirst({
     where: { id: parsed.data.leadId, deletedAt: null },
-    select: { id: true, reference: true, status: true, assignedToId: true },
+    select: {
+      id: true,
+      reference: true,
+      status: true,
+      priority: true,
+      assignedToId: true,
+      assignedTo: { select: { name: true } },
+    },
   });
   if (!lead) return { error: "That enquiry no longer exists." };
 
@@ -262,8 +305,45 @@ export async function updateLeadAction(
 
   await prisma.lead.update({
     where: { id: lead.id },
-    data: { status: parsed.data.status, assignedToId: assignee?.id ?? null },
+    data: {
+      status: parsed.data.status,
+      priority: parsed.data.priority,
+      assignedToId: assignee?.id ?? null,
+    },
   });
+
+  // One entry per thing that actually changed, rather than one "updated" entry
+  // per save: a history that says "updated" seven times answers nothing.
+  const actor2 = { actorId: actor.id, actorName: actor.name };
+
+  if (parsed.data.status !== lead.status) {
+    await recordLeadActivity({
+      leadId: lead.id,
+      kind: "STAGE_CHANGED",
+      summary: `Stage moved from ${stageLabel(lead.status)} to ${stageLabel(parsed.data.status)}`,
+      ...actor2,
+    });
+  }
+
+  if (parsed.data.priority !== lead.priority) {
+    await recordLeadActivity({
+      leadId: lead.id,
+      kind: "PRIORITY_CHANGED",
+      summary: `Priority set to ${priorityLabel(parsed.data.priority)}`,
+      ...actor2,
+    });
+  }
+
+  if (parsed.data.assignedToId !== (lead.assignedToId ?? "")) {
+    await recordLeadActivity({
+      leadId: lead.id,
+      kind: "ASSIGNED",
+      summary: assignee
+        ? `Assigned to ${assignee.name}`
+        : `Unassigned from ${lead.assignedTo?.name ?? "nobody"}`,
+      ...actor2,
+    });
+  }
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -307,6 +387,16 @@ export async function addLeadNoteAction(
     },
   });
 
+  // The note keeps its own prose; the history records that one was written, so
+  // a timeline read on its own still tells the whole story.
+  await recordLeadActivity({
+    leadId: lead.id,
+    kind: "NOTE_ADDED",
+    summary: `Note added: ${parsed.data.body.slice(0, 120)}${parsed.data.body.length > 120 ? "…" : ""}`,
+    actorId: actor.id,
+    actorName: actor.name,
+  });
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -320,6 +410,12 @@ export async function addLeadNoteAction(
   revalidateLeads();
   return { success: "Note added." };
 }
+
+const stageLabel = (value: string) =>
+  LEAD_STATUSES.find((entry) => entry.value === value)?.label ?? value;
+
+const priorityLabel = (value: string) =>
+  LEAD_PRIORITIES.find((entry) => entry.value === value)?.label ?? value;
 
 export async function deleteLeadAction(formData: FormData): Promise<void> {
   const actor = await requirePermission("LEADS", "DELETE");

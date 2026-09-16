@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { Button, Field, Select, Textarea } from "@/components/ui";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
+import { LEAD_PRIORITIES, LEAD_STATUSES } from "@/lib/validation/leads";
 import type { LeadActionState } from "@/server/leads/actions";
 
 type LeadAction = (
@@ -15,10 +15,11 @@ type LeadAction = (
 
 const INITIAL: LeadActionState = {};
 
-/** Status and ownership — the two things anyone actually changes on a lead. */
+/** Stage, priority and ownership — what anyone actually changes on a lead. */
 export function LeadWorkflowForm({
   leadId,
   status,
+  priority,
   assignedToId,
   version,
   staff,
@@ -28,6 +29,7 @@ export function LeadWorkflowForm({
 }: {
   leadId: string;
   status: string;
+  priority: string;
   assignedToId: string;
   version: string;
   staff: Array<{ id: string; name: string; email: string }>;
@@ -36,7 +38,10 @@ export function LeadWorkflowForm({
   canAssign: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
-  const [form, setForm] = useSyncedState({ status, assignedToId }, version);
+  const [form, setForm] = useSyncedState(
+    { status, priority, assignedToId },
+    version,
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
@@ -61,6 +66,29 @@ export function LeadWorkflowForm({
               {LEAD_STATUSES.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+
+        <Field label="Priority" error={state.fieldErrors?.priority}>
+          {(control) => (
+            <Select
+              name="priority"
+              value={form.priority}
+              disabled={readOnly}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  priority: event.target.value,
+                }))
+              }
+              {...control}
+            >
+              {LEAD_PRIORITIES.map((entry) => (
+                <option key={entry.value} value={entry.value}>
+                  {entry.label}
                 </option>
               ))}
             </Select>

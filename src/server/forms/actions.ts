@@ -170,6 +170,7 @@ export async function saveFormFieldsAction(
         required: row.required === true,
         hidden: row.hidden === true,
         options: String(row.options ?? ""),
+        mapsTo: String(row.mapsTo ?? "NONE"),
       };
     })
     // A field with no label is an unfinished row, not an error worth blocking
@@ -211,6 +212,12 @@ export async function saveFormFieldsAction(
             .slice(0, MAX_OPTIONS)
             .join("\n") || null
         : null,
+      // A mapping only makes sense on a question with a single typed answer.
+      // Marking a file upload as the email address is not a thing to support.
+      mapsTo:
+        field.type === "FILE" || field.type === "CHECKBOX"
+          ? ("NONE" as const)
+          : field.mapsTo,
       order: index,
     };
   });

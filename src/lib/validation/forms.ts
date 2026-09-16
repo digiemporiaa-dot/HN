@@ -91,6 +91,32 @@ export const formKeySchema = z
     "Use lowercase letters, numbers and hyphens only",
   );
 
+/**
+ * What a question contributes to a lead.
+ *
+ * A form with no EMAIL mapping produces submissions and no lead, which is the
+ * right answer for a survey.
+ */
+export const FORM_FIELD_MAPPINGS = [
+  { value: "NONE", label: "Nothing — answer only" },
+  { value: "NAME", label: "Contact name" },
+  { value: "EMAIL", label: "Email address" },
+  { value: "PHONE", label: "Phone number" },
+  { value: "ORGANISATION", label: "Hospital or organisation" },
+  { value: "CITY", label: "City" },
+  { value: "MESSAGE", label: "Message" },
+] as const;
+
+export const formFieldMappingSchema = z.enum([
+  "NONE",
+  "NAME",
+  "EMAIL",
+  "PHONE",
+  "ORGANISATION",
+  "CITY",
+  "MESSAGE",
+]);
+
 export const formFieldSchema = z.object({
   /** Blank on a field that has just been added and has no key yet. */
   key: z.string().trim().max(60).default(""),
@@ -102,6 +128,7 @@ export const formFieldSchema = z.object({
   hidden: z.boolean().default(false),
   /** One choice per line. Ignored unless the type uses them. */
   options: z.string().max(2000).default(""),
+  mapsTo: formFieldMappingSchema.catch("NONE").default("NONE"),
 });
 
 export const formSchema = z.object({

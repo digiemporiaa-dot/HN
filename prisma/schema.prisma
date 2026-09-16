@@ -165,6 +165,7 @@ model Staff {
   auditLogs           AuditLog[]
   assignedLeads       Lead[]                    @relation("LeadOwner")
   leadNotes           LeadNote[]                @relation("LeadNoteAuthor")
+  leadActivities      LeadActivity[]            @relation("LeadActivityActor")
   uploadedMedia       MediaAsset[]              @relation("MediaUploader")
   twoFactorSecret     TwoFactorSecret?
   recoveryCodes       RecoveryCode[]
@@ -652,6 +653,7 @@ model Category {
   specialties CategorySpecialty[]
   solutions   SolutionCategory[]
   products    Product[]
+  leads       Lead[]
 
   specTemplate SpecTemplate?
 
@@ -1199,6 +1201,22 @@ model Faq {
 /// every report anyone will ever ask for starts by grouping on it.
 /// What a form field collects, which decides how it renders, how it is
 /// validated and how an answer is read back.
+/// Which part of a lead a form field answers.
+///
+/// Chosen by the administrator rather than guessed from the label: a form with
+/// two email fields, or one whose "Name" question is the machine's name and not
+/// the person's, is ordinary, and guessing wrong files an enquiry under the
+/// wrong customer.
+enum FormFieldMapping {
+  NONE
+  NAME
+  EMAIL
+  PHONE
+  ORGANISATION
+  CITY
+  MESSAGE
+}
+
 enum FormFieldType {
   TEXT
   EMAIL
@@ -1279,6 +1297,10 @@ model FormField {
   /// Choices for SELECT and RADIO, one per line. Ignored by every other type.
   options String?
 
+  /// What this question contributes to a lead. A form with no EMAIL mapping
+  /// produces submissions and no lead, which is the right answer for a survey.
+  mapsTo FormFieldMapping @default(NONE)
+
   order Int @default(0)
 
   createdAt DateTime @default(now())
@@ -1304,6 +1326,9 @@ model FormSubmission {
 
   /// Files attached to this submission, so deleting it takes them with it.
   files FormSubmissionFile[]
+
+  /// The lead this produced, when the form maps a field to an email address.
+  lead Lead?
 
   /// Kept for abuse handling only, and never exported.
   ipAddress String?
@@ -1337,20 +1362,54 @@ model FormSubmissionFile {
   @@index([submissionId])
 }
 
+/// Where an enquiry came from.
+///
+/// Derived from what a submission actually carries rather than declared by it,
+/// so a source is a fact about the enquiry rather than a claim the form made.
 enum LeadSource {
   PRODUCT_ENQUIRY
+  CATEGORY_ENQUIRY
   DOCUMENT_DOWNLOAD
   CONTACT_FORM
+  CUSTOM_FORM
+  CITY_LANDING
   RFQ
+  /// Reserved. A click on a WhatsApp link is not an enquiry anybody consented
+  /// to have recorded, so nothing writes this yet; it exists so the pipeline
+  /// can hold one when a conversation there turns into a lead.
+  WHATSAPP
 }
 
+/// The stages a lead moves through.
+///
+/// Order is defined in the application rather than taken from this enum: a
+/// stage added later would otherwise land in the wrong place in the pipeline.
 enum LeadStatus {
   NEW
   CONTACTED
   QUALIFIED
-  QUOTED
+  QUOTATION_SENT
+  NEGOTIATION
   WON
   LOST
+}
+
+/// How urgently a lead needs working. Set by the sales team, never by a visitor.
+enum LeadPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+/// What kind of thing happened to a lead.
+enum LeadActivityKind {
+  CREATED
+  STAGE_CHANGED
+  PRIORITY_CHANGED
+  ASSIGNED
+  NOTE_ADDED
+  DOCUMENT_DOWNLOADED
 }
 
 /// Someone who got in touch.
@@ -1380,6 +1439,32 @@ model Lead {
   product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productName String?
 
+  /// The category asked about, on the same terms as the product: a link for
+  /// reporting and a name for the record.
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryName String?
+
+  /// The page the enquiry was sent from, as a path. Which page produced a lead
+  /// is the first question asked of any campaign, and it cannot be recovered
+  /// afterwards.
+  landingPage String?
+
+  /// The campaign parameters as they were on that page. Recorded verbatim and
+  /// truncated; they are read by people, never matched against anything.
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+
+  priority LeadPriority @default(NORMAL)
+
+  /// Set when a built form produced this lead, so the answers to its own
+  /// questions can be read alongside it.
+  formSubmissionId String?         @unique
+  formSubmission   FormSubmission? @relation(fields: [formSubmissionId], references: [id], onDelete: SetNull)
+
   assignedToId String?
   assignedTo   Staff?  @relation("LeadOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
 
@@ -1393,9 +1478,10 @@ model Lead {
   ipAddress String?
   userAgent String?
 
-  notes  LeadNote[]
-  grants DocumentGrant[]
-  items  RfqItem[]
+  notes      LeadNote[]
+  activities LeadActivity[]
+  grants     DocumentGrant[]
+  items      RfqItem[]
 
   /// Soft deleted: an enquiry is a commercial record, and deleting one by
   /// mistake loses a conversation nobody can reconstruct.
@@ -1409,8 +1495,37 @@ model Lead {
   @@index([assignedToId])
   @@index([email])
   @@index([productId])
+  @@index([categoryId])
+  @@index([priority, createdAt])
   @@index([deletedAt])
   @@index([createdAt])
+}
+
+/// One thing that happened to a lead, in the order it happened.
+///
+/// Append-only and never edited. A stage moved back and forth three times is a
+/// fact about how the deal went, and a history that can be tidied is not a
+/// history. Notes stay in their own table because they are written prose; this
+/// records that one was added.
+model LeadActivity {
+  id     String @id @default(cuid())
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  kind LeadActivityKind
+
+  /// Who did it. Null for anything the visitor themselves caused.
+  actorId   String?
+  actor     Staff?  @relation("LeadActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  /// Kept as text so the entry still reads correctly after an account is gone.
+  actorName String?
+
+  /// One line, already written for a reader.
+  summary String
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 /// One line of a quotation request.

@@ -15,12 +15,18 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { assignableStaff, findLead } from "@/server/leads/service";
+import { leadActivities } from "@/server/leads/activity";
+import { categoryPath } from "@/server/categories/service";
 import {
   addLeadNoteAction,
   deleteLeadAction,
   updateLeadAction,
 } from "@/server/leads/actions";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
+import {
+  LEAD_PRIORITIES,
+  LEAD_SOURCE_LABELS,
+  LEAD_STATUSES,
+} from "@/lib/validation/leads";
 import { productPath } from "@/server/products/service";
 import { LeadNoteForm, LeadWorkflowForm } from "../lead-forms";
 
@@ -29,11 +35,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  PRODUCT_ENQUIRY: "Product enquiry",
-  DOCUMENT_DOWNLOAD: "Document request",
-  CONTACT_FORM: "Contact form",
-  RFQ: "Quotation request",
+const ACTIVITY_LABELS: Record<string, string> = {
+  CREATED: "Received",
+  STAGE_CHANGED: "Stage",
+  PRIORITY_CHANGED: "Priority",
+  ASSIGNED: "Owner",
+  NOTE_ADDED: "Note",
+  DOCUMENT_DOWNLOADED: "Download",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -52,6 +60,8 @@ export default async function LeadPage({
 
   const { id } = await params;
   const [lead, staff] = await Promise.all([findLead(id), assignableStaff()]);
+  if (!lead) notFound();
+  const activities = await leadActivities(lead.id);
   if (!lead) notFound();
 
   const facts: Array<[string, React.ReactNode]> = [
@@ -87,7 +97,7 @@ export default async function LeadPage({
     ...(lead.city
       ? ([["City", lead.city]] as Array<[string, React.ReactNode]>)
       : []),
-    ["Source", SOURCE_LABELS[lead.source] ?? lead.source],
+    ["Source", LEAD_SOURCE_LABELS[lead.source] ?? lead.source],
     ...(lead.product
       ? ([
           [
@@ -104,14 +114,68 @@ export default async function LeadPage({
       : lead.productName
         ? ([["Product", lead.productName]] as Array<[string, React.ReactNode]>)
         : []),
+    ...(lead.category
+      ? ([
+          [
+            "Category",
+            <Link
+              key="ct"
+              href={categoryPath(
+                lead.category.slug,
+                lead.category.parent?.slug,
+              )}
+              className="text-primary underline underline-offset-4"
+            >
+              {lead.categoryName ?? lead.category.name}
+            </Link>,
+          ],
+        ] as Array<[string, React.ReactNode]>)
+      : lead.categoryName
+        ? ([["Category", lead.categoryName]] as Array<
+            [string, React.ReactNode]
+          >)
+        : []),
+    ...(lead.landingPage
+      ? ([
+          [
+            "Landing page",
+            <Link
+              key="lp"
+              href={lead.landingPage}
+              className="text-primary break-all underline underline-offset-4"
+            >
+              {lead.landingPage}
+            </Link>,
+          ],
+        ] as Array<[string, React.ReactNode]>)
+      : []),
+    [
+      "Priority",
+      LEAD_PRIORITIES.find((p) => p.value === lead.priority)?.label ??
+        lead.priority,
+    ],
     ["Received", dateFormatter.format(lead.createdAt)],
   ];
+
+  // Shown only when there is something to show. An empty campaign block on
+  // every organic enquiry would be five dashes nobody reads.
+  const campaign: Array<[string, string]> = (
+    [
+      ["Source", lead.utmSource],
+      ["Medium", lead.utmMedium],
+      ["Campaign", lead.utmCampaign],
+      ["Term", lead.utmTerm],
+      ["Content", lead.utmContent],
+    ] as Array<[string, string | null]>
+  ).flatMap(([label, value]) =>
+    value ? [[label, value] as [string, string]] : [],
+  );
 
   return (
     <AdminPage>
       <AdminPageHeader
         title={lead.name}
-        description={`${lead.reference} · ${SOURCE_LABELS[lead.source] ?? lead.source}`}
+        description={`${lead.reference} · ${LEAD_SOURCE_LABELS[lead.source] ?? lead.source}`}
         backHref="/admin/leads"
         backLabel="Back to leads"
         actions={
@@ -225,6 +289,56 @@ export default async function LeadPage({
             </Card>
           ) : null}
 
+          {lead.formSubmission ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{lead.formSubmission.form.name} — answers</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                {/* Walked in the form's own field order, so the answers read
+                    the way the form did. A key with no field left is still
+                    shown: an answer somebody gave does not stop existing
+                    because the question was removed. */}
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  {Object.entries(
+                    (lead.formSubmission.answers ?? {}) as Record<
+                      string,
+                      unknown
+                    >,
+                  ).map(([key, value]) => (
+                    <div key={key} className="flex flex-col gap-0.5">
+                      <dt className="text-caption text-ink-subtle">
+                        {lead.formSubmission?.form.fields.find(
+                          (field) => field.key === key,
+                        )?.label ?? key}
+                      </dt>
+                      <dd className="text-body-sm text-ink break-words">
+                        {Array.isArray(value)
+                          ? value.join(", ")
+                          : String(value || "—")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                {lead.formSubmission.files.length > 0 ? (
+                  <ul className="border-line flex flex-wrap gap-3 border-t pt-4">
+                    {lead.formSubmission.files.map((file) => (
+                      <li key={file.id}>
+                        <a
+                          href={`/api/admin/forms/files/${file.id}`}
+                          className="text-body-sm text-primary underline underline-offset-4"
+                        >
+                          {file.originalName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>Notes</CardTitle>
@@ -273,6 +387,7 @@ export default async function LeadPage({
               <LeadWorkflowForm
                 leadId={lead.id}
                 status={lead.status}
+                priority={lead.priority}
                 assignedToId={lead.assignedToId ?? ""}
                 version={lead.updatedAt.toISOString()}
                 staff={staff}
@@ -280,6 +395,56 @@ export default async function LeadPage({
                 readOnly={!can("LEADS", "EDIT")}
                 canAssign={can("LEADS", "ASSIGN")}
               />
+            </CardContent>
+          </Card>
+
+          {campaign.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Campaign</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="flex flex-col gap-3">
+                  {campaign.map(([label, value]) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <dt className="text-caption text-ink-subtle">{label}</dt>
+                      <dd className="text-body-sm text-ink break-all">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activities.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">
+                  Nothing recorded yet.
+                </p>
+              ) : (
+                // Append-only, newest first. A stage moved back and forth is a
+                // fact about how the deal went, so nothing here is tidied away.
+                <ol className="flex flex-col gap-4">
+                  {activities.map((entry) => (
+                    <li key={entry.id} className="flex flex-col gap-0.5">
+                      <span className="text-caption text-ink-subtle">
+                        {ACTIVITY_LABELS[entry.kind] ?? entry.kind} ·{" "}
+                        {dateFormatter.format(entry.createdAt)}
+                        {entry.actorName ? ` · ${entry.actorName}` : ""}
+                      </span>
+                      <span className="text-body-sm text-ink">
+                        {entry.summary}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </CardContent>
           </Card>
 

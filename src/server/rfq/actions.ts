@@ -11,7 +11,12 @@ import {
   checkFormTiming,
   RATE_LIMIT_WINDOW_MINUTES,
 } from "@/server/leads/throttle";
-import { createLeadWithReference, requestContext } from "@/server/leads/service";
+import {
+  createLeadWithReference,
+  readLeadContext,
+  requestContext,
+} from "@/server/leads/service";
+import { recordLeadActivity } from "@/server/leads/activity";
 import { quoteLineProducts } from "@/server/products/public";
 import type { QuoteLineProduct } from "@/server/products/public";
 import { sendMail } from "@/server/mail/send";
@@ -150,6 +155,7 @@ export async function submitRfqAction(
       consentText: CONSENT_TEXT,
       ipAddress: context.ipAddress,
       userAgent: context.userAgent,
+      ...readLeadContext(formData),
     },
     items,
   );
@@ -159,6 +165,14 @@ export async function submitRfqAction(
       error: "We could not record your request just now. Please try again.",
     };
   }
+
+  await recordLeadActivity({
+    leadId: lead.id,
+    kind: "CREATED",
+    summary: `Quotation request received — ${items.length} ${
+      items.length === 1 ? "product" : "products"
+    }`,
+  });
 
   await recordAuditEvent({
     action: "LEAD_CREATED",

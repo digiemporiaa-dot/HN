@@ -11,7 +11,13 @@ import {
   checkSubmissionRate,
   RATE_LIMIT_WINDOW_MINUTES,
 } from "@/server/leads/throttle";
-import { requestContext } from "@/server/leads/service";
+import {
+  createLeadWithReference,
+  readLeadContext,
+  requestContext,
+} from "@/server/leads/service";
+import { recordLeadActivity } from "@/server/leads/activity";
+import { leadFromAnswers } from "./lead";
 import { sendMail } from "@/server/mail/send";
 import { publicForm } from "./service";
 import { collectAnswers } from "./answers";
@@ -158,6 +164,38 @@ export async function submitFormAction(
     },
     select: { id: true },
   });
+
+  // A form the administrator mapped to an email address produces a lead as well
+  // as a submission, so a custom form lands in the same pipeline as every other
+  // enquiry rather than in a list nobody opens. A form with no mapping — a
+  // survey, a feedback box — produces the submission alone.
+  const mapped = leadFromAnswers(form.fields, answers);
+  if (mapped) {
+    const lead = await createLeadWithReference({
+      name: mapped.name,
+      email: mapped.email,
+      phone: mapped.phone,
+      organisation: mapped.organisation,
+      city: mapped.city,
+      message: mapped.message,
+      source: "CUSTOM_FORM",
+      formSubmissionId: submission.id,
+      // The form's own consent wording is whatever question the administrator
+      // wrote; the enquiry consent text would be a claim about an agreement
+      // nobody was shown. Left unset rather than asserted.
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      ...readLeadContext(formData),
+    });
+
+    if (lead) {
+      await recordLeadActivity({
+        leadId: lead.id,
+        kind: "CREATED",
+        summary: `Submitted through ${form.name}`,
+      });
+    }
+  }
 
   await recordAuditEvent({
     action: "FORM_SUBMITTED",
