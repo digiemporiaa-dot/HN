@@ -56,6 +56,18 @@ export type FieldSpec =
       required?: boolean;
     }
   | {
+      /**
+       * A form an administrator built, chosen from the ones that exist.
+       *
+       * A key typed by hand would be a silent failure — a mistyped one renders
+       * nothing and looks exactly like a form that has not loaded.
+       */
+      kind: "formKey";
+      name: string;
+      label: string;
+      help?: string;
+    }
+  | {
       kind: "select";
       name: string;
       label: string;
@@ -126,6 +138,9 @@ function schemaForField(field: FieldSpec): z.ZodTypeAny {
       return field.required
         ? z.string().min(1, `${field.label} is required`)
         : z.string().default("");
+    case "formKey":
+      // Blank is meaningful: it means the built-in enquiry form.
+      return z.string().trim().max(60).default("");
     case "url":
       return field.required
         ? linkSchema.refine((v) => v.length > 0, `${field.label} is required`)

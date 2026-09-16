@@ -167,7 +167,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/forms",
         icon: ClipboardList,
         module: "FORMS",
-        available: false,
+        available: true,
       },
     ],
   },

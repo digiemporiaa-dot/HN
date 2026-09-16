@@ -16,6 +16,9 @@ import type { ResolvedEntity } from "@/cms/sections/entities";
 import { RichText } from "@/cms/rich-text";
 import { parseVideoUrl } from "@/cms/video";
 import { EnquiryForm } from "@/components/site/enquiry-form";
+import { BuiltForm } from "@/components/site/built-form";
+import { submitFormAction } from "@/server/forms/submit";
+import type { PublicForm } from "@/server/forms/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
 import {
   GalleryGrid,
@@ -35,6 +38,9 @@ export type RendererProps = {
    * editor's order and already filtered to what is publicly visible.
    */
   entities: Record<string, ResolvedEntity[]>;
+  /** Built forms for FORMKEY fields, keyed by field name. Null means the
+   *  enquiry form, either by choice or because the chosen one is gone. */
+  forms: Record<string, PublicForm | null>;
 };
 
 const text = (content: Record<string, unknown>, key: string): string =>
@@ -852,17 +858,25 @@ function TabsSection({ content }: RendererProps) {
   );
 }
 
-function FormSection({ content }: RendererProps) {
+function FormSection({ content, forms }: RendererProps) {
+  const built = forms.formKey;
+
   return (
     <div className="flex flex-col gap-8">
       <Header content={content} align="left" />
-      {/* No product and no document, so the action files it as a contact form.
-          The source is decided by what the submission carries, not by anything
-          this section could assert. */}
-      <EnquiryForm
-        action={submitEnquiryAction}
-        submitLabel={text(content, "submitLabel") || "Send enquiry"}
-      />
+      {built ? (
+        // A form an administrator assembled. Its submissions are filed under
+        // the form rather than as enquiries, because that is what they are.
+        <BuiltForm form={built} action={submitFormAction} />
+      ) : (
+        // No product and no document, so the action files it as a contact form.
+        // The source is decided by what the submission carries, not by anything
+        // this section could assert.
+        <EnquiryForm
+          action={submitEnquiryAction}
+          submitLabel={text(content, "submitLabel") || "Send enquiry"}
+        />
+      )}
     </div>
   );
 }

@@ -38,10 +38,25 @@ export const STORAGE_FOLDERS = [
   "cities",
   "brochures",
   "documents",
+  /// What visitors attach to a form. Kept apart from every folder an
+  /// administrator uploads into, so a stranger's file is never one directory
+  /// listing away from the media library.
+  "submissions",
   "general",
 ] as const;
 
 export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
+
+/**
+ * The folders the media library shows.
+ *
+ * "submissions" is a place on disk, not a folder in the library: a visitor's
+ * attachment is never a MediaAsset, so a folder for it would sit permanently
+ * empty next to the ones administrators actually use.
+ */
+export const LIBRARY_FOLDERS = STORAGE_FOLDERS.filter(
+  (folder) => folder !== "submissions",
+);
 
 export function isStorageFolder(value: string): value is StorageFolder {
   return (STORAGE_FOLDERS as readonly string[]).includes(value);
@@ -65,13 +80,48 @@ const MEGABYTE = 1024 * 1024;
  * once that module exists.
  */
 export const ALLOWED_TYPES: AllowedType[] = [
-  { mimeType: "image/jpeg", extensions: ["jpg", "jpeg"], kind: "IMAGE", maxBytes: 10 * MEGABYTE },
-  { mimeType: "image/png", extensions: ["png"], kind: "IMAGE", maxBytes: 10 * MEGABYTE },
-  { mimeType: "image/webp", extensions: ["webp"], kind: "IMAGE", maxBytes: 10 * MEGABYTE },
-  { mimeType: "image/avif", extensions: ["avif"], kind: "IMAGE", maxBytes: 10 * MEGABYTE },
-  { mimeType: "image/gif", extensions: ["gif"], kind: "IMAGE", maxBytes: 10 * MEGABYTE },
-  { mimeType: "image/svg+xml", extensions: ["svg"], kind: "VECTOR", maxBytes: 2 * MEGABYTE },
-  { mimeType: "application/pdf", extensions: ["pdf"], kind: "DOCUMENT", maxBytes: 25 * MEGABYTE },
+  {
+    mimeType: "image/jpeg",
+    extensions: ["jpg", "jpeg"],
+    kind: "IMAGE",
+    maxBytes: 10 * MEGABYTE,
+  },
+  {
+    mimeType: "image/png",
+    extensions: ["png"],
+    kind: "IMAGE",
+    maxBytes: 10 * MEGABYTE,
+  },
+  {
+    mimeType: "image/webp",
+    extensions: ["webp"],
+    kind: "IMAGE",
+    maxBytes: 10 * MEGABYTE,
+  },
+  {
+    mimeType: "image/avif",
+    extensions: ["avif"],
+    kind: "IMAGE",
+    maxBytes: 10 * MEGABYTE,
+  },
+  {
+    mimeType: "image/gif",
+    extensions: ["gif"],
+    kind: "IMAGE",
+    maxBytes: 10 * MEGABYTE,
+  },
+  {
+    mimeType: "image/svg+xml",
+    extensions: ["svg"],
+    kind: "VECTOR",
+    maxBytes: 2 * MEGABYTE,
+  },
+  {
+    mimeType: "application/pdf",
+    extensions: ["pdf"],
+    kind: "DOCUMENT",
+    maxBytes: 25 * MEGABYTE,
+  },
 ];
 
 export const MAX_UPLOAD_BYTES = Math.max(

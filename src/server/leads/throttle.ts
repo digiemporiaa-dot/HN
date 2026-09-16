@@ -77,4 +77,26 @@ export async function checkEnquiryRate(
   return { ok: true };
 }
 
+/**
+ * The same limit for a built form.
+ *
+ * Counted against the submissions rather than the leads, because a custom form
+ * is not an enquiry and sharing a counter would let a trade-show sign-up sheet
+ * lock somebody out of the quotation form.
+ */
+export async function checkSubmissionRate(
+  ipAddress: string | null,
+): Promise<SubmissionCheck> {
+  if (!ipAddress) return { ok: true };
+
+  const since = new Date(Date.now() - WINDOW_MINUTES * 60_000);
+  const count = await prisma.formSubmission.count({
+    where: { ipAddress, createdAt: { gte: since } },
+  });
+
+  return count >= MAX_PER_IP
+    ? { ok: false, reason: "rate-limited" }
+    : { ok: true };
+}
+
 export const RATE_LIMIT_WINDOW_MINUTES = WINDOW_MINUTES;

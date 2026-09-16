@@ -21,6 +21,7 @@ import {
   type ResolvedEntity,
 } from "./sections/entities";
 import { SECTION_RENDERERS } from "./sections/renderers";
+import { publicForm, type PublicForm } from "@/server/forms/service";
 
 export type StoredSection = {
   id: string;
@@ -167,6 +168,38 @@ function entityRequests(sections: StoredSection[]): EntityRequest[] {
   return requests;
 }
 
+/**
+ * The built forms a page's sections point at.
+ *
+ * Looked up once per page rather than once per section, because two sections
+ * embedding the same form is a page that exists.
+ */
+async function resolveForms(
+  sections: StoredSection[],
+): Promise<Map<string, PublicForm>> {
+  const keys = new Set<string>();
+  for (const section of sections) {
+    const definition = getSectionDefinition(section.type);
+    if (!definition) continue;
+    for (const field of definition.fields) {
+      if (field.kind !== "formKey") continue;
+      const value = (section.content as Record<string, unknown> | null)?.[
+        field.name
+      ];
+      if (typeof value === "string" && value) keys.add(value);
+    }
+  }
+
+  const resolved = new Map<string, PublicForm>();
+  await Promise.all(
+    [...keys].map(async (key) => {
+      const form = await publicForm(key);
+      if (form) resolved.set(key, form);
+    }),
+  );
+  return resolved;
+}
+
 export async function RenderedSections({
   sections,
 }: {
@@ -176,9 +209,10 @@ export async function RenderedSections({
     .filter((section) => section.enabled)
     .sort((a, b) => a.order - b.order);
 
-  const [mediaByIdMap, entityById] = await Promise.all([
+  const [mediaByIdMap, entityById, formsByKey] = await Promise.all([
     resolveMedia(enabled),
     resolveEntities(entityRequests(enabled)),
+    resolveForms(enabled),
   ]);
 
   return (
@@ -238,6 +272,19 @@ export async function RenderedSections({
             : [];
         }
 
+        // A built form that has since been unpublished or deleted resolves to
+        // nothing, and the section falls back to the enquiry form rather than
+        // rendering a gap where a form used to be.
+        const forms: Record<string, PublicForm | null> = {};
+        for (const field of definition.fields) {
+          if (field.kind !== "formKey") continue;
+          const key = content[field.name];
+          forms[field.name] =
+            typeof key === "string" && key
+              ? (formsByKey.get(key) ?? null)
+              : null;
+        }
+
         return (
           <Section
             key={section.id}
@@ -247,6 +294,7 @@ export async function RenderedSections({
             anchorId={design.anchorId}
           >
             <Renderer
+              forms={forms}
               content={content}
               design={design}
               media={media}

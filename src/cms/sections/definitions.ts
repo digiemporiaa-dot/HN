@@ -757,13 +757,19 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   },
   {
     type: "FORM",
-    label: "Enquiry form",
+    label: "Form",
     description:
-      "A contact form. Submissions arrive in Leads like every other enquiry.",
+      "The enquiry form, or one you have built. Enquiries arrive in Leads; a built form's submissions arrive under the form itself.",
     designOptions: [...BASE_DESIGN],
     design: { container: "narrow" },
     fields: [
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      {
+        kind: "formKey",
+        name: "formKey",
+        label: "Form",
+        help: "Leave as the enquiry form unless you have built one for this page.",
+      },
       {
         kind: "textarea",
         name: "intro",

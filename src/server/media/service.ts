@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import {
   isStorageFolder,
-  STORAGE_FOLDERS,
+  LIBRARY_FOLDERS,
   type StorageFolder,
 } from "@/server/storage/config";
 
@@ -28,6 +28,9 @@ const ROOT_LABELS: Record<StorageFolder, string> = {
   cities: "Locations",
   brochures: "Brochures",
   documents: "Documents",
+  // Listed for completeness of the map. Form attachments never appear in the
+  // media library: they are a stranger's files, not the company's.
+  submissions: "Form attachments",
   general: "General",
 };
 
@@ -42,7 +45,7 @@ export function slugifyFolderName(name: string): string {
 
 /** Creates the fixed root folders if they are missing. Safe to call repeatedly. */
 export async function ensureRootFolders(): Promise<void> {
-  for (const slug of STORAGE_FOLDERS) {
+  for (const slug of LIBRARY_FOLDERS) {
     await prisma.mediaFolder.upsert({
       where: { path: `/${slug}` },
       update: {},
@@ -147,11 +150,15 @@ export async function createFolder(params: {
       where: { id: params.parentId },
       select: { path: true, depth: true },
     });
-    if (!parent) return { ok: false, reason: "The parent folder no longer exists." };
+    if (!parent)
+      return { ok: false, reason: "The parent folder no longer exists." };
 
     // Deep trees make the picker unusable long before they hurt the database.
     if (parent.depth >= 3) {
-      return { ok: false, reason: "Folders cannot be nested more than four levels deep." };
+      return {
+        ok: false,
+        reason: "Folders cannot be nested more than four levels deep.",
+      };
     }
     parentPath = parent.path;
     depth = parent.depth + 1;
@@ -163,10 +170,20 @@ export async function createFolder(params: {
     where: { path },
     select: { id: true },
   });
-  if (clash) return { ok: false, reason: "A folder with that name already exists here." };
+  if (clash)
+    return {
+      ok: false,
+      reason: "A folder with that name already exists here.",
+    };
 
   const folder = await prisma.mediaFolder.create({
-    data: { name: params.name.trim(), slug, path, depth, parentId: params.parentId },
+    data: {
+      name: params.name.trim(),
+      slug,
+      path,
+      depth,
+      parentId: params.parentId,
+    },
     select: { id: true },
   });
 
@@ -186,7 +203,8 @@ export async function renameFolder(params: {
   if (folder.depth === 0) {
     return {
       ok: false,
-      reason: "The top-level folders mirror the storage layout and cannot be renamed.",
+      reason:
+        "The top-level folders mirror the storage layout and cannot be renamed.",
     };
   }
 
@@ -201,7 +219,11 @@ export async function renameFolder(params: {
       where: { path: nextPath },
       select: { id: true },
     });
-    if (clash) return { ok: false, reason: "A folder with that name already exists here." };
+    if (clash)
+      return {
+        ok: false,
+        reason: "A folder with that name already exists here.",
+      };
   }
 
   const descendants = await prisma.mediaFolder.findMany({

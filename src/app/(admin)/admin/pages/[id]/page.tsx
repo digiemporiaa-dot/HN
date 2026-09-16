@@ -17,6 +17,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { catalogueChoices } from "@/server/cms/catalogue-choices";
+import { embeddableForms } from "@/server/forms/service";
 import { publicUrlForKey } from "@/server/storage/paths";
 import { deletePageAction } from "@/server/cms/actions";
 import {
@@ -74,7 +75,10 @@ export default async function EditPagePage({
 
   if (!page) notFound();
 
-  const catalogue = await catalogueChoices();
+  const [catalogue, forms] = await Promise.all([
+    catalogueChoices(),
+    embeddableForms(),
+  ]);
 
   const assets = await prisma.mediaAsset.findMany({
     where: { deletedAt: null, kind: { in: [...PICKABLE_KINDS] } },
@@ -164,7 +168,10 @@ export default async function EditPagePage({
               <form action={deletePageAction}>
                 <input type="hidden" name="pageId" value={page.id} />
                 <Button type="submit" variant="outline" size="sm">
-                  <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
                   Delete
                 </Button>
               </form>
@@ -206,6 +213,7 @@ export default async function EditPagePage({
                 section={section}
                 mediaOptions={mediaOptions}
                 catalogue={catalogue}
+                forms={forms}
                 isFirst={index === 0}
                 isLast={index === sections.length - 1}
                 readOnly={!canEdit}

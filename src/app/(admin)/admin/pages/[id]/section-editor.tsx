@@ -159,6 +159,7 @@ export function SectionEditor({
   section,
   mediaOptions,
   catalogue,
+  forms,
   isFirst,
   isLast,
   readOnly,
@@ -166,6 +167,8 @@ export function SectionEditor({
   section: EditableSection;
   mediaOptions: MediaOption[];
   catalogue: CatalogueChoices;
+  /** Built forms an editor may embed. Published only: a draft has no page. */
+  forms: Array<{ key: string; name: string }>;
   isFirst: boolean;
   isLast: boolean;
   readOnly: boolean;
@@ -179,7 +182,10 @@ export function SectionEditor({
     initialValues(section),
     section.version,
   );
-  const [enabled, setEnabled] = useSyncedState(section.enabled, section.version);
+  const [enabled, setEnabled] = useSyncedState(
+    section.enabled,
+    section.version,
+  );
   const [anchorId, setAnchorId] = useSyncedState(
     section.anchorId,
     section.version,
@@ -283,14 +289,20 @@ export function SectionEditor({
               role="alert"
               className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3"
             >
-              <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <AlertCircle
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
               <span>{state.error}</span>
             </div>
           ) : null}
 
           {state.success ? (
             <div className="border-success-100 bg-success-50 text-success-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3">
-              <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <CheckCircle2
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
               <span>{state.success}</span>
             </div>
           ) : null}
@@ -325,6 +337,34 @@ export function SectionEditor({
                         onChange={(next) => setValue(field.name, next)}
                       />
                     </>
+                  )}
+                </Field>
+              ) : field.kind === "formKey" ? (
+                <Field
+                  key={field.name}
+                  label={field.label}
+                  help={field.help}
+                  error={state.fieldErrors?.[field.name]}
+                >
+                  {(control) => (
+                    <Select
+                      name={field.name}
+                      value={(values[field.name] as string) ?? ""}
+                      disabled={readOnly}
+                      onChange={(event) =>
+                        setValue(field.name, event.target.value)
+                      }
+                      {...control}
+                    >
+                      {/* Blank is a real choice, not an empty state: it means
+                          the built-in enquiry form. */}
+                      <option value="">Enquiry form (built in)</option>
+                      {forms.map((form) => (
+                        <option key={form.key} value={form.key}>
+                          {form.name}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                 </Field>
               ) : field.kind === "repeater" ? (
@@ -368,7 +408,11 @@ export function SectionEditor({
                       {(control) => (
                         <Select
                           name={`design.${key}`}
-                          value={design[key] ?? DEFAULT_SECTION_DESIGN[option] ?? choices[0]}
+                          value={
+                            design[key] ??
+                            DEFAULT_SECTION_DESIGN[option] ??
+                            choices[0]
+                          }
                           disabled={readOnly}
                           onChange={(event) =>
                             setDesign((current) => ({
