@@ -29,6 +29,7 @@ import { productPath } from "@/server/products/service";
 import { JsonLd } from "@/components/seo/json-ld";
 import { productJsonLd } from "@/server/seo/structured-data";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
+import { AddToQuoteButton } from "@/components/site/quote-basket";
 import { submitEnquiryAction } from "@/server/leads/actions";
 
 type RouteParams = { params: Promise<{ slug: string }> };
@@ -398,6 +399,9 @@ function EnquiryPanel({
           description="We reply within one working day."
           submitLabel="Send enquiry"
         />
+        {/* For the tender that covers a list rather than one machine: adding
+            builds it up across the catalogue and sends it in one request. */}
+        <AddToQuoteButton productId={product.id} size="lg" />
         {mailto ? (
           <a
             href={mailto}

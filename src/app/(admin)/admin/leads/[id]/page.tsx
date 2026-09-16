@@ -172,6 +172,59 @@ export default async function LeadPage({
             </CardContent>
           </Card>
 
+          {lead.items.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Products requested ({lead.items.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* The name and model number shown are the ones stored when the
+                    request arrived, not the catalogue's current ones: what a
+                    hospital asked for is a fact about that day. The link is
+                    offered only while the product is still there to link to. */}
+                <ul className="divide-line divide-y">
+                  {lead.items.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-body-sm text-ink shrink-0 font-medium tabular-nums">
+                          {item.quantity} ×
+                        </span>
+                        <span className="text-body-sm text-ink">
+                          {item.product &&
+                          !item.product.deletedAt &&
+                          item.product.status === "PUBLISHED" ? (
+                            <Link
+                              href={productPath(item.product.slug)}
+                              className="text-primary underline underline-offset-4"
+                            >
+                              {item.productName}
+                            </Link>
+                          ) : (
+                            item.productName
+                          )}
+                          {item.modelNumber ? (
+                            <span className="text-ink-subtle">
+                              {" "}
+                              · {item.modelNumber}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      {item.notes ? (
+                        <p className="text-caption text-ink-muted whitespace-pre-wrap pl-9">
+                          {item.notes}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>Notes</CardTitle>

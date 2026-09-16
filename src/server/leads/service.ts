@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 
+import { headers } from "next/headers";
+
 import { prisma } from "@/server/db";
+import type { Prisma } from "@/generated/prisma/client";
 
 /** How long a download link stays usable. Long enough to find the email. */
 export const GRANT_TTL_DAYS = 14;
@@ -16,6 +19,7 @@ export const LEAD_LIST_SELECT = {
   productName: true,
   createdAt: true,
   assignedTo: { select: { id: true, name: true } },
+  _count: { select: { items: true } },
 } as const;
 
 export type LeadRow = {
@@ -29,6 +33,7 @@ export type LeadRow = {
   productName: string | null;
   createdAt: Date;
   assignedTo: { id: string; name: string } | null;
+  _count: { items: number };
 };
 
 /**
@@ -49,6 +54,55 @@ export async function nextLeadReference(): Promise<string> {
   });
 
   return `HN-${year}-${String(count + 1).padStart(4, "0")}`;
+}
+
+/**
+ * Where a submission came from, as far as the request can tell.
+ *
+ * Kept for abuse handling only, which is why the user agent is truncated and
+ * neither field leaves the database: the export deliberately omits both.
+ */
+export async function requestContext(): Promise<{
+  ipAddress: string | null;
+  userAgent: string | null;
+}> {
+  const headerList = await headers();
+  const forwarded = headerList.get("x-forwarded-for");
+  return {
+    ipAddress:
+      forwarded?.split(",")[0]?.trim() ?? headerList.get("x-real-ip") ?? null,
+    userAgent: headerList.get("user-agent")?.slice(0, 512) ?? null,
+  };
+}
+
+/**
+ * Stores an enquiry under the next free reference.
+ *
+ * The reference is unique at the column, so two enquiries arriving together
+ * cannot take the same number: the second insert fails and we count again.
+ * Returns null once the attempts run out, which the caller reports rather than
+ * pretending the enquiry was saved.
+ */
+export async function createLeadWithReference(
+  data: Omit<Prisma.LeadUncheckedCreateInput, "reference">,
+  items?: Prisma.RfqItemCreateWithoutLeadInput[],
+): Promise<{ id: string; reference: string } | null> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const reference = await nextLeadReference();
+    try {
+      return await prisma.lead.create({
+        data: {
+          ...data,
+          reference,
+          ...(items?.length ? { items: { create: items } } : {}),
+        },
+        select: { id: true, reference: true },
+      });
+    } catch {
+      // Taken in the moment between counting and inserting; count again.
+    }
+  }
+  return null;
 }
 
 /** 32 bytes of randomness, url-safe: the whole of a download's authorisation. */
@@ -77,6 +131,20 @@ export async function findLead(id: string) {
       updatedAt: true,
       assignedToId: true,
       product: { select: { id: true, name: true, slug: true } },
+      // The list on a quotation request, in the order it was sent. The name and
+      // model number are the snapshot taken when it arrived: what was asked for
+      // does not change because the catalogue since did.
+      items: {
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          productName: true,
+          modelNumber: true,
+          quantity: true,
+          notes: true,
+          product: { select: { slug: true, status: true, deletedAt: true } },
+        },
+      },
       notes: {
         orderBy: { createdAt: "desc" },
         select: { id: true, body: true, authorName: true, createdAt: true },

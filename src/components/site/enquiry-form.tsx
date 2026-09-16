@@ -12,6 +12,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { CONSENT_TEXT } from "@/lib/validation/leads";
+import type { RfqLine } from "@/lib/validation/rfq";
 import type { EnquiryState } from "@/server/leads/actions";
 
 type EnquiryAction = (
@@ -32,6 +33,7 @@ export function EnquiryForm({
   action,
   productId,
   documentId,
+  lines,
   submitLabel,
   onDone,
 }: {
@@ -39,6 +41,14 @@ export function EnquiryForm({
   productId?: string;
   /** Set when the enquiry is the price of a gated document. */
   documentId?: string;
+  /**
+   * The quotation list, when this form is sending one.
+   *
+   * Posted as JSON from the caller's state rather than as named inputs: the
+   * quantity and note controls live in the list above the form, outside it, and
+   * a control outside a form does not submit with it.
+   */
+  lines?: RfqLine[];
   submitLabel: string;
   onDone?: () => void;
 }) {
@@ -118,6 +128,9 @@ export function EnquiryForm({
       ) : null}
       {documentId ? (
         <input type="hidden" name="documentId" value={documentId} />
+      ) : null}
+      {lines ? (
+        <input type="hidden" name="lines" value={JSON.stringify(lines)} />
       ) : null}
       <input type="hidden" name="startedAt" value={startedAt} />
 

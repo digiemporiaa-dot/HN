@@ -5,6 +5,7 @@ import { Container } from "@/components/ui";
 import { getMenuTree } from "@/server/navigation/service";
 import type { SiteSettings } from "@/server/settings/service";
 import { DesktopNav, MobileNav } from "./site-nav";
+import { QuoteBasketLink } from "./quote-basket";
 
 function Logo({ settings }: { settings: SiteSettings }) {
   return (
@@ -55,6 +56,8 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
                 {settings.phone}
               </a>
             ) : null}
+
+            <QuoteBasketLink />
 
             <MobileNav items={items} companyName={settings.companyName} />
           </div>

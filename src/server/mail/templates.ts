@@ -22,6 +22,13 @@ export type LeadNotification = {
   city: string | null;
   message: string | null;
   productName: string | null;
+  /** The list on a quotation request. Names come from the catalogue, notes do not. */
+  items?: Array<{
+    productName: string;
+    modelNumber: string | null;
+    quantity: number;
+    notes: string | null;
+  }>;
   source: string;
   leadId: string;
 };
@@ -65,11 +72,26 @@ export function leadNotification(lead: LeadNotification): {
     ["Source", label],
   ];
 
+  const items = lead.items ?? [];
+  const itemLine = (item: NonNullable<LeadNotification["items"]>[number]) =>
+    [
+      `${item.quantity} \u00d7 ${item.productName}`,
+      item.modelNumber ? ` (${item.modelNumber})` : "",
+      item.notes ? ` — ${item.notes}` : "",
+    ].join("");
+
   const text = [
     `${label}${about}`,
     "",
     ...rows.map(([key, value]) => `${key}: ${value}`),
     "",
+    ...(items.length
+      ? [
+          "Products requested:",
+          ...items.map((item) => `  ${itemLine(item)}`),
+          "",
+        ]
+      : []),
     ...(lead.message ? ["Message:", lead.message, ""] : []),
     `Open in the admin: ${link}`,
   ].join("\n");
@@ -84,6 +106,14 @@ export function leadNotification(lead: LeadNotification): {
         `<tr><td style="padding:2px 16px 2px 0;color:#667">${escape(key)}</td><td style="padding:2px 0">${escape(value)}</td></tr>`,
     ),
     "</table>",
+    ...(items.length
+      ? [
+          '<p style="margin:16px 0 4px;color:#667">Products requested</p>',
+          '<ul style="margin:0;padding-left:20px;font:14px/1.6 system-ui,sans-serif">',
+          ...items.map((item) => `<li>${escape(itemLine(item))}</li>`),
+          "</ul>",
+        ]
+      : []),
     ...(lead.message
       ? [
           '<p style="margin:16px 0 4px;color:#667">Message</p>',

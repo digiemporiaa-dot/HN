@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -20,7 +19,12 @@ import {
   checkFormTiming,
   RATE_LIMIT_WINDOW_MINUTES,
 } from "./throttle";
-import { GRANT_TTL_DAYS, newGrantToken, nextLeadReference } from "./service";
+import {
+  createLeadWithReference,
+  GRANT_TTL_DAYS,
+  newGrantToken,
+  requestContext,
+} from "./service";
 import { sendMail } from "@/server/mail/send";
 import { leadNotification } from "@/server/mail/templates";
 
@@ -32,16 +36,6 @@ export type EnquiryState = {
   downloadUrl?: string;
   fieldErrors?: Record<string, string>;
 };
-
-async function requestContext() {
-  const headerList = await headers();
-  const forwarded = headerList.get("x-forwarded-for");
-  return {
-    ipAddress:
-      forwarded?.split(",")[0]?.trim() ?? headerList.get("x-real-ip") ?? null,
-    userAgent: headerList.get("user-agent")?.slice(0, 512) ?? null,
-  };
-}
 
 /**
  * Captures an enquiry from the public site.
@@ -127,39 +121,25 @@ export async function submitEnquiryAction(
       ? "PRODUCT_ENQUIRY"
       : "CONTACT_FORM";
 
-  // The reference is unique at the column, so a collision between two enquiries
-  // arriving together fails the insert rather than duplicating a number.
-  let lead: { id: string; reference: string } | null = null;
-  for (let attempt = 0; attempt < 5 && !lead; attempt += 1) {
-    const reference = await nextLeadReference();
-    try {
-      lead = await prisma.lead.create({
-        data: {
-          reference,
-          name: parsed.data.name,
-          email: parsed.data.email,
-          phone: parsed.data.phone || null,
-          organisation: parsed.data.organisation || null,
-          city: parsed.data.city || null,
-          message: parsed.data.message || null,
-          source,
-          productId: product?.id ?? null,
-          productName: product
-            ? product.modelNumber
-              ? `${product.name} (${product.modelNumber})`
-              : product.name
-            : null,
-          consentedAt: new Date(),
-          consentText: CONSENT_TEXT,
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-        },
-        select: { id: true, reference: true },
-      });
-    } catch {
-      // Taken in the moment between counting and inserting; count again.
-    }
-  }
+  const lead = await createLeadWithReference({
+    name: parsed.data.name,
+    email: parsed.data.email,
+    phone: parsed.data.phone || null,
+    organisation: parsed.data.organisation || null,
+    city: parsed.data.city || null,
+    message: parsed.data.message || null,
+    source,
+    productId: product?.id ?? null,
+    productName: product
+      ? product.modelNumber
+        ? `${product.name} (${product.modelNumber})`
+        : product.name
+      : null,
+    consentedAt: new Date(),
+    consentText: CONSENT_TEXT,
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent,
+  });
 
   if (!lead) {
     return {

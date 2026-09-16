@@ -8,7 +8,8 @@ import { getSiteSettings } from "@/server/settings/service";
  *
  * The administration area and the authentication routes are behind a login, so
  * a crawler would only ever collect redirects from them; /api serves files and
- * form endpoints rather than pages.
+ * form endpoints rather than pages. /rfq shows a list a visitor keeps in their
+ * own browser, so to a crawler it is a permanently empty page.
  */
 const PRIVATE_PATHS = [
   "/admin",
@@ -18,6 +19,7 @@ const PRIVATE_PATHS = [
   "/access-denied",
   "/change-password",
   "/design-system",
+  "/rfq",
 ];
 
 export const revalidate = 3600;

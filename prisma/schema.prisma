@@ -879,6 +879,7 @@ model Product {
   documents    ProductDocument[]
   applications ProductApplication[]
   leads        Lead[]
+  rfqItems     RfqItem[]
 
   /// Two sides of one table: what this product points at, and what points at
   /// it. The second exists so deleting a product can clear the links naming it.
@@ -1213,6 +1214,7 @@ model Lead {
 
   notes  LeadNote[]
   grants DocumentGrant[]
+  items  RfqItem[]
 
   /// Soft deleted: an enquiry is a commercial record, and deleting one by
   /// mistake loses a conversation nobody can reconstruct.
@@ -1228,6 +1230,34 @@ model Lead {
   @@index([productId])
   @@index([deletedAt])
   @@index([createdAt])
+}
+
+/// One line of a quotation request.
+///
+/// A hospital's tender covers a list, not a machine, so an enquiry can carry
+/// several products with a quantity and a note against each.
+model RfqItem {
+  id String @id @default(cuid())
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  /// The product as a link and as text, for the same reason the lead itself
+  /// keeps both: the link is for reporting, the text is what was asked for.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productName String
+  modelNumber String?
+
+  quantity Int     @default(1)
+  notes    String?
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, order])
+  @@index([productId])
 }
 
 model LeadNote {

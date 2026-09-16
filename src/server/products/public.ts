@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { publicUrlForKey } from "@/server/storage/paths";
+import { MAX_RFQ_LINES } from "@/lib/validation/rfq";
 
 /**
  * Reads for the public catalogue.
@@ -383,4 +384,54 @@ export async function publishedProductSlugs(): Promise<string[]> {
     );
     return [];
   }
+}
+
+export type QuoteLineProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  modelNumber: string | null;
+  categoryName: string;
+  brandName: string | null;
+  image: PublicImage | null;
+};
+
+/**
+ * The products behind a quotation basket, resolved from their ids.
+ *
+ * The basket lives in the visitor's browser and so holds nothing but ids: every
+ * name, model number and picture shown on the quotation page is read here. A
+ * basket carrying an id that has since been unpublished or deleted simply comes
+ * back short, and the page drops that line rather than showing a product the
+ * catalogue no longer offers.
+ */
+export async function quoteLineProducts(
+  ids: string[],
+): Promise<QuoteLineProduct[]> {
+  const wanted = [...new Set(ids)].slice(0, MAX_RFQ_LINES);
+  if (wanted.length === 0) return [];
+
+  const rows = await prisma.product.findMany({
+    where: { id: { in: wanted }, deletedAt: null, status: "PUBLISHED" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      modelNumber: true,
+      category: { select: { name: true } },
+      brand: { select: { name: true, status: true } },
+      primaryImage: { select: { storageKey: true, altText: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    modelNumber: row.modelNumber,
+    categoryName: row.category.name,
+    // Draft brands stay unnamed here for the same reason they do on a card.
+    brandName: row.brand?.status === "PUBLISHED" ? row.brand.name : null,
+    image: toImage(row.primaryImage, row.name),
+  }));
 }

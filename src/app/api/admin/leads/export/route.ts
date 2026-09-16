@@ -41,6 +41,7 @@ const COLUMNS = [
   "Organisation",
   "City",
   "Product",
+  "Products requested",
   "Owner",
   "Message",
   "Consent given",
@@ -72,6 +73,15 @@ export async function GET(request: Request) {
       organisation: true,
       city: true,
       productName: true,
+      items: {
+        orderBy: { order: "asc" },
+        select: {
+          productName: true,
+          modelNumber: true,
+          quantity: true,
+          notes: true,
+        },
+      },
       message: true,
       consentedAt: true,
       assignedTo: { select: { name: true } },
@@ -90,6 +100,16 @@ export async function GET(request: Request) {
       lead.organisation,
       lead.city,
       lead.productName,
+      // A quotation request's whole list in one cell, one line per product, so
+      // a row still reads as a row in a spreadsheet.
+      lead.items
+        .map(
+          (item) =>
+            `${item.quantity} x ${item.productName}` +
+            (item.modelNumber ? ` (${item.modelNumber})` : "") +
+            (item.notes ? ` - ${item.notes.replace(/\s+/g, " ")}` : ""),
+        )
+        .join("\n"),
       lead.assignedTo?.name ?? "",
       lead.message,
       lead.consentedAt,

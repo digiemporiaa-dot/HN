@@ -218,7 +218,13 @@ export default async function LeadsPage({
             key: "product",
             header: "About",
             priority: "meta",
-            cell: (row) => row.productName ?? SOURCE_LABELS[row.source] ?? "—",
+            // A quotation request covers a list, so it says how long the list
+            // is rather than naming a product that would misdescribe the rest.
+            cell: (row) =>
+              row.productName ??
+              (row._count.items > 0
+                ? `${row._count.items} ${row._count.items === 1 ? "product" : "products"}`
+                : (SOURCE_LABELS[row.source] ?? "—")),
           },
           {
             key: "status",

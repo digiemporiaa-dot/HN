@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { productPath } from "@/server/products/service";
 import type { ProductCardData } from "@/server/products/public";
+import { AddToQuoteButton } from "./quote-basket";
 
 /* eslint-disable @next/next/no-img-element -- catalogue images are served from
    our own media route at their stored size. */
@@ -16,10 +17,13 @@ import type { ProductCardData } from "@/server/products/public";
  */
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
-    <Card as="li" interactive>
+    <Card as="li" interactive className="flex flex-col gap-3">
+      {/* The quotation button sits outside the link rather than inside it: a
+          button nested in an anchor is invalid, and a click meant for one
+          should never navigate away because it landed on the other. */}
       <Link
         href={productPath(product.slug)}
-        className="group flex h-full flex-col gap-3"
+        className="group flex flex-1 flex-col gap-3"
       >
         {product.image ? (
           <img
@@ -51,6 +55,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           ) : null}
         </CardContent>
       </Link>
+
+      <AddToQuoteButton productId={product.id} size="sm" className="w-full" />
     </Card>
   );
 }
