@@ -147,3 +147,67 @@ export function testMessage(): { subject: string; text: string; html: string } {
     html: '<p style="font:14px/1.5 system-ui,sans-serif">This is a test of the website\'s outgoing mail settings.</p><p style="font:14px/1.5 system-ui,sans-serif">If you are reading it, enquiries submitted on the site will reach this address.</p>',
   };
 }
+
+/**
+ * The message a salesperson gets when a lead becomes theirs.
+ *
+ * Nothing the enquirer typed is in the subject — the reference and the stage
+ * are ours. The body carries the contact details because the point of the
+ * message is that somebody can act on it without opening anything first.
+ */
+export function assignmentNotification(input: {
+  reference: string;
+  leadId: string;
+  assigneeName: string;
+  assignedBy: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  organisation: string | null;
+  about: string | null;
+  stage: string;
+}): { subject: string; text: string; html: string } {
+  const link = new URL(`/admin/leads/${input.leadId}`, appUrl()).toString();
+
+  const rows: Array<[string, string]> = [
+    ["Reference", input.reference],
+    ["Contact", input.name],
+    ["Email", input.email],
+    ...(input.phone
+      ? ([["Phone", input.phone]] as Array<[string, string]>)
+      : []),
+    ...(input.organisation
+      ? ([["Organisation", input.organisation]] as Array<[string, string]>)
+      : []),
+    ...(input.about
+      ? ([["About", input.about]] as Array<[string, string]>)
+      : []),
+    ["Stage", input.stage],
+    ["Assigned by", input.assignedBy],
+  ];
+
+  const text = [
+    `${input.assigneeName}, ${input.reference} is now yours.`,
+    "",
+    ...rows.map(([key, value]) => `${key}: ${value}`),
+    "",
+    `Open in the admin: ${link}`,
+  ].join("\n");
+
+  const html = [
+    `<p style="margin:0 0 16px;font:14px/1.5 system-ui,sans-serif">${escape(input.assigneeName)}, <strong>${escape(input.reference)}</strong> is now yours.</p>`,
+    '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font:14px/1.5 system-ui,sans-serif">',
+    ...rows.map(
+      ([key, value]) =>
+        `<tr><td style="padding:2px 16px 2px 0;color:#667">${escape(key)}</td><td style="padding:2px 0">${escape(value)}</td></tr>`,
+    ),
+    "</table>",
+    `<p style="margin:24px 0 0"><a href="${escape(link)}">Open in the admin</a></p>`,
+  ].join("");
+
+  return {
+    subject: `${input.reference} assigned to you`,
+    text,
+    html,
+  };
+}

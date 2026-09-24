@@ -15,7 +15,12 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { assignableStaff, findLead } from "@/server/leads/service";
-import { leadActivities } from "@/server/leads/activity";
+import {
+  ACTIVITY_FILTERS,
+  isActivityFilter,
+  leadActivities,
+} from "@/server/leads/activity";
+import { buildQueryHref, readStringParam } from "@/lib/utils/query";
 import { categoryPath } from "@/server/categories/service";
 import {
   addLeadNoteAction,
@@ -41,6 +46,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   PRIORITY_CHANGED: "Priority",
   ASSIGNED: "Owner",
   NOTE_ADDED: "Note",
+  COMMENT_ADDED: "Comment",
   DOCUMENT_DOWNLOADED: "Download",
 };
 
@@ -52,16 +58,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
 
 export default async function LeadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("LEADS", "VIEW");
   const { can } = await currentPermissions();
 
   const { id } = await params;
+  const query = await searchParams;
+  // Checked against what exists rather than passed through, like every other
+  // filter here: a hand-edited URL cannot reach the query builder.
+  const rawFilter = readStringParam(query.history);
+  const historyFilter =
+    rawFilter && isActivityFilter(rawFilter) ? rawFilter : "all";
+
   const [lead, staff] = await Promise.all([findLead(id), assignableStaff()]);
   if (!lead) notFound();
-  const activities = await leadActivities(lead.id);
+  const activities = await leadActivities(lead.id, historyFilter);
   if (!lead) notFound();
 
   const facts: Array<[string, React.ReactNode]> = [
@@ -341,7 +356,7 @@ export default async function LeadPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Notes</CardTitle>
+              <CardTitle>Notes and comments</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
               {can("LEADS", "EDIT") ? (
@@ -363,9 +378,17 @@ export default async function LeadPage({
                       key={note.id}
                       className="border-line flex flex-col gap-1 border-b pb-4 last:border-0 last:pb-0"
                     >
-                      <span className="text-caption text-ink-subtle">
-                        {note.authorName} ·{" "}
-                        {dateFormatter.format(note.createdAt)}
+                      <span className="text-caption text-ink-subtle flex flex-wrap items-center gap-2">
+                        {/* Marked, not merely stored differently. Somebody
+                            about to quote a line back to a customer needs to
+                            see at a glance that it was never meant for them. */}
+                        {note.kind === "INTERNAL" ? (
+                          <Badge tone="neutral">Internal</Badge>
+                        ) : null}
+                        <span>
+                          {note.authorName} ·{" "}
+                          {dateFormatter.format(note.createdAt)}
+                        </span>
                       </span>
                       <p className="text-body-sm text-ink whitespace-pre-wrap">
                         {note.body}
@@ -422,10 +445,35 @@ export default async function LeadPage({
             <CardHeader>
               <CardTitle>History</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
+              {/* Links rather than a control: the filter belongs in the URL so
+                  a colleague can be sent the view being looked at. */}
+              <nav aria-label="Filter history" className="flex flex-wrap gap-1">
+                {ACTIVITY_FILTERS.map((entry) => (
+                  <Link
+                    key={entry.value}
+                    href={buildQueryHref(`/admin/leads/${lead.id}`, query, {
+                      history: entry.value === "all" ? null : entry.value,
+                    })}
+                    aria-current={
+                      historyFilter === entry.value ? "page" : undefined
+                    }
+                    className={
+                      historyFilter === entry.value
+                        ? "bg-surface-muted text-ink text-caption rounded px-2.5 py-1 font-medium"
+                        : "text-ink-muted hover:text-ink text-caption rounded px-2.5 py-1 font-medium transition-colors"
+                    }
+                  >
+                    {entry.label}
+                  </Link>
+                ))}
+              </nav>
+
               {activities.length === 0 ? (
                 <p className="text-body-sm text-ink-muted">
-                  Nothing recorded yet.
+                  {historyFilter === "all"
+                    ? "Nothing recorded yet."
+                    : "Nothing of that kind yet."}
                 </p>
               ) : (
                 // Append-only, newest first. A stage moved back and forth is a

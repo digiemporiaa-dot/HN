@@ -5,7 +5,12 @@ import { useActionState } from "react";
 import { Button, Field, Select, Textarea } from "@/components/ui";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
-import { LEAD_PRIORITIES, LEAD_STATUSES } from "@/lib/validation/leads";
+import {
+  LEAD_NOTE_KINDS,
+  LEAD_PRIORITIES,
+  LEAD_STATUSES,
+} from "@/lib/validation/leads";
+import { cn } from "@/lib/utils/cn";
 import type { LeadActionState } from "@/server/leads/actions";
 
 type LeadAction = (
@@ -148,10 +153,18 @@ export function LeadNoteForm({
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const [body, setBody] = useSyncedState("", version);
+  /**
+   * Held in state and reset with the box, so writing one internal comment does
+   * not silently make the next three internal too. The kind is a decision about
+   * one entry, not a mode the screen stays in.
+   */
+  const [kind, setKind] = useSyncedState("NOTE", version);
+  const chosen = LEAD_NOTE_KINDS.find((entry) => entry.value === kind);
 
   return (
     <form action={formAction} className="flex flex-col gap-3" noValidate>
       <input type="hidden" name="leadId" value={leadId} />
+      <input type="hidden" name="kind" value={kind} />
       <FormFeedback state={state} />
 
       <Textarea
@@ -159,18 +172,52 @@ export function LeadNoteForm({
         value={body}
         rows={3}
         maxLength={4000}
-        placeholder="Called and left a message with reception…"
-        aria-label="Add a note"
+        placeholder={
+          kind === "INTERNAL"
+            ? "Worth knowing before you ring them…"
+            : "Called and left a message with reception…"
+        }
+        aria-label={
+          kind === "INTERNAL" ? "Add an internal comment" : "Add a note"
+        }
         onChange={(event) => setBody(event.target.value)}
       />
       {state.fieldErrors?.body ? (
         <p className="text-caption text-danger-700">{state.fieldErrors.body}</p>
       ) : null}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" variant="outline" size="sm" loading={pending}>
-          Add note
+          {kind === "INTERNAL" ? "Add comment" : "Add note"}
         </Button>
+
+        <div
+          role="radiogroup"
+          aria-label="Who this is for"
+          className="border-line flex items-center gap-0 rounded-md border p-0.5"
+        >
+          {LEAD_NOTE_KINDS.map((entry) => (
+            <button
+              key={entry.value}
+              type="button"
+              role="radio"
+              aria-checked={kind === entry.value}
+              onClick={() => setKind(entry.value)}
+              className={cn(
+                "text-caption rounded px-2.5 py-1 font-medium transition-colors",
+                kind === entry.value
+                  ? "bg-surface-muted text-ink"
+                  : "text-ink-muted hover:text-ink",
+              )}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+
+        {chosen ? (
+          <span className="text-caption text-ink-subtle">{chosen.help}</span>
+        ) : null}
       </div>
     </form>
   );

@@ -10,7 +10,12 @@ import { TableFilter, TableSearch } from "@/components/admin/data-table-parts";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
-import { LEAD_LIST_SELECT, type LeadRow } from "@/server/leads/service";
+import {
+  assignableStaff,
+  LEAD_LIST_SELECT,
+  type LeadRow,
+} from "@/server/leads/service";
+import { bulkAssignLeadsAction } from "@/server/leads/actions";
 import {
   LEAD_PRIORITIES,
   LEAD_SOURCE_LABELS,
@@ -129,7 +134,7 @@ export default async function LeadsPage({
       : {}),
   };
 
-  const [total, rows, deletedCount] = await Promise.all([
+  const [total, rows, deletedCount, assignable] = await Promise.all([
     prisma.lead.count({ where }),
     prisma.lead.findMany({
       where,
@@ -139,6 +144,7 @@ export default async function LeadsPage({
       select: LEAD_LIST_SELECT,
     }),
     prisma.lead.count({ where: { deletedAt: { not: null } } }),
+    can("LEADS", "ASSIGN") ? assignableStaff() : Promise.resolve([]),
   ]);
 
   const filtered = Boolean(query || status || source || priority || owner);
@@ -176,6 +182,21 @@ export default async function LeadsPage({
         page={page}
         pageSize={PAGE_SIZE}
         entityLabel="lead"
+        bulkAction={
+          can("LEADS", "ASSIGN")
+            ? {
+                action: bulkAssignLeadsAction,
+                options: [
+                  { value: "mine", label: "Assign to me" },
+                  ...assignable.map((member) => ({
+                    value: member.id,
+                    label: `Assign to ${member.name}`,
+                  })),
+                  { value: "none", label: "Unassign" },
+                ],
+              }
+            : undefined
+        }
         toolbar={
           <>
             <TableSearch placeholder="Search reference, name, email" />

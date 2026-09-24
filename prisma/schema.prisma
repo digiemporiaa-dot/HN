@@ -1409,6 +1409,7 @@ enum LeadActivityKind {
   PRIORITY_CHANGED
   ASSIGNED
   NOTE_ADDED
+  COMMENT_ADDED
   DOCUMENT_DOWNLOADED
 }
 
@@ -1556,6 +1557,17 @@ model RfqItem {
   @@index([productId])
 }
 
+/// Who a written entry on a lead is for.
+///
+/// A note records the conversation with the customer — what was said, what was
+/// promised — and is the part of the file anyone would expect to answer for. An
+/// internal comment is a colleague talking to a colleague about the deal, and
+/// it is never exported, never quoted back and never leaves the team.
+enum LeadNoteKind {
+  NOTE
+  INTERNAL
+}
+
 model LeadNote {
   id String @id @default(cuid())
 
@@ -1569,10 +1581,13 @@ model LeadNote {
   /// author's account is removed.
   authorName String
 
+  kind LeadNoteKind @default(NOTE)
+
   body String
 
   createdAt DateTime @default(now())
 
+  @@index([leadId, kind, createdAt])
   @@index([leadId, createdAt])
 }
 

@@ -31,7 +31,10 @@ import {
 } from "./service";
 import { recordLeadActivity } from "./activity";
 import { sendMail } from "@/server/mail/send";
-import { leadNotification } from "@/server/mail/templates";
+import {
+  assignmentNotification,
+  leadNotification,
+} from "@/server/mail/templates";
 
 export type EnquiryState = {
   error?: string;
@@ -343,6 +346,10 @@ export async function updateLeadAction(
         : `Unassigned from ${lead.assignedTo?.name ?? "nobody"}`,
       ...actor2,
     });
+
+    // Told, rather than left to notice. A lead that becomes yours while you are
+    // not looking at the screen is a lead nobody is working.
+    if (assignee) await notifyAssignee(lead.id, assignee.id, actor.name);
   }
 
   await recordAuditEvent({
@@ -368,6 +375,7 @@ export async function addLeadNoteAction(
 
   const parsed = leadNoteSchema.safeParse({
     leadId: formData.get("leadId"),
+    kind: formData.get("kind") ?? "NOTE",
     body: formData.get("body"),
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
@@ -383,16 +391,19 @@ export async function addLeadNoteAction(
       leadId: lead.id,
       authorId: actor.id,
       authorName: actor.name,
+      kind: parsed.data.kind,
       body: parsed.data.body,
     },
   });
+
+  const internal = parsed.data.kind === "INTERNAL";
 
   // The note keeps its own prose; the history records that one was written, so
   // a timeline read on its own still tells the whole story.
   await recordLeadActivity({
     leadId: lead.id,
-    kind: "NOTE_ADDED",
-    summary: `Note added: ${parsed.data.body.slice(0, 120)}${parsed.data.body.length > 120 ? "…" : ""}`,
+    kind: internal ? "COMMENT_ADDED" : "NOTE_ADDED",
+    summary: `${internal ? "Internal comment" : "Note"} added: ${parsed.data.body.slice(0, 120)}${parsed.data.body.length > 120 ? "…" : ""}`,
     actorId: actor.id,
     actorName: actor.name,
   });
@@ -404,11 +415,73 @@ export async function addLeadNoteAction(
     module: "LEADS",
     entityType: "Lead",
     entityId: lead.id,
-    summary: `Note added to ${lead.reference}`,
+    summary: `${internal ? "Internal comment" : "Note"} added to ${lead.reference}`,
   });
 
   revalidateLeads();
-  return { success: "Note added." };
+  return { success: internal ? "Comment added." : "Note added." };
+}
+
+/**
+ * Tells a salesperson a lead is now theirs.
+ *
+ * Reads the lead again rather than taking what the caller has: the fields the
+ * message carries are not the fields an update was about, and one query is
+ * cheaper than threading six of them through every call site. Never throws —
+ * the assignment is already saved, and losing that to a mail server's bad
+ * afternoon would be the worse failure.
+ */
+async function notifyAssignee(
+  leadId: string,
+  assigneeId: string,
+  assignedBy: string,
+): Promise<void> {
+  const [lead, assignee] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id: leadId },
+      select: {
+        reference: true,
+        name: true,
+        email: true,
+        phone: true,
+        organisation: true,
+        productName: true,
+        categoryName: true,
+        status: true,
+      },
+    }),
+    prisma.staff.findUnique({
+      where: { id: assigneeId },
+      select: { name: true, email: true, status: true },
+    }),
+  ]);
+
+  if (!lead || !assignee || assignee.status !== "ACTIVE") return;
+
+  const message = assignmentNotification({
+    reference: lead.reference,
+    leadId,
+    assigneeName: assignee.name,
+    assignedBy,
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    organisation: lead.organisation,
+    about: lead.productName ?? lead.categoryName,
+    stage: stageLabel(lead.status),
+  });
+
+  await sendMail({
+    kind: "lead.assigned",
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+    entityType: "Lead",
+    entityId: leadId,
+    // To the person it was assigned to, not to the enquiry list: this is a
+    // message for one colleague about their own work.
+    to: [assignee.email],
+  });
 }
 
 const stageLabel = (value: string) =>
@@ -473,6 +546,79 @@ export async function restoreLeadAction(formData: FormData): Promise<void> {
     entityType: "Lead",
     entityId: lead.id,
     summary: `Restored ${lead.reference}`,
+  });
+
+  revalidateLeads();
+}
+
+/**
+ * Assigns several leads at once, from the list.
+ *
+ * The one-by-one path exists and works; this is for the Monday morning where
+ * forty enquiries arrived over the weekend and three people are splitting them.
+ * Every lead still gets its own history entry and its own notification, because
+ * a bulk action is a convenience for the person doing it, not a different kind
+ * of event.
+ */
+export async function bulkAssignLeadsAction(formData: FormData): Promise<void> {
+  const actor = await requirePermission("LEADS", "ASSIGN");
+
+  const ids = formData.getAll("ids").map(String).filter(Boolean).slice(0, 200);
+  // The bar posts its choice as `bulkAction`, which is the name every bulk
+  // action here reads. Getting it wrong is silent: the action runs, finds
+  // nothing to do and returns.
+  const choice = String(formData.get("bulkAction") ?? "");
+  if (ids.length === 0 || !choice) return;
+
+  // "mine" and "none" are the only two that need no staff id, and a staff id is
+  // checked against an active account rather than trusted from the form.
+  const assignee =
+    choice === "mine"
+      ? { id: actor.id, name: actor.name }
+      : choice === "none"
+        ? null
+        : await prisma.staff.findFirst({
+            where: { id: choice, status: "ACTIVE" },
+            select: { id: true, name: true },
+          });
+
+  if (choice !== "none" && choice !== "mine" && !assignee) return;
+
+  const leads = await prisma.lead.findMany({
+    where: { id: { in: ids }, deletedAt: null },
+    select: { id: true, reference: true, assignedToId: true },
+  });
+
+  const changed = leads.filter(
+    (lead) => (lead.assignedToId ?? "") !== (assignee?.id ?? ""),
+  );
+  if (changed.length === 0) return;
+
+  await prisma.lead.updateMany({
+    where: { id: { in: changed.map((lead) => lead.id) } },
+    data: { assignedToId: assignee?.id ?? null },
+  });
+
+  for (const lead of changed) {
+    await recordLeadActivity({
+      leadId: lead.id,
+      kind: "ASSIGNED",
+      summary: assignee ? `Assigned to ${assignee.name}` : "Unassigned",
+      actorId: actor.id,
+      actorName: actor.name,
+    });
+    if (assignee) await notifyAssignee(lead.id, assignee.id, actor.name);
+  }
+
+  await recordAuditEvent({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: "LEADS_BULK_ASSIGNED",
+    module: "LEADS",
+    summary: `${changed.length} enquir${changed.length === 1 ? "y" : "ies"} ${
+      assignee ? `assigned to ${assignee.name}` : "unassigned"
+    }`,
+    metadata: { count: changed.length, assignedTo: assignee?.id ?? null },
   });
 
   revalidateLeads();

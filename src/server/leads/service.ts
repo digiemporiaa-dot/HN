@@ -228,7 +228,13 @@ export async function findLead(id: string) {
       },
       notes: {
         orderBy: { createdAt: "desc" },
-        select: { id: true, body: true, authorName: true, createdAt: true },
+        select: {
+          id: true,
+          body: true,
+          kind: true,
+          authorName: true,
+          createdAt: true,
+        },
       },
       grants: {
         orderBy: { createdAt: "desc" },

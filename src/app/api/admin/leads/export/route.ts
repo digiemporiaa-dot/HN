@@ -7,7 +7,11 @@ import { requirePermission } from "@/server/permissions";
 /**
  * Exports enquiries as CSV.
  *
- * Two things are deliberately absent. The IP address and user agent are kept
+ * Three things are deliberately absent. Internal comments never leave the team:
+ * the column carries the notes about the conversation with the customer and
+ * nothing a colleague wrote to a colleague about them, which is the whole
+ * distinction between the two and would be worth nothing if an export ignored
+ * it. The IP address and user agent are kept
  * for investigating abuse and do not leave the system — an export lands in a
  * spreadsheet on somebody's laptop, and that is not where a visitor's address
  * should end up. And every value is escaped for the spreadsheet as well as for
@@ -52,6 +56,7 @@ const COLUMNS = [
   "UTM content",
   "Owner",
   "Message",
+  "Notes",
   "Consent given",
 ] as const;
 
@@ -101,6 +106,14 @@ export async function GET(request: Request) {
         },
       },
       message: true,
+      // Notes only. An internal comment is not part of the customer record and
+      // is filtered in the query rather than after it, so no later edit to the
+      // mapping below can let one through.
+      notes: {
+        where: { kind: "NOTE" },
+        orderBy: { createdAt: "asc" },
+        select: { authorName: true, body: true, createdAt: true },
+      },
       consentedAt: true,
       assignedTo: { select: { name: true } },
     },
@@ -138,6 +151,12 @@ export async function GET(request: Request) {
       lead.utmContent,
       lead.assignedTo?.name ?? "",
       lead.message,
+      lead.notes
+        .map(
+          (note) =>
+            `${note.createdAt.toISOString().slice(0, 10)} ${note.authorName}: ${note.body.replace(/\s+/g, " ")}`,
+        )
+        .join("\n"),
       lead.consentedAt,
     ]
       .map(csvCell)

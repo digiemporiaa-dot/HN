@@ -142,8 +142,33 @@ export const leadUpdateSchema = z.object({
   assignedToId: z.string().trim().max(40).default(""),
 });
 
+/**
+ * A note against a lead, or a comment between colleagues about it.
+ *
+ * Two kinds rather than one, because they are read by different people for
+ * different reasons. A note is the record of the conversation with the
+ * customer — what was said and what was promised — and it belongs in the file
+ * anyone would have to answer for. An internal comment is a colleague talking
+ * to a colleague, and it is never exported.
+ */
+export const LEAD_NOTE_KINDS = [
+  {
+    value: "NOTE",
+    label: "Note",
+    help: "What was said to the customer. Part of the record.",
+  },
+  {
+    value: "INTERNAL",
+    label: "Internal comment",
+    help: "For the team only. Never exported.",
+  },
+] as const;
+
+export const leadNoteKindSchema = z.enum(["NOTE", "INTERNAL"]);
+
 export const leadNoteSchema = z.object({
   leadId: z.string().min(1),
+  kind: leadNoteKindSchema.catch("NOTE").default("NOTE"),
   body: z.string().trim().min(1, "Write something first").max(4000),
 });
 
