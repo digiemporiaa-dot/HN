@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, Trash2 } from "lucide-react";
 
 import { Button, Input, Modal } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
-import type { MediaOption } from "@/app/(admin)/admin/pages/[id]/field-inputs";
+import type { MediaOption } from "@/components/admin/sections/field-inputs";
 
 /* eslint-disable @next/next/no-img-element -- gallery thumbnails are served
    from our own media route at their stored size. */

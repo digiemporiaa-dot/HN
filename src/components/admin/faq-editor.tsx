@@ -9,7 +9,7 @@ import { RowControls, moveItem } from "./row-controls";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import type { InfoActionState } from "@/server/products/info-actions";
 
-export type FaqEntityType = "Product" | "Category";
+export type FaqEntityType = "Product" | "Category" | "City";
 
 export type FaqRow = { question: string; answer: string };
 
@@ -37,7 +37,7 @@ export function FaqEditor({
   saveAction,
   readOnly,
 }: {
-  entityType: "Product" | "Category";
+  entityType: FaqEntityType;
   entityId: string;
   faqs: FaqRow[];
   version: string;

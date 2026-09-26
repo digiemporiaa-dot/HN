@@ -12,7 +12,7 @@ import type { CategoryChoice } from "@/server/categories/service";
 import {
   MediaPicker,
   type MediaOption,
-} from "@/app/(admin)/admin/pages/[id]/field-inputs";
+} from "@/components/admin/sections/field-inputs";
 
 /**
  * The fields a taxonomy entity carries. Specialties and solutions have exactly

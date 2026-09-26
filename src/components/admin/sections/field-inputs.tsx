@@ -167,7 +167,8 @@ export function MediaPicker({
                     aria-pressed={option.id === value}
                     className={cn(
                       "border-line hover:border-line-strong flex w-full flex-col gap-1.5 rounded-md border p-2 text-left transition-colors",
-                      option.id === value && "border-primary ring-primary/30 ring-2",
+                      option.id === value &&
+                        "border-primary ring-primary/30 ring-2",
                     )}
                   >
                     <MediaThumb

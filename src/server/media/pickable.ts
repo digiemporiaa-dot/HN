@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import { prisma } from "@/server/db";
 import { publicUrlForKey } from "@/server/storage/paths";
-import type { MediaOption } from "@/app/(admin)/admin/pages/[id]/field-inputs";
+import type { MediaOption } from "@/components/admin/sections/field-inputs";
 
 /**
  * Images an editor may place in content.

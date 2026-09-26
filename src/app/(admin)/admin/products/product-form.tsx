@@ -21,7 +21,7 @@ import type { NamedChoice } from "@/server/products/service";
 import {
   MediaPicker,
   type MediaOption,
-} from "@/app/(admin)/admin/pages/[id]/field-inputs";
+} from "@/components/admin/sections/field-inputs";
 
 export type ProductFormValues = {
   id?: string;

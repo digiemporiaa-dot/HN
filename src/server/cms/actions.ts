@@ -6,6 +6,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
 import { requirePermission } from "@/server/permissions";
+import { requireStaff } from "@/server/auth/guards";
+import {
+  resolveOwner,
+  sectionWithOwner,
+  siblingsOf,
+  type OwnerRef,
+  type SectionOwner,
+} from "./section-owner";
 import { clearUsage, recordUsage } from "@/server/media/service";
 import {
   contentSchemaFor,
@@ -151,12 +159,19 @@ export async function updatePageAction(
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
-    action: page.status !== parsed.data.status ? "PAGE_STATUS_CHANGED" : "PAGE_UPDATED",
+    action:
+      page.status !== parsed.data.status
+        ? "PAGE_STATUS_CHANGED"
+        : "PAGE_UPDATED",
     module: "PAGES",
     entityType: "Page",
     entityId: page.id,
     summary: `${parsed.data.title} (/${parsed.data.slug}) — ${parsed.data.status}`,
-    metadata: { from: page.status, to: parsed.data.status, slug: parsed.data.slug },
+    metadata: {
+      from: page.status,
+      to: parsed.data.status,
+      slug: parsed.data.slug,
+    },
   });
 
   revalidatePath("/admin/pages");
@@ -239,43 +254,47 @@ async function recordMediaUsage(
   }
 }
 
-async function pageForSection(sectionId: string) {
-  return prisma.pageSection.findUnique({
-    where: { id: sectionId },
-    select: { id: true, pageId: true, type: true, order: true, page: { select: { slug: true } } },
-  });
+function revalidateOwner(owner: SectionOwner): void {
+  revalidatePath(owner.adminPath);
+  revalidatePath(owner.publicPath);
+}
+
+/** Reads which owner an add-section form is for. Only the two known kinds. */
+function readOwnerRef(formData: FormData): OwnerRef | null {
+  const pageId = String(formData.get("pageId") ?? "");
+  const cityId = String(formData.get("cityId") ?? "");
+  // Exactly one, the same rule the database enforces on the row itself.
+  if (pageId && !cityId) return { kind: "page", id: pageId };
+  if (cityId && !pageId) return { kind: "city", id: cityId };
+  return null;
 }
 
 export async function addSectionAction(
   _previous: CmsActionState,
   formData: FormData,
 ): Promise<CmsActionState> {
-  const actor = await requirePermission("PAGES", "EDIT");
+  await requireStaff();
 
-  const parsed = addSectionSchema.safeParse({
-    pageId: formData.get("pageId"),
-    type: formData.get("type"),
-  });
-  if (!parsed.success) return { error: "Invalid request." };
+  const ref = readOwnerRef(formData);
+  const parsed = addSectionSchema.safeParse({ type: formData.get("type") });
+  if (!ref || !parsed.success) return { error: "Invalid request." };
+
+  const owner = await resolveOwner(ref);
+  if (!owner) return { error: "That page no longer exists." };
+  const actor = await requirePermission(owner.module, "EDIT");
 
   const defaults = defaultsFor(parsed.data.type);
   if (!defaults) return { error: "That section type is not available." };
 
-  const page = await prisma.page.findFirst({
-    where: { id: parsed.data.pageId, deletedAt: null },
-    select: { id: true, slug: true },
-  });
-  if (!page) return { error: "That page no longer exists." };
-
   const last = await prisma.pageSection.findFirst({
-    where: { pageId: page.id },
+    where: siblingsOf(owner),
     orderBy: { order: "desc" },
     select: { order: true },
   });
 
   const section = await prisma.pageSection.create({
     data: {
-      pageId: page.id,
+      ...siblingsOf(owner),
       type: parsed.data.type as never,
       order: (last?.order ?? -1) + 1,
       content: defaults.content as never,
@@ -288,14 +307,13 @@ export async function addSectionAction(
     actorId: actor.id,
     actorEmail: actor.email,
     action: "PAGE_SECTION_ADDED",
-    module: "PAGES",
+    module: owner.module,
     entityType: "PageSection",
     entityId: section.id,
-    summary: `Added ${parsed.data.type} to /${page.slug}`,
+    summary: `Added ${parsed.data.type} to ${owner.label}`,
   });
 
-  revalidatePath(`/admin/pages/${page.id}`);
-  revalidatePath(`/${page.slug}`);
+  revalidateOwner(owner);
   return { success: "Section added." };
 }
 
@@ -303,15 +321,19 @@ export async function updateSectionAction(
   _previous: CmsActionState,
   formData: FormData,
 ): Promise<CmsActionState> {
-  const actor = await requirePermission("PAGES", "EDIT");
+  await requireStaff();
 
-  const sectionId = String(formData.get("sectionId") ?? "");
-  const section = await pageForSection(sectionId);
-  if (!section) return { error: "That section no longer exists." };
+  const found = await sectionWithOwner(String(formData.get("sectionId") ?? ""));
+  if (!found) return { error: "That section no longer exists." };
+  const { section, owner } = found;
+  // Decided by what the section belongs to in the database, not by anything
+  // the form says about it.
+  const actor = await requirePermission(owner.module, "EDIT");
 
   const definition = getSectionDefinition(section.type);
   const schema = contentSchemaFor(section.type);
-  if (!definition || !schema) return { error: "That section type is not available." };
+  if (!definition || !schema)
+    return { error: "That section type is not available." };
 
   // Content arrives as flat form fields. Repeaters and catalogue selections are
   // posted as JSON because neither a nested list nor an ordered one can be
@@ -395,49 +417,41 @@ export async function updateSectionAction(
     actorId: actor.id,
     actorEmail: actor.email,
     action: "PAGE_SECTION_UPDATED",
-    module: "PAGES",
+    module: owner.module,
     entityType: "PageSection",
     entityId: section.id,
-    summary: `Updated ${section.type} on /${section.page.slug}`,
+    summary: `Updated ${section.type} on ${owner.label}`,
   });
 
-  revalidatePath(`/admin/pages/${section.pageId}`);
-  revalidatePath(`/${section.page.slug}`);
+  revalidateOwner(owner);
   return { success: "Section saved." };
 }
 
-export async function duplicateSectionAction(formData: FormData): Promise<void> {
-  const actor = await requirePermission("PAGES", "EDIT");
+export async function duplicateSectionAction(
+  formData: FormData,
+): Promise<void> {
+  await requireStaff();
 
   const parsed = sectionIdSchema.safeParse({
     sectionId: formData.get("sectionId"),
   });
   if (!parsed.success) return;
 
-  const source = await prisma.pageSection.findUnique({
-    where: { id: parsed.data.sectionId },
-    select: {
-      pageId: true,
-      type: true,
-      order: true,
-      content: true,
-      design: true,
-      enabled: true,
-      page: { select: { slug: true } },
-    },
-  });
-  if (!source) return;
+  const found = await sectionWithOwner(parsed.data.sectionId);
+  if (!found) return;
+  const { section: source, owner } = found;
+  const actor = await requirePermission(owner.module, "EDIT");
 
   // Everything after the original shifts down so the copy sits directly
   // beneath it rather than at the end of the page.
   const [, copy] = await prisma.$transaction([
     prisma.pageSection.updateMany({
-      where: { pageId: source.pageId, order: { gt: source.order } },
+      where: { ...siblingsOf(owner), order: { gt: source.order } },
       data: { order: { increment: 1 } },
     }),
     prisma.pageSection.create({
       data: {
-        pageId: source.pageId,
+        ...siblingsOf(owner),
         type: source.type,
         order: source.order + 1,
         content: source.content as never,
@@ -457,17 +471,17 @@ export async function duplicateSectionAction(formData: FormData): Promise<void> 
     actorId: actor.id,
     actorEmail: actor.email,
     action: "PAGE_SECTION_DUPLICATED",
-    module: "PAGES",
+    module: owner.module,
     entityType: "PageSection",
     entityId: parsed.data.sectionId,
+    summary: `Duplicated ${source.type} on ${owner.label}`,
   });
 
-  revalidatePath(`/admin/pages/${source.pageId}`);
-  revalidatePath(`/${source.page.slug}`);
+  revalidateOwner(owner);
 }
 
 export async function moveSectionAction(formData: FormData): Promise<void> {
-  await requirePermission("PAGES", "EDIT");
+  await requireStaff();
 
   const parsed = moveSectionSchema.safeParse({
     sectionId: formData.get("sectionId"),
@@ -475,12 +489,16 @@ export async function moveSectionAction(formData: FormData): Promise<void> {
   });
   if (!parsed.success) return;
 
-  const section = await pageForSection(parsed.data.sectionId);
-  if (!section) return;
+  const found = await sectionWithOwner(parsed.data.sectionId);
+  if (!found) return;
+  const { section, owner } = found;
+  await requirePermission(owner.module, "EDIT");
 
+  // Only ever swapped with a section of the same owner: moving past the last
+  // section of one page must not reach into another.
   const neighbour = await prisma.pageSection.findFirst({
     where: {
-      pageId: section.pageId,
+      ...siblingsOf(owner),
       order:
         parsed.data.direction === "up"
           ? { lt: section.order }
@@ -502,20 +520,21 @@ export async function moveSectionAction(formData: FormData): Promise<void> {
     }),
   ]);
 
-  revalidatePath(`/admin/pages/${section.pageId}`);
-  revalidatePath(`/${section.page.slug}`);
+  revalidateOwner(owner);
 }
 
 export async function deleteSectionAction(formData: FormData): Promise<void> {
-  const actor = await requirePermission("PAGES", "EDIT");
+  await requireStaff();
 
   const parsed = sectionIdSchema.safeParse({
     sectionId: formData.get("sectionId"),
   });
   if (!parsed.success) return;
 
-  const section = await pageForSection(parsed.data.sectionId);
-  if (!section) return;
+  const found = await sectionWithOwner(parsed.data.sectionId);
+  if (!found) return;
+  const { section, owner } = found;
+  const actor = await requirePermission(owner.module, "EDIT");
 
   await prisma.pageSection.delete({ where: { id: section.id } });
   await clearUsage({
@@ -528,12 +547,11 @@ export async function deleteSectionAction(formData: FormData): Promise<void> {
     actorId: actor.id,
     actorEmail: actor.email,
     action: "PAGE_SECTION_DELETED",
-    module: "PAGES",
+    module: owner.module,
     entityType: "PageSection",
     entityId: section.id,
-    summary: `Removed ${section.type} from /${section.page.slug}`,
+    summary: `Removed ${section.type} from ${owner.label}`,
   });
 
-  revalidatePath(`/admin/pages/${section.pageId}`);
-  revalidatePath(`/${section.page.slug}`);
+  revalidateOwner(owner);
 }

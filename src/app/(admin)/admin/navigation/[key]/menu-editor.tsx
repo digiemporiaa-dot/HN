@@ -24,7 +24,7 @@ import {
 import {
   MediaPicker,
   type MediaOption,
-} from "@/app/(admin)/admin/pages/[id]/field-inputs";
+} from "@/components/admin/sections/field-inputs";
 
 const INITIAL: NavigationActionState = {};
 

@@ -124,3 +124,17 @@ See `.env.example` for the full list with descriptions. Required so far:
 | `AUTH_TRUST_HOST` | `true` when running behind a reverse proxy |
 | `APP_URL` | Public base URL, used for canonical URLs and metadata |
 | `UPLOAD_ROOT` | Absolute path to the media volume |
+
+---
+
+## Reference data
+
+Some data the application needs is loaded once per environment rather than
+created in the admin. Each command only adds what is missing and never changes
+a row an administrator has already edited, so it is safe to run again.
+
+| Command | Loads |
+|---|---|
+| `npm run db:seed:states` | India's 28 states and 8 union territories, for filing city pages under. ISO codes are left blank to be filled from the current standard. |
+
+Run after `npm run db:deploy` on a new environment.

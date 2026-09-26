@@ -12,7 +12,7 @@ import {
   MAX_NAVIGATION_DEPTH,
   type NavigationNode,
 } from "@/server/navigation/service";
-import type { MediaOption } from "../../pages/[id]/field-inputs";
+import type { MediaOption } from "@/components/admin/sections/field-inputs";
 import {
   MenuEditor,
   type EditorNode,

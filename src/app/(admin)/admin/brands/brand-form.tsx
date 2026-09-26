@@ -17,7 +17,7 @@ import type { CategoryChoice } from "@/server/categories/service";
 import {
   MediaPicker,
   type MediaOption,
-} from "@/app/(admin)/admin/pages/[id]/field-inputs";
+} from "@/components/admin/sections/field-inputs";
 
 const INITIAL: BrandActionState = {};
 

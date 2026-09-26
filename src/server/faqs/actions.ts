@@ -28,6 +28,16 @@ const OWNERS = {
         select: { id: true, name: true },
       }),
   },
+  City: {
+    module: "LOCATIONS",
+    action: "CITY_FAQS_UPDATED",
+    revalidate: ["/admin/locations", "/admin/locations/cities/[id]"],
+    find: (id: string) =>
+      prisma.city.findFirst({
+        where: { id, deletedAt: null },
+        select: { id: true, name: true },
+      }),
+  },
   Category: {
     module: "CATEGORIES",
     action: "CATEGORY_FAQS_UPDATED",

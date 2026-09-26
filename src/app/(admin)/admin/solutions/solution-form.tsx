@@ -9,7 +9,7 @@ import {
   updateSolutionAction,
 } from "@/server/solutions/actions";
 import type { CategoryChoice } from "@/server/categories/service";
-import type { MediaOption } from "@/app/(admin)/admin/pages/[id]/field-inputs";
+import type { MediaOption } from "@/components/admin/sections/field-inputs";
 
 export type SolutionFormValues = TaxonomyFormValues;
 

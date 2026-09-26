@@ -4,12 +4,10 @@ import { useActionState, useState } from "react";
 
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { CONTENT_STATUS_OPTIONS } from "@/lib/validation/content-status";
-import { Plus } from "lucide-react";
 
 import { Button, Field, Input, Select } from "@/components/ui";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import {
-  addSectionAction,
   createPageAction,
   updatePageAction,
   type CmsActionState,
@@ -114,7 +112,10 @@ export function PageSettingsForm({
               value={values.title}
               disabled={readOnly}
               onChange={(event) =>
-                setValues((current) => ({ ...current, title: event.target.value }))
+                setValues((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
               }
               {...control}
             />
@@ -133,7 +134,10 @@ export function PageSettingsForm({
               value={values.slug}
               disabled={readOnly}
               onChange={(event) =>
-                setValues((current) => ({ ...current, slug: event.target.value }))
+                setValues((current) => ({
+                  ...current,
+                  slug: event.target.value,
+                }))
               }
               {...control}
             />
@@ -182,57 +186,6 @@ export function PageSettingsForm({
           </Button>
         </div>
       )}
-    </form>
-  );
-}
-
-export function AddSectionForm({
-  pageId,
-  options,
-}: {
-  pageId: string;
-  options: Array<{ value: string; label: string; description: string }>;
-}) {
-  const [state, formAction, pending] = useActionState(addSectionAction, INITIAL);
-  const [type, setType] = useState(options[0]?.value ?? "");
-
-  const selected = options.find((option) => option.value === type);
-
-  return (
-    <form
-      action={formAction}
-      className="border-line bg-surface-subtle flex flex-col gap-4 rounded-lg border border-dashed p-4"
-    >
-      <input type="hidden" name="pageId" value={pageId} />
-      <FormFeedback state={state} />
-
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label="Add a section" className="min-w-60 flex-1">
-          {(control) => (
-            <Select
-              name="type"
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              {...control}
-            >
-              {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-
-        <Button type="submit" loading={pending}>
-          <Plus aria-hidden="true" className="size-4" />
-          Add section
-        </Button>
-      </div>
-
-      {selected ? (
-        <p className="text-caption text-ink-subtle">{selected.description}</p>
-      ) : null}
     </form>
   );
 }

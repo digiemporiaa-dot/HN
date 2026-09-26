@@ -179,7 +179,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/locations",
         icon: MapPin,
         module: "LOCATIONS",
-        available: false,
+        available: true,
       },
       {
         label: "SEO",

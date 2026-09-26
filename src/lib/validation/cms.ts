@@ -59,8 +59,8 @@ export const pageSchema = z.object({
 
 export const pageIdSchema = z.object({ pageId: z.string().min(1) });
 
+/** The owner (a page or a city) is read separately and resolved server-side. */
 export const addSectionSchema = z.object({
-  pageId: z.string().min(1),
   type: z.string().min(1),
 });
 

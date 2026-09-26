@@ -76,7 +76,7 @@ export const productRelatedSchema = z.object({
  * the action maps it to the permission it requires, and a value it does not
  * recognise must fail here rather than reach that map.
  */
-export const faqEntityTypeSchema = z.enum(["Product", "Category"]);
+export const faqEntityTypeSchema = z.enum(["Product", "Category", "City"]);
 
 export const faqsSchema = z.object({
   entityType: faqEntityTypeSchema,

@@ -445,6 +445,7 @@ model MediaAsset {
   productPrimaryImages Product[]        @relation("ProductPrimaryImage")
   productGalleryImages ProductImage[]   @relation("ProductGalleryImage")
   productDocuments     ProductDocument[] @relation("ProductDocumentFile")
+  cityHeroImages       City[]            @relation("CityHeroImage")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -484,6 +485,147 @@ model MediaUsage {
 
 /// The homepage is the page with the reserved slug "home", so administrators
 /// can reorder its sections like any other page.
+/// Whether a region is a state or a union territory. Kept because the two are
+/// named differently in ordinary Indian usage, and a page that calls Delhi a
+/// state reads as careless to the people it is written for.
+enum StateKind {
+  STATE
+  UNION_TERRITORY
+}
+
+/// A state or union territory of India.
+///
+/// India is the only country served, so it is the implicit root rather than a
+/// one-row table every query would have to join through. Adding a second
+/// country later is a nullable column and a backfill.
+model State {
+  id String @id @default(cuid())
+
+  name String
+  /// Unique across India, and the parent segment of every city URL beneath it.
+  slug String @unique
+  /// The ISO 3166-2:IN subdivision code, e.g. MH. Optional: it is reference
+  /// data, not something any page depends on.
+  code String? @unique
+  kind StateKind @default(STATE)
+
+  /// A state that is not active is hidden from the city picker and from every
+  /// public list, without deleting the cities already filed under it.
+  active Boolean @default(true)
+  order  Int     @default(0)
+
+  cities City[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, order])
+}
+
+/// A city an administrator has chosen to publish a page for.
+///
+/// Created one at a time, by a person, on purpose. A page per city is only
+/// worth having when somebody has written what is actually true about serving
+/// that city; a thousand generated ones with the name swapped in is the thin
+/// content that costs a site its rankings.
+model City {
+  id      String @id @default(cuid())
+  stateId String
+  /// Restrict: removing a state that still has cities would take their pages,
+  /// their URLs and every link to them with it.
+  state   State  @relation(fields: [stateId], references: [id], onDelete: Restrict)
+
+  name String
+  /// Unique across India: city pages live at /locations/<slug>, one segment,
+  /// because that is the address people and search engines expect. The rare
+  /// city whose name exists in two states takes a disambiguated slug
+  /// (aurangabad-bihar) rather than every URL carrying a state it rarely needs.
+  slug String @unique
+
+  /// The top of the page. The headline defaults to the city's name in context
+  /// when left blank; the image is optional because a stock skyline is worse
+  /// than none.
+  headline    String?
+  heroImageId String?
+  heroImage   MediaAsset? @relation("CityHeroImage", fields: [heroImageId], references: [id], onDelete: SetNull)
+
+  /// One or two sentences under the headline.
+  intro   String?
+  /// The body, in the constrained rich-text syntax.
+  content String?
+  /// What serving this city actually involves: engineers based there, response
+  /// times, hospitals already equipped. Written by a person who knows — never
+  /// generated — because it is the one part of the page a competitor could not
+  /// copy by changing the name.
+  coverage String?
+
+  /// The closing call to action. Blank fields fall back to site defaults.
+  ctaHeading String?
+  ctaBody    String?
+  ctaLabel   String?
+
+  /// Search presentation. Blank falls back to what the page would say anyway.
+  seoTitle       String?
+  seoDescription String?
+  /// Whether search engines are asked to index the page. Off until somebody
+  /// turns it on: a published city page with nothing specific on it is better
+  /// visible to visitors and invisible to search than the other way round.
+  indexable Boolean @default(false)
+
+  categories  CityCategory[]
+  products    CityProduct[]
+  specialties CitySpecialty[]
+  sections    PageSection[]
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stateId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([indexable])
+}
+
+/// A category a city page features, in the order it shows them.
+model CityCategory {
+  cityId     String
+  city       City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+
+  @@id([cityId, categoryId])
+  @@index([categoryId])
+}
+
+/// A product a city page features, in the order it shows them.
+model CityProduct {
+  cityId    String
+  city      City    @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order     Int     @default(0)
+
+  @@id([cityId, productId])
+  @@index([productId])
+}
+
+/// A specialty a city page features, in the order it shows them.
+model CitySpecialty {
+  cityId      String
+  city        City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  specialtyId String
+  specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  order       Int       @default(0)
+
+  @@id([cityId, specialtyId])
+  @@index([specialtyId])
+}
+
 model Page {
   id     String        @id @default(cuid())
   slug   String        @unique
@@ -507,13 +649,17 @@ model Page {
 /// is validated against a per-section-type Zod schema in the section registry,
 /// and `design` accepts only enumerated token values — never raw CSS.
 ///
-/// Sections become attachable to categories, brands, specialties, solutions and
-/// location pages in the phases that introduce those entities; pageId becomes
-/// nullable alongside sibling foreign keys at that point.
+/// A section belongs to exactly one owner: a page or a city. The owner columns
+/// are siblings rather than a polymorphic "ownerType/ownerId" pair so each is a
+/// real foreign key that cascades, and a database CHECK constraint (in the
+/// migration that introduced cityId) refuses a row with none or with both.
+/// Further owners — a category, a brand — join as further sibling columns.
 model PageSection {
-  id     String @id @default(cuid())
-  pageId String
-  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  id     String  @id @default(cuid())
+  pageId String?
+  page   Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  cityId String?
+  city   City?   @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
   type     SectionType
   order    Int
@@ -527,6 +673,7 @@ model PageSection {
   updatedAt DateTime @updatedAt
 
   @@index([pageId, order])
+  @@index([cityId, order])
   @@index([type])
 }
 
@@ -654,6 +801,7 @@ model Category {
   solutions   SolutionCategory[]
   products    Product[]
   leads       Lead[]
+  cities      CityCategory[]
 
   specTemplate SpecTemplate?
 
@@ -763,6 +911,7 @@ model Specialty {
 
   categories CategorySpecialty[]
   products   ProductSpecialty[]
+  cities     CitySpecialty[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -889,6 +1038,7 @@ model Product {
   points       ProductPoint[]
   leads        Lead[]
   rfqItems     RfqItem[]
+  cities       CityProduct[]
 
   /// Two sides of one table: what this product points at, and what points at
   /// it. The second exists so deleting a product can clear the links naming it.
