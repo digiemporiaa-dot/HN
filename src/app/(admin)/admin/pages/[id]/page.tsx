@@ -19,6 +19,8 @@ import { deletePageAction } from "@/server/cms/actions";
 import { PageSettingsForm } from "./page-forms";
 import { SectionsPanel } from "@/components/admin/sections/sections-panel";
 import { isHomeSlug, pagePublicPath } from "@/server/cms/homepage";
+import { hasPlaceholder } from "@/lib/cms/placeholders";
+import { describeSection } from "@/server/cms/placeholders";
 
 export const metadata: Metadata = {
   title: "Edit page",
@@ -66,6 +68,9 @@ export default async function EditPagePage({
   const canEdit = can("PAGES", "EDIT");
   const home = isHomeSlug(page.slug);
   const { error } = await searchParams;
+  const unfinished = page.sections
+    .filter((section) => section.enabled && hasPlaceholder(section.content))
+    .map((section) => describeSection(section.type, section.content));
 
   return (
     <AdminPage>
@@ -126,6 +131,20 @@ export default async function EditPagePage({
           The homepage cannot be deleted. Set it to draft to take it down, and
           visitors will see the starter homepage instead.
         </p>
+      ) : null}
+
+      {unfinished.length > 0 ? (
+        <div
+          role="status"
+          className="border-warning-100 bg-warning-50 text-warning-700 text-body-sm flex flex-col gap-1 rounded-md border p-4"
+        >
+          <p className="font-medium">
+            {unfinished.length} section{unfinished.length === 1 ? "" : "s"}{" "}
+            still {unfinished.length === 1 ? "has" : "have"} [[placeholders]] to
+            replace before this page can be published:
+          </p>
+          <p>{unfinished.join(", ")}</p>
+        </div>
       ) : null}
 
       <Card>

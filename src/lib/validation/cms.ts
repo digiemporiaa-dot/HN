@@ -30,6 +30,7 @@ export const RESERVED_SLUGS = new Set([
   "search",
   "compare",
   "rfq",
+  "contact",
   "sitemap.xml",
   "robots.txt",
   "_next",

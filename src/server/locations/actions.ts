@@ -1,6 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  placeholderRefusal,
+  sectionsWithPlaceholders,
+} from "@/server/cms/placeholders";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -333,6 +337,17 @@ export async function updateCityAction(
     (parsed.data.status === "PUBLISHED") !== (city.status === "PUBLISHED");
   if (publishing || parsed.data.indexable !== city.indexable) {
     await requirePermission("LOCATIONS", "PUBLISH");
+  }
+
+  // The same rule as pages: nothing bracketed as unfinished goes live.
+  if (parsed.data.status === "PUBLISHED") {
+    const unfinished = await sectionsWithPlaceholders({ cityId: city.id });
+    if (unfinished.length > 0) {
+      return {
+        error: placeholderRefusal(unfinished),
+        fieldErrors: { status: "Finish the placeholders first." },
+      };
+    }
   }
 
   if (parsed.data.stateId !== city.stateId) {

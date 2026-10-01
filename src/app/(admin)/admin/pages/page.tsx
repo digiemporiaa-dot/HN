@@ -19,6 +19,7 @@ import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import { homePageRecord, isHomeSlug } from "@/server/cms/homepage";
 import { setUpHomepageAction } from "@/server/cms/actions";
+import { PAGE_TEMPLATES } from "@/lib/cms/page-templates";
 import {
   buildQueryHref,
   readPageParam,
@@ -85,7 +86,10 @@ export default async function PagesListPage({
       : {}),
   };
 
-  const [total, pages, home] = await Promise.all([
+  const expectedSlugs = PAGE_TEMPLATES.map((option) => option.slug).filter(
+    Boolean,
+  );
+  const [total, pages, home, expected] = await Promise.all([
     prisma.page.count({ where }),
     prisma.page.findMany({
       where,
@@ -102,6 +106,10 @@ export default async function PagesListPage({
       },
     }),
     homePageRecord(),
+    prisma.page.findMany({
+      where: { slug: { in: expectedSlugs }, deletedAt: null },
+      select: { id: true, slug: true, status: true },
+    }),
   ]);
   const homeLive = home && !home.deletedAt ? home : null;
 
@@ -121,6 +129,11 @@ export default async function PagesListPage({
       />
 
       <HomepageCard home={homeLive} canCreate={can("PAGES", "CREATE")} />
+
+      <ExpectedPagesCard
+        existing={expected}
+        canCreate={can("PAGES", "CREATE")}
+      />
 
       <DataTable<PageRow>
         rows={pages}
@@ -241,6 +254,91 @@ function HomepageCard({
             <Button type="submit">Set up homepage</Button>
           </form>
         ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The pages a buyer looks for before trusting a supplier, and where each one
+ * stands. Contact is listed because people look for it here, although it is
+ * built in and takes its details from the settings.
+ */
+function ExpectedPagesCard({
+  existing,
+  canCreate,
+}: {
+  existing: Array<{ id: string; slug: string; status: string }>;
+  canCreate: boolean;
+}) {
+  const bySlug = new Map(existing.map((row) => [row.slug, row]));
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="text-body text-ink font-medium">
+            Pages visitors expect
+          </p>
+          <p className="text-body-sm text-ink-muted">
+            Start each from a template. Its [[placeholders]] keep it from being
+            published until the facts are filled in.
+          </p>
+        </div>
+        <ul className="divide-line flex flex-col divide-y">
+          {PAGE_TEMPLATES.filter((option) => option.slug).map((option) => {
+            const page = bySlug.get(option.slug);
+            return (
+              <li
+                key={option.key}
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
+                <span className="text-body-sm text-ink flex flex-wrap items-center gap-2">
+                  {option.label}
+                  <span className="text-caption text-ink-subtle">
+                    /{option.slug}
+                  </span>
+                  {page ? <StatusBadge status={page.status} /> : null}
+                </span>
+                {page ? (
+                  <Link
+                    href={`/admin/pages/${page.id}`}
+                    className="text-body-sm text-primary underline underline-offset-4"
+                  >
+                    Edit
+                  </Link>
+                ) : canCreate ? (
+                  <Link
+                    href={`/admin/pages/new?template=${option.key}`}
+                    className="text-body-sm text-primary underline underline-offset-4"
+                  >
+                    Create from template
+                  </Link>
+                ) : (
+                  <span className="text-caption text-ink-subtle">
+                    Not created
+                  </span>
+                )}
+              </li>
+            );
+          })}
+          <li className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <span className="text-body-sm text-ink flex flex-wrap items-center gap-2">
+              Contact
+              <span className="text-caption text-ink-subtle">/contact</span>
+            </span>
+            <span className="text-caption text-ink-muted">
+              Built in. Its details come from{" "}
+              <Link
+                href="/admin/settings"
+                className="text-primary underline underline-offset-4"
+              >
+                Settings
+              </Link>
+              .
+            </span>
+          </li>
+        </ul>
       </CardContent>
     </Card>
   );

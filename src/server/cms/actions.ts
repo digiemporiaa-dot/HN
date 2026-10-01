@@ -22,6 +22,15 @@ import {
   starterHomeSections,
 } from "./homepage";
 import { clearUsage, recordUsage } from "@/server/media/service";
+import { hasPlaceholder } from "@/lib/cms/placeholders";
+import { PAGE_TEMPLATE_KEYS } from "@/lib/cms/page-templates";
+import { templateSections } from "./templates";
+import { isLegalPageSlug } from "@/server/legal/links";
+import {
+  describeSection,
+  placeholderRefusal,
+  sectionsWithPlaceholders,
+} from "./placeholders";
 import {
   contentSchemaFor,
   defaultsFor,
@@ -69,6 +78,7 @@ export async function createPageAction(
   if (!parsed.success) {
     const flattened = parsed.error.flatten().fieldErrors;
     return {
+      error: "The page could not be created. Check the highlighted fields.",
       fieldErrors: {
         ...(flattened.title?.[0] ? { title: flattened.title[0] } : {}),
         ...(flattened.slug?.[0] ? { slug: flattened.slug[0] } : {}),
@@ -76,18 +86,50 @@ export async function createPageAction(
     };
   }
 
+  // The form only ever posts DRAFT, but the status is the request's to claim:
+  // creating a page straight into publication is still publishing.
+  if (parsed.data.status === "PUBLISHED") {
+    await requirePermission("PAGES", "PUBLISH");
+  }
+
+  // Matched against the known templates; anything else starts blank.
+  const requested = String(formData.get("template") ?? "blank");
+  const template =
+    PAGE_TEMPLATE_KEYS.find((key) => key === requested) ?? "blank";
+
   const clash = await prisma.page.findUnique({
     where: { slug: parsed.data.slug },
     select: { id: true },
   });
-  if (clash) return { fieldErrors: { slug: "A page already uses that slug." } };
+  if (clash) {
+    return {
+      error: "The page could not be created. Check the highlighted fields.",
+      fieldErrors: { slug: "A page already uses that slug." },
+    };
+  }
+
+  const sections = templateSections(template);
 
   const page = await prisma.page.create({
     data: {
       title: parsed.data.title,
       slug: parsed.data.slug,
-      status: parsed.data.status,
-      publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : null,
+      // A page made from a template has placeholders in it, so it starts as a
+      // draft whatever the form asked for.
+      status: sections.length > 0 ? "DRAFT" : parsed.data.status,
+      publishedAt:
+        sections.length === 0 && parsed.data.status === "PUBLISHED"
+          ? new Date()
+          : null,
+      sections: {
+        create: sections.map((row, index) => ({
+          type: row.type as never,
+          order: index,
+          enabled: true,
+          content: row.content as never,
+          design: row.design as never,
+        })),
+      },
     },
     select: { id: true, slug: true },
   });
@@ -99,7 +141,7 @@ export async function createPageAction(
     module: "PAGES",
     entityType: "Page",
     entityId: page.id,
-    summary: `Created page /${page.slug}`,
+    summary: `Created page /${page.slug}${template === "blank" ? "" : ` from the ${template} template`}`,
   });
 
   revalidatePath("/admin/pages");
@@ -161,6 +203,17 @@ export async function updatePageAction(
     await requirePermission("PAGES", "PUBLISH");
   }
 
+  // A live page never carries a template's unfinished instructions.
+  if (data.status === "PUBLISHED") {
+    const unfinished = await sectionsWithPlaceholders({ pageId: page.id });
+    if (unfinished.length > 0) {
+      return {
+        error: placeholderRefusal(unfinished),
+        fieldErrors: { status: "Finish the placeholders first." },
+      };
+    }
+  }
+
   const clash = await prisma.page.findUnique({
     where: { slug },
     select: { id: true },
@@ -205,6 +258,14 @@ export async function updatePageAction(
   revalidatePath(`/admin/pages/${page.id}`);
   revalidatePath(pagePublicPath(page.slug));
   revalidatePath(pagePublicPath(slug));
+  // A policy page appearing or disappearing changes the footer and the
+  // consent line on every page.
+  if (
+    (page.status !== data.status || page.slug !== slug) &&
+    ((await isLegalPageSlug(page.slug)) || (await isLegalPageSlug(slug)))
+  ) {
+    revalidatePath("/", "layout");
+  }
 
   return { success: "Page saved." };
 }
@@ -309,6 +370,7 @@ export async function deletePageAction(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/pages");
   revalidatePath(`/${page.slug}`);
+  if (await isLegalPageSlug(page.slug)) revalidatePath("/", "layout");
   redirect("/admin/pages");
 }
 
@@ -458,7 +520,19 @@ export async function updateSectionAction(
         fieldErrors[key] = issue.message;
       }
     }
-    return { fieldErrors };
+    return {
+      error: "The section could not be saved. Check the highlighted fields.",
+      fieldErrors,
+    };
+  }
+
+  const enabled = formData.get("enabled") === "on";
+
+  // On a live page a placeholder would be published the moment it is saved.
+  if (owner.published && enabled && hasPlaceholder(parsed.data)) {
+    return {
+      error: placeholderRefusal([describeSection(section.type, parsed.data)]),
+    };
   }
 
   const anchor = anchorIdSchema.safeParse(formData.get("anchorId") ?? "");
@@ -501,7 +575,7 @@ export async function updateSectionAction(
       content: content as never,
       design: design as never,
       anchorId: anchor.data || null,
-      enabled: formData.get("enabled") === "on",
+      enabled,
     },
   });
 

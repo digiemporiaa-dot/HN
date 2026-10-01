@@ -23,17 +23,20 @@ export type SectionOwner = {
   adminPath: string;
   /** Where it renders publicly, for revalidation. */
   publicPath: string;
+  /** Whether the owner is live, so a save would be seen by visitors at once. */
+  published: boolean;
 };
 
 export type OwnerRef = { kind: "page" | "city"; id: string };
 
 const OWNER_SELECT = {
-  page: { select: { id: true, slug: true, deletedAt: true } },
+  page: { select: { id: true, slug: true, status: true, deletedAt: true } },
   city: {
     select: {
       id: true,
       slug: true,
       name: true,
+      status: true,
       deletedAt: true,
       state: { select: { name: true } },
     },
@@ -41,11 +44,17 @@ const OWNER_SELECT = {
 } as const;
 
 type OwnerRows = {
-  page: { id: string; slug: string; deletedAt: Date | null } | null;
+  page: {
+    id: string;
+    slug: string;
+    status: string;
+    deletedAt: Date | null;
+  } | null;
   city: {
     id: string;
     slug: string;
     name: string;
+    status: string;
     deletedAt: Date | null;
     state: { name: string };
   } | null;
@@ -60,6 +69,7 @@ function describe(rows: OwnerRows): SectionOwner | null {
       label: isHomeSlug(rows.page.slug) ? "the homepage" : `/${rows.page.slug}`,
       adminPath: `/admin/pages/${rows.page.id}`,
       publicPath: pagePublicPath(rows.page.slug),
+      published: rows.page.status === "PUBLISHED",
     };
   }
   if (rows.city && !rows.city.deletedAt) {
@@ -70,6 +80,7 @@ function describe(rows: OwnerRows): SectionOwner | null {
       label: `${rows.city.name}, ${rows.city.state.name}`,
       adminPath: `/admin/locations/cities/${rows.city.id}`,
       publicPath: `/locations/${rows.city.slug}`,
+      published: rows.city.status === "PUBLISHED",
     };
   }
   // A section whose owner has been soft-deleted belongs to nothing anyone can

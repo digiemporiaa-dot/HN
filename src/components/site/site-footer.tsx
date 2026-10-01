@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui";
 import { getMenuTree } from "@/server/navigation/service";
 import type { SiteSettings } from "@/server/settings/service";
+import type { LegalLink } from "@/server/legal/links";
 
 function externalProps(href: string) {
   return href.startsWith("http")
@@ -10,11 +11,36 @@ function externalProps(href: string) {
     : {};
 }
 
-export async function SiteFooter({ settings }: { settings: SiteSettings }) {
-  const [columns, legal] = await Promise.all([
+export async function SiteFooter({
+  settings,
+  legalFallback,
+}: {
+  settings: SiteSettings;
+  /** The legal pages from the settings, used while the legal menu is empty. */
+  legalFallback: Record<string, LegalLink | null>;
+}) {
+  const [columns, legalMenu] = await Promise.all([
     getMenuTree("FOOTER"),
     getMenuTree("LEGAL"),
   ]);
+
+  // An administrator's legal menu wins. Without one, the policies the
+  // settings point at are listed, so a published privacy policy is never
+  // unreachable from the footer just because nobody built the menu.
+  const legal =
+    legalMenu.length > 0
+      ? legalMenu.map((item) => ({
+          id: item.id,
+          label: item.label,
+          href: item.href,
+        }))
+      : Object.values(legalFallback)
+          .filter((link): link is LegalLink => link !== null)
+          .map((link) => ({
+            id: link.href,
+            label: link.label,
+            href: link.href,
+          }));
 
   const year = new Date().getFullYear();
   const socialLinks = Object.entries(settings.social).filter(
@@ -77,7 +103,7 @@ export async function SiteFooter({ settings }: { settings: SiteSettings }) {
             ) : null}
             {settings.whatsapp ? (
               <a
-                href={`https://wa.me/${settings.whatsapp}`}
+                href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`}
                 rel="noopener noreferrer"
                 target="_blank"
                 className="hover:text-ink"

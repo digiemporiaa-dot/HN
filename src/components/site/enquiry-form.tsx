@@ -12,6 +12,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { CONSENT_TEXT } from "@/lib/validation/leads";
+import { useSiteLinks } from "@/components/site/site-links";
 import { LeadContextFields } from "./lead-context";
 import type { RfqLine } from "@/lib/validation/rfq";
 import type { EnquiryState } from "@/server/leads/actions";
@@ -60,6 +61,7 @@ export function EnquiryForm({
   onDone?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
+  const { privacyHref } = useSiteLinks();
   // Stamped on the client at mount: the server measures how long the form was
   // open, and a submission that arrives instantly was not typed by anyone.
   const [startedAt] = useState(() => String(Date.now()));
@@ -268,7 +270,24 @@ export function EnquiryForm({
             checked={values.consent}
             onChange={(event) => set("consent", event.target.checked)}
           />
-          <span>{CONSENT_TEXT}</span>
+          <span>
+            {CONSENT_TEXT}
+            {/* A new tab, so reading the policy does not cost the visitor the
+                enquiry they have half written. */}
+            {privacyHref ? (
+              <>
+                {" "}
+                <a
+                  href={privacyHref}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-primary underline underline-offset-4"
+                >
+                  Privacy policy
+                </a>
+              </>
+            ) : null}
+          </span>
         </label>
         {state.fieldErrors?.consent ? (
           <p className="text-caption text-danger-700">

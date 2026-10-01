@@ -37,6 +37,7 @@ const STATIC_ENTRIES: Entry[] = [
   entry("/solutions", undefined, 0.6),
   entry("/applications", undefined, 0.5),
   entry("/locations", undefined, 0.5),
+  entry("/contact", undefined, 0.6),
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
