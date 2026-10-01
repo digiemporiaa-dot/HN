@@ -14,6 +14,13 @@ import {
   type OwnerRef,
   type SectionOwner,
 } from "./section-owner";
+import {
+  HOME_SLUG,
+  homePageRecord,
+  isHomeSlug,
+  pagePublicPath,
+  starterHomeSections,
+} from "./homepage";
 import { clearUsage, recordUsage } from "@/server/media/service";
 import {
   contentSchemaFor,
@@ -106,21 +113,42 @@ export async function updatePageAction(
   const actor = await requirePermission("PAGES", "EDIT");
 
   const pageId = String(formData.get("pageId") ?? "");
-  const parsed = pageSchema.safeParse({
+
+  // The homepage keeps its slug whatever the form says: it is what makes the
+  // page the homepage, and "home" is reserved, so the ordinary schema would
+  // refuse it anyway. Looked up before parsing so the rule comes from the
+  // database rather than from a field the form could leave out.
+  const current = await prisma.page.findFirst({
+    where: { id: pageId, deletedAt: null },
+    select: { slug: true },
+  });
+  const isHome = current ? isHomeSlug(current.slug) : false;
+
+  const meta = pageSchema.pick({ title: true, status: true }).safeParse({
     title: formData.get("title"),
-    slug: formData.get("slug"),
     status: formData.get("status"),
   });
+  const slugResult = isHome
+    ? null
+    : pageSchema.shape.slug.safeParse(formData.get("slug"));
 
-  if (!parsed.success) {
-    const flattened = parsed.error.flatten().fieldErrors;
+  if (!meta.success || (slugResult && !slugResult.success)) {
+    const flattened = meta.success ? {} : meta.error.flatten().fieldErrors;
+    const slugError =
+      slugResult && !slugResult.success
+        ? slugResult.error.issues[0]?.message
+        : undefined;
     return {
+      error: "The page could not be saved. Check the highlighted fields.",
       fieldErrors: {
         ...(flattened.title?.[0] ? { title: flattened.title[0] } : {}),
-        ...(flattened.slug?.[0] ? { slug: flattened.slug[0] } : {}),
+        ...(slugError ? { slug: slugError } : {}),
       },
     };
   }
+
+  const data = meta.data;
+  const slug = slugResult?.success ? slugResult.data : HOME_SLUG;
 
   const page = await prisma.page.findFirst({
     where: { id: pageId, deletedAt: null },
@@ -129,30 +157,31 @@ export async function updatePageAction(
   if (!page) return { error: "That page no longer exists." };
 
   // Publishing is a separate permission from editing.
-  if (parsed.data.status === "PUBLISHED" && page.status !== "PUBLISHED") {
+  if (data.status === "PUBLISHED" && page.status !== "PUBLISHED") {
     await requirePermission("PAGES", "PUBLISH");
   }
 
   const clash = await prisma.page.findUnique({
-    where: { slug: parsed.data.slug },
+    where: { slug },
     select: { id: true },
   });
   if (clash && clash.id !== page.id) {
-    return { fieldErrors: { slug: "A page already uses that slug." } };
+    return {
+      error: "The page could not be saved. Check the highlighted fields.",
+      fieldErrors: { slug: "A page already uses that slug." },
+    };
   }
 
   await prisma.page.update({
     where: { id: page.id },
     data: {
-      title: parsed.data.title,
-      slug: parsed.data.slug,
-      status: parsed.data.status,
+      title: data.title,
+      slug,
+      status: data.status,
       // Re-publishing keeps the original date; unpublishing clears it, so the
       // column always means "published since", never "was published once".
       publishedAt:
-        parsed.data.status === "PUBLISHED"
-          ? (page.publishedAt ?? new Date())
-          : null,
+        data.status === "PUBLISHED" ? (page.publishedAt ?? new Date()) : null,
     },
   });
 
@@ -160,26 +189,89 @@ export async function updatePageAction(
     actorId: actor.id,
     actorEmail: actor.email,
     action:
-      page.status !== parsed.data.status
-        ? "PAGE_STATUS_CHANGED"
-        : "PAGE_UPDATED",
+      page.status !== data.status ? "PAGE_STATUS_CHANGED" : "PAGE_UPDATED",
     module: "PAGES",
     entityType: "Page",
     entityId: page.id,
-    summary: `${parsed.data.title} (/${parsed.data.slug}) — ${parsed.data.status}`,
+    summary: `${data.title} (/${slug}) — ${data.status}`,
     metadata: {
       from: page.status,
-      to: parsed.data.status,
-      slug: parsed.data.slug,
+      to: data.status,
+      slug: slug,
     },
   });
 
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${page.id}`);
-  revalidatePath(`/${page.slug}`);
-  revalidatePath(`/${parsed.data.slug}`);
+  revalidatePath(pagePublicPath(page.slug));
+  revalidatePath(pagePublicPath(slug));
 
   return { success: "Page saved." };
+}
+
+/**
+ * Creates the homepage as a draft, starting from what / already shows.
+ *
+ * Idempotent: a second press, or two editors pressing at once, opens the one
+ * homepage rather than failing or making another. The draft changes nothing
+ * public until somebody with the right to publish publishes it.
+ */
+export async function setUpHomepageAction(): Promise<void> {
+  const actor = await requirePermission("PAGES", "CREATE");
+
+  const existing = await homePageRecord();
+  if (existing) {
+    // Only reachable if a row was soft-deleted before deletion was refused.
+    if (existing.deletedAt) {
+      await prisma.page.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, status: "DRAFT", publishedAt: null },
+      });
+    }
+    redirect(`/admin/pages/${existing.id}`);
+  }
+
+  const starter = await starterHomeSections();
+
+  let pageId: string;
+  try {
+    const page = await prisma.page.create({
+      data: {
+        title: "Homepage",
+        slug: HOME_SLUG,
+        status: "DRAFT",
+        sections: {
+          create: starter.map((row, index) => ({
+            type: row.type as never,
+            order: index,
+            enabled: true,
+            content: row.content as never,
+            design: row.design as never,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+    pageId = page.id;
+  } catch {
+    // Somebody else set it up in the same moment. Theirs is the homepage.
+    const raced = await homePageRecord();
+    if (!raced) throw new Error("The homepage could not be created.");
+    redirect(`/admin/pages/${raced.id}`);
+  }
+
+  await recordAuditEvent({
+    actorId: actor.id,
+    actorEmail: actor.email,
+    action: "PAGE_CREATED",
+    module: "PAGES",
+    entityType: "Page",
+    entityId: pageId,
+    summary: `Set up the homepage (${starter.length} starter sections)`,
+  });
+
+  revalidatePath("/admin/pages");
+  redirect(`/admin/pages/${pageId}`);
 }
 
 export async function deletePageAction(formData: FormData): Promise<void> {
@@ -193,6 +285,10 @@ export async function deletePageAction(formData: FormData): Promise<void> {
     select: { id: true, slug: true, title: true },
   });
   if (!page) redirect("/admin/pages");
+
+  // The homepage is unpublished, not deleted: a deleted one would leave its
+  // reserved slug taken by a row nobody can see or restore.
+  if (isHomeSlug(page.slug)) redirect(`/admin/pages/${page.id}?error=home`);
 
   // Soft delete: a page removed by mistake takes its whole section tree with
   // it, and that is not something an editor can reconstruct from memory.

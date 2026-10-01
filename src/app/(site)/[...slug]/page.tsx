@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/ui";
 import { prisma } from "@/server/db";
 import { visitorHasPermission } from "@/server/permissions";
 import { RenderedSections, type StoredSection } from "@/cms/render-page";
+import { HOME_SLUG, isHomeSlug } from "@/server/cms/homepage";
 
 type RouteParams = { params: Promise<{ slug: string[] }> };
 
@@ -65,7 +66,8 @@ async function mayPreview(): Promise<boolean> {
 export async function generateStaticParams() {
   try {
     const pages = await prisma.page.findMany({
-      where: { status: "PUBLISHED", deletedAt: null },
+      // The homepage lives at /, never at /home.
+      where: { status: "PUBLISHED", deletedAt: null, slug: { not: HOME_SLUG } },
       select: { slug: true },
     });
 
@@ -87,6 +89,15 @@ export async function generateMetadata({
 
   if (!page) return { title: "Page not found" };
 
+  // /home is only ever an editor's preview of the homepage.
+  if (isHomeSlug(page.slug)) {
+    return {
+      title: page.title,
+      alternates: { canonical: "/" },
+      robots: { index: false, follow: false },
+    };
+  }
+
   return {
     title: page.title,
     alternates: { canonical: `/${page.slug}` },
@@ -103,19 +114,31 @@ export default async function CmsPage({ params }: RouteParams) {
   const { slug } = await params;
   const page = await loadPage(slug);
 
+  // /home is never a page of its own. Before a homepage exists it still means
+  // the front page to anyone who types it.
+  if (!page && slug.length === 1 && isHomeSlug(slug[0])) redirect("/");
   if (!page) notFound();
 
+  const home = isHomeSlug(page.slug);
   const published = page.status === "PUBLISHED";
+
+  // The homepage's preview. Staff who may view pages see the homepage as it is
+  // saved, published or not; everyone else is sent to the real one, which
+  // also tells them nothing about whether a draft exists.
+  if (home && !(await mayPreview())) redirect("/");
   if (!published && !(await mayPreview())) notFound();
 
   return (
     <>
-      {published ? null : (
+      {published && !home ? null : (
         <div className="bg-warning-50 border-warning-100 border-b">
           <Container className="text-body-sm text-warning-700 flex flex-wrap items-center justify-between gap-3 py-3">
             <span>
-              Preview — this page is {page.status.toLowerCase()} and is not
-              visible to the public.
+              {home
+                ? published
+                  ? "Preview of the homepage. Visitors see it at /."
+                  : `Preview — the homepage is ${page.status.toLowerCase()}. Visitors see the starter homepage at / until it is published.`
+                : `Preview — this page is ${page.status.toLowerCase()} and is not visible to the public.`}
             </span>
             <Link
               href={`/admin/pages/${page.id}`}

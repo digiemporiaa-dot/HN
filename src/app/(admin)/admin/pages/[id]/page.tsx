@@ -18,6 +18,7 @@ import { currentPermissions, requirePermission } from "@/server/permissions";
 import { deletePageAction } from "@/server/cms/actions";
 import { PageSettingsForm } from "./page-forms";
 import { SectionsPanel } from "@/components/admin/sections/sections-panel";
+import { isHomeSlug, pagePublicPath } from "@/server/cms/homepage";
 
 export const metadata: Metadata = {
   title: "Edit page",
@@ -26,8 +27,10 @@ export const metadata: Metadata = {
 
 export default async function EditPagePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("PAGES", "VIEW");
   const { can } = await currentPermissions();
@@ -61,12 +64,14 @@ export default async function EditPagePage({
   if (!page) notFound();
 
   const canEdit = can("PAGES", "EDIT");
+  const home = isHomeSlug(page.slug);
+  const { error } = await searchParams;
 
   return (
     <AdminPage>
       <AdminPageHeader
         title={page.title}
-        description={`/${page.slug}`}
+        description={home ? "The homepage, at /" : `/${page.slug}`}
         backHref="/admin/pages"
         backLabel="Back to pages"
         actions={
@@ -74,7 +79,7 @@ export default async function EditPagePage({
             <StatusBadge status={page.status} />
             {page.status === "PUBLISHED" ? (
               <Link
-                href={`/${page.slug}`}
+                href={pagePublicPath(page.slug)}
                 target="_blank"
                 rel="noreferrer"
                 className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
@@ -83,7 +88,21 @@ export default async function EditPagePage({
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}
-            {can("PAGES", "DELETE") ? (
+            {/* The homepage's preview lives at /home, which only staff can
+                open; / shows the starter until this is published. */}
+            {home ? (
+              <Link
+                href="/home"
+                target="_blank"
+                rel="noreferrer"
+                className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
+              >
+                Preview
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </Link>
+            ) : null}
+            {/* The homepage is unpublished rather than deleted. */}
+            {can("PAGES", "DELETE") && !home ? (
               <form action={deletePageAction}>
                 <input type="hidden" name="pageId" value={page.id} />
                 <Button type="submit" variant="outline" size="sm">
@@ -99,6 +118,16 @@ export default async function EditPagePage({
         }
       />
 
+      {error === "home" ? (
+        <p
+          role="alert"
+          className="border-warning-100 bg-warning-50 text-warning-700 text-body-sm rounded-md border p-4"
+        >
+          The homepage cannot be deleted. Set it to draft to take it down, and
+          visitors will see the starter homepage instead.
+        </p>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Page settings</CardTitle>
@@ -108,6 +137,7 @@ export default async function EditPagePage({
             pageId={page.id}
             title={page.title}
             slug={page.slug}
+            isHome={home}
             status={page.status}
             canPublish={can("PAGES", "PUBLISH")}
             readOnly={!canEdit}

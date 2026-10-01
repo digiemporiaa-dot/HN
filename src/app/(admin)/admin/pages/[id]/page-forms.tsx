@@ -79,6 +79,7 @@ export function PageSettingsForm({
   pageId,
   title,
   slug,
+  isHome = false,
   status,
   canPublish,
   readOnly,
@@ -87,6 +88,8 @@ export function PageSettingsForm({
   pageId: string;
   title: string;
   slug: string;
+  /** The homepage's address is fixed; the server ignores a posted slug for it. */
+  isHome?: boolean;
   status: string;
   canPublish: boolean;
   readOnly: boolean;
@@ -125,14 +128,14 @@ export function PageSettingsForm({
         <Field
           label="URL slug"
           required
-          help={`/${values.slug}`}
+          help={isHome ? "The homepage always lives at /." : `/${values.slug}`}
           error={state.fieldErrors?.slug}
         >
           {(control) => (
             <Input
               name="slug"
-              value={values.slug}
-              disabled={readOnly}
+              value={isHome ? "/" : values.slug}
+              disabled={readOnly || isHome}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,

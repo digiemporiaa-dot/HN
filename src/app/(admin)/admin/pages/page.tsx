@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FilePlus2 } from "lucide-react";
+import { FilePlus2, House } from "lucide-react";
 
-import { buttonStyles, EmptyState, StatusBadge } from "@/components/ui";
+import {
+  Button,
+  buttonStyles,
+  Card,
+  CardContent,
+  EmptyState,
+  StatusBadge,
+} from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { DataTable } from "@/components/admin/data-table";
@@ -10,6 +17,8 @@ import { TableSearch } from "@/components/admin/data-table-parts";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
+import { homePageRecord, isHomeSlug } from "@/server/cms/homepage";
+import { setUpHomepageAction } from "@/server/cms/actions";
 import {
   buildQueryHref,
   readPageParam,
@@ -76,7 +85,7 @@ export default async function PagesListPage({
       : {}),
   };
 
-  const [total, pages] = await Promise.all([
+  const [total, pages, home] = await Promise.all([
     prisma.page.count({ where }),
     prisma.page.findMany({
       where,
@@ -92,7 +101,9 @@ export default async function PagesListPage({
         _count: { select: { sections: true } },
       },
     }),
+    homePageRecord(),
   ]);
+  const homeLive = home && !home.deletedAt ? home : null;
 
   return (
     <AdminPage>
@@ -108,6 +119,8 @@ export default async function PagesListPage({
           ) : null
         }
       />
+
+      <HomepageCard home={homeLive} canCreate={can("PAGES", "CREATE")} />
 
       <DataTable<PageRow>
         rows={pages}
@@ -153,7 +166,7 @@ export default async function PagesListPage({
                   {row.title}
                 </span>
                 <span className="text-caption text-ink-muted break-all">
-                  /{row.slug}
+                  {isHomeSlug(row.slug) ? "/ (homepage)" : `/${row.slug}`}
                 </span>
               </div>
             ),
@@ -180,5 +193,55 @@ export default async function PagesListPage({
         ]}
       />
     </AdminPage>
+  );
+}
+
+/**
+ * The homepage, above the list rather than lost in it.
+ *
+ * Before it is set up, / shows a starter built from the settings and the
+ * catalogue, and this says so: an editor should know the front page they see
+ * is not yet one anybody wrote.
+ */
+function HomepageCard({
+  home,
+  canCreate,
+}: {
+  home: { id: string; status: string; sections: unknown[] } | null;
+  canCreate: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <House aria-hidden="true" className="text-primary mt-0.5 size-5" />
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-body text-ink flex flex-wrap items-center gap-2 font-medium">
+              Homepage
+              {home ? <StatusBadge status={home.status} /> : null}
+            </p>
+            <p className="text-body-sm text-ink-muted">
+              {!home
+                ? "Not set up yet. Visitors see a starter homepage built from your settings and catalogue."
+                : home.status === "PUBLISHED"
+                  ? `Live at /, built from ${home.sections.length} section${home.sections.length === 1 ? "" : "s"}.`
+                  : "Not published. Visitors see the starter homepage until it is."}
+            </p>
+          </div>
+        </div>
+        {home ? (
+          <Link
+            href={`/admin/pages/${home.id}`}
+            className={buttonStyles({ variant: "outline" })}
+          >
+            Edit homepage
+          </Link>
+        ) : canCreate ? (
+          <form action={setUpHomepageAction}>
+            <Button type="submit">Set up homepage</Button>
+          </form>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

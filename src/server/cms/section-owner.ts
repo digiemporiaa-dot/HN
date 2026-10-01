@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/server/db";
 import type { PermissionModule } from "@/generated/prisma/enums";
+import { isHomeSlug, pagePublicPath } from "./homepage";
 
 /**
  * What a section belongs to, and what that implies.
@@ -56,9 +57,9 @@ function describe(rows: OwnerRows): SectionOwner | null {
       kind: "page",
       id: rows.page.id,
       module: "PAGES",
-      label: `/${rows.page.slug}`,
+      label: isHomeSlug(rows.page.slug) ? "the homepage" : `/${rows.page.slug}`,
       adminPath: `/admin/pages/${rows.page.id}`,
-      publicPath: `/${rows.page.slug}`,
+      publicPath: pagePublicPath(rows.page.slug),
     };
   }
   if (rows.city && !rows.city.deletedAt) {

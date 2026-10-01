@@ -368,7 +368,9 @@ function EntityCard({
 }) {
   return (
     <Card as="li" appearance={cardStyle ?? "standard"} interactive>
-      <Link href={entity.href} className="group flex h-full flex-col gap-3">
+      {/* The padding lives on the link so the whole card, edge to edge, is
+          the target. CardContent's own padding is off for the same reason. */}
+      <Link href={entity.href} className="group flex h-full flex-col gap-3 p-5">
         {entity.image ? (
           <img
             src={entity.image.url}

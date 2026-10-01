@@ -4,6 +4,7 @@ import { appUrl } from "@/lib/site-config";
 import { prisma } from "@/server/db";
 import { getSiteSettings } from "@/server/settings/service";
 import { cityPath } from "@/server/locations/service";
+import { HOME_SLUG } from "@/server/cms/homepage";
 
 /**
  * The sitemap.
@@ -56,7 +57,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       cities,
     ] = await Promise.all([
       prisma.page.findMany({
-        where: { status: "PUBLISHED", deletedAt: null },
+        // The homepage is the root entry above, not /home.
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          slug: { not: HOME_SLUG },
+        },
         select: { slug: true, updatedAt: true },
       }),
       prisma.product.findMany({
