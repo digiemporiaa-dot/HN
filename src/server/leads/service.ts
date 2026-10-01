@@ -19,6 +19,7 @@ export const LEAD_LIST_SELECT = {
   status: true,
   productName: true,
   categoryName: true,
+  landingCityName: true,
   priority: true,
   createdAt: true,
   assignedTo: { select: { id: true, name: true } },
@@ -35,6 +36,7 @@ export type LeadRow = {
   status: string;
   productName: string | null;
   categoryName: string | null;
+  landingCityName: string | null;
   priority: string;
   createdAt: Date;
   assignedTo: { id: string; name: string } | null;
@@ -168,6 +170,7 @@ export async function findLead(id: string) {
       priority: true,
       productName: true,
       categoryName: true,
+      landingCityName: true,
       landingPage: true,
       utmSource: true,
       utmMedium: true,
@@ -187,6 +190,9 @@ export async function findLead(id: string) {
           slug: true,
           parent: { select: { slug: true } },
         },
+      },
+      landingCity: {
+        select: { id: true, name: true, slug: true, deletedAt: true },
       },
       formSubmission: {
         select: {

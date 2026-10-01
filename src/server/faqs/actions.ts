@@ -22,6 +22,7 @@ const OWNERS = {
     module: "PRODUCTS",
     action: "PRODUCT_FAQS_UPDATED",
     revalidate: ["/admin/products", "/admin/products/[id]"],
+    publicRoute: "/products/[slug]",
     find: (id: string) =>
       prisma.product.findFirst({
         where: { id, deletedAt: null },
@@ -32,6 +33,7 @@ const OWNERS = {
     module: "LOCATIONS",
     action: "CITY_FAQS_UPDATED",
     revalidate: ["/admin/locations", "/admin/locations/cities/[id]"],
+    publicRoute: "/locations/[slug]",
     find: (id: string) =>
       prisma.city.findFirst({
         where: { id, deletedAt: null },
@@ -42,6 +44,7 @@ const OWNERS = {
     module: "CATEGORIES",
     action: "CATEGORY_FAQS_UPDATED",
     revalidate: ["/admin/categories", "/admin/categories/[id]"],
+    publicRoute: "/categories/[...path]",
     find: (id: string) =>
       prisma.category.findFirst({
         where: { id, deletedAt: null },
@@ -115,5 +118,7 @@ export async function saveFaqsAction(
 
   revalidatePath(owner.revalidate[0]);
   revalidatePath(owner.revalidate[1], "page");
+  // The questions are shown on the public page, which is prerendered.
+  revalidatePath(owner.publicRoute, "page");
   return { success: "Questions saved." };
 }

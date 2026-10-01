@@ -150,6 +150,27 @@ export default async function LeadPage({
             [string, React.ReactNode]
           >)
         : []),
+    // Linked to the admin screen rather than the public page: the city may
+    // since have been unpublished or deleted, and the record should still say
+    // where the enquiry came from.
+    ...(lead.landingCity && !lead.landingCity.deletedAt
+      ? ([
+          [
+            "City page",
+            <Link
+              key="cp"
+              href={`/admin/locations/cities/${lead.landingCity.id}`}
+              className="text-primary underline underline-offset-4"
+            >
+              {lead.landingCityName ?? lead.landingCity.name}
+            </Link>,
+          ],
+        ] as Array<[string, React.ReactNode]>)
+      : lead.landingCityName
+        ? ([["City page", lead.landingCityName]] as Array<
+            [string, React.ReactNode]
+          >)
+        : []),
     ...(lead.landingPage
       ? ([
           [

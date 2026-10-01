@@ -34,6 +34,7 @@ export function EnquiryForm({
   action,
   productId,
   categoryId,
+  cityId,
   documentId,
   lines,
   submitLabel,
@@ -43,6 +44,8 @@ export function EnquiryForm({
   productId?: string;
   /** Set when the enquiry came from a category page rather than a product. */
   categoryId?: string;
+  /** Set when the enquiry came from a city page. */
+  cityId?: string;
   /** Set when the enquiry is the price of a gated document. */
   documentId?: string;
   /**
@@ -133,6 +136,7 @@ export function EnquiryForm({
       {categoryId ? (
         <input type="hidden" name="categoryId" value={categoryId} />
       ) : null}
+      {cityId ? <input type="hidden" name="cityId" value={cityId} /> : null}
       {documentId ? (
         <input type="hidden" name="documentId" value={documentId} />
       ) : null}
@@ -288,6 +292,7 @@ export function EnquiryDialog({
   action,
   productId,
   categoryId,
+  cityId,
   documentId,
   triggerLabel,
   triggerClassName,
@@ -298,6 +303,8 @@ export function EnquiryDialog({
   action: EnquiryAction;
   productId?: string;
   categoryId?: string;
+  /** The city page the form sits on, for a lead that says where it came from. */
+  cityId?: string;
   documentId?: string;
   /** The label and the styling of the button that opens the dialog. Passed as
    *  a class rather than an element so no button ends up inside another. */
@@ -330,6 +337,7 @@ export function EnquiryDialog({
           action={action}
           productId={productId}
           categoryId={categoryId}
+          cityId={cityId}
           documentId={documentId}
           submitLabel={submitLabel}
         />

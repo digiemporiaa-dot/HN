@@ -24,6 +24,7 @@ export type LeadNotification = {
   message: string | null;
   productName: string | null;
   categoryName?: string | null;
+  landingCityName?: string | null;
   landingPage?: string | null;
   /** The list on a quotation request. Names come from the catalogue, notes do not. */
   items?: Array<{
@@ -69,6 +70,9 @@ export function leadNotification(lead: LeadNotification): {
       : []),
     ...(lead.categoryName
       ? ([["Category", lead.categoryName]] as Array<[string, string]>)
+      : []),
+    ...(lead.landingCityName
+      ? ([["City page", lead.landingCityName]] as Array<[string, string]>)
       : []),
     ...(lead.landingPage
       ? ([["Sent from", lead.landingPage]] as Array<[string, string]>)

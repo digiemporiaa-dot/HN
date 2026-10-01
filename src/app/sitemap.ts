@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { appUrl } from "@/lib/site-config";
 import { prisma } from "@/server/db";
 import { getSiteSettings } from "@/server/settings/service";
+import { cityPath } from "@/server/locations/service";
 
 /**
  * The sitemap.
@@ -34,6 +35,7 @@ const STATIC_ENTRIES: Entry[] = [
   entry("/specialties", undefined, 0.6),
   entry("/solutions", undefined, 0.6),
   entry("/applications", undefined, 0.5),
+  entry("/locations", undefined, 0.5),
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -51,6 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       specialties,
       solutions,
       applications,
+      cities,
     ] = await Promise.all([
       prisma.page.findMany({
         where: { status: "PUBLISHED", deletedAt: null },
@@ -96,6 +99,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         select: { slug: true, updatedAt: true },
         take: 5000,
       }),
+      // Published and switched on for search: the same test the page's own
+      // robots tag applies, so the sitemap never lists a noindex page.
+      prisma.city.findMany({
+        where: { status: "PUBLISHED", deletedAt: null, indexable: true },
+        select: { slug: true, updatedAt: true },
+        take: 5000,
+      }),
     ]);
 
     return [
@@ -123,6 +133,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...applications.map((row) =>
         entry(`/applications/${row.slug}`, row.updatedAt, 0.5),
       ),
+      ...cities.map((row) => entry(cityPath(row.slug), row.updatedAt, 0.6)),
     ];
   } catch (error) {
     // A sitemap listing the handful of pages that always exist is worth more

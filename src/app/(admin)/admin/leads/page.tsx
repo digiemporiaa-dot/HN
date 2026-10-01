@@ -291,7 +291,12 @@ export default async function LeadsPage({
               row.productName ??
               (row._count.items > 0
                 ? `${row._count.items} ${row._count.items === 1 ? "product" : "products"}`
-                : (row.categoryName ?? LEAD_SOURCE_LABELS[row.source] ?? "—")),
+                : (row.categoryName ??
+                  (row.landingCityName
+                    ? `City page — ${row.landingCityName}`
+                    : null) ??
+                  LEAD_SOURCE_LABELS[row.source] ??
+                  "—")),
           },
           {
             key: "priority",

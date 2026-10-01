@@ -45,6 +45,10 @@ function revalidateLocations(): void {
   revalidatePath("/admin/locations");
   revalidatePath("/admin/locations/states/[id]", "page");
   revalidatePath("/admin/locations/cities/[id]", "page");
+  // The public side too: the index lists every published city, and a state
+  // renamed or a city unpublished changes pages other than the one edited.
+  revalidatePath("/locations");
+  revalidatePath("/locations/[slug]", "page");
 }
 
 /* ------------------------------------------------------------------ states -- */

@@ -47,6 +47,7 @@ const COLUMNS = [
   "Priority",
   "Product",
   "Category",
+  "City page",
   "Products requested",
   "Landing page",
   "UTM source",
@@ -90,6 +91,7 @@ export async function GET(request: Request) {
       priority: true,
       productName: true,
       categoryName: true,
+      landingCityName: true,
       landingPage: true,
       utmSource: true,
       utmMedium: true,
@@ -133,6 +135,7 @@ export async function GET(request: Request) {
       lead.priority,
       lead.productName,
       lead.categoryName,
+      lead.landingCityName,
       // A quotation request's whole list in one cell, one line per product, so
       // a row still reads as a row in a spreadsheet.
       lead.items

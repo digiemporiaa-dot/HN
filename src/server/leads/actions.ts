@@ -102,6 +102,7 @@ export async function submitEnquiryAction(
   const productId = String(formData.get("productId") ?? "");
   const categoryId = String(formData.get("categoryId") ?? "");
   const documentId = String(formData.get("documentId") ?? "");
+  const cityId = String(formData.get("cityId") ?? "");
 
   // Both are resolved from the database rather than trusted from the form: the
   // product name stored on the enquiry has to be the real one, and a document
@@ -116,6 +117,15 @@ export async function submitEnquiryAction(
   const category = categoryId
     ? await prisma.category.findFirst({
         where: { id: categoryId, deletedAt: null, status: "PUBLISHED" },
+        select: { id: true, name: true },
+      })
+    : null;
+
+  // Published only: a lead never names a page the public could not have seen,
+  // so an editor trying the form on a draft preview files a plain contact.
+  const landingCity = cityId
+    ? await prisma.city.findFirst({
+        where: { id: cityId, deletedAt: null, status: "PUBLISHED" },
         select: { id: true, name: true },
       })
     : null;
@@ -137,7 +147,9 @@ export async function submitEnquiryAction(
       ? "PRODUCT_ENQUIRY"
       : category
         ? "CATEGORY_ENQUIRY"
-        : "CONTACT_FORM";
+        : landingCity
+          ? "CITY_LANDING"
+          : "CONTACT_FORM";
 
   const lead = await createLeadWithReference({
     name: parsed.data.name,
@@ -155,6 +167,8 @@ export async function submitEnquiryAction(
       : null,
     categoryId: category?.id ?? null,
     categoryName: category?.name ?? null,
+    landingCityId: landingCity?.id ?? null,
+    landingCityName: landingCity?.name ?? null,
     consentedAt: new Date(),
     consentText: CONSENT_TEXT,
     ipAddress: context.ipAddress,
@@ -218,6 +232,7 @@ export async function submitEnquiryAction(
         : product.name
       : null,
     categoryName: category?.name ?? null,
+    landingCityName: landingCity?.name ?? null,
     landingPage: readLeadContext(formData).landingPage,
     source,
     leadId: lead.id,

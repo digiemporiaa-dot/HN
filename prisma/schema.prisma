@@ -432,18 +432,18 @@ model MediaAsset {
   uploadedBy   Staff?  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   usages               MediaUsage[]
-  staffAvatar          Staff[]          @relation("StaffAvatar")
-  navigationItems      NavigationItem[] @relation("NavigationItemImage")
-  categoryImages       Category[]       @relation("CategoryImage")
-  categoryBanners      Category[]       @relation("CategoryBanner")
-  brandLogos           Brand[]          @relation("BrandLogo")
-  brandBanners         Brand[]          @relation("BrandBanner")
-  specialtyImages      Specialty[]      @relation("SpecialtyImage")
-  specialtyBanners     Specialty[]      @relation("SpecialtyBanner")
-  solutionImages       Solution[]       @relation("SolutionImage")
-  solutionBanners      Solution[]       @relation("SolutionBanner")
-  productPrimaryImages Product[]        @relation("ProductPrimaryImage")
-  productGalleryImages ProductImage[]   @relation("ProductGalleryImage")
+  staffAvatar          Staff[]           @relation("StaffAvatar")
+  navigationItems      NavigationItem[]  @relation("NavigationItemImage")
+  categoryImages       Category[]        @relation("CategoryImage")
+  categoryBanners      Category[]        @relation("CategoryBanner")
+  brandLogos           Brand[]           @relation("BrandLogo")
+  brandBanners         Brand[]           @relation("BrandBanner")
+  specialtyImages      Specialty[]       @relation("SpecialtyImage")
+  specialtyBanners     Specialty[]       @relation("SpecialtyBanner")
+  solutionImages       Solution[]        @relation("SolutionImage")
+  solutionBanners      Solution[]        @relation("SolutionBanner")
+  productPrimaryImages Product[]         @relation("ProductPrimaryImage")
+  productGalleryImages ProductImage[]    @relation("ProductGalleryImage")
   productDocuments     ProductDocument[] @relation("ProductDocumentFile")
   cityHeroImages       City[]            @relation("CityHeroImage")
 
@@ -503,10 +503,10 @@ model State {
 
   name String
   /// Unique across India, and the parent segment of every city URL beneath it.
-  slug String @unique
+  slug String    @unique
   /// The ISO 3166-2:IN subdivision code, e.g. MH. Optional: it is reference
   /// data, not something any page depends on.
-  code String? @unique
+  code String?   @unique
   kind StateKind @default(STATE)
 
   /// A state that is not active is hidden from the city picker and from every
@@ -550,9 +550,9 @@ model City {
   heroImage   MediaAsset? @relation("CityHeroImage", fields: [heroImageId], references: [id], onDelete: SetNull)
 
   /// One or two sentences under the headline.
-  intro   String?
+  intro    String?
   /// The body, in the constrained rich-text syntax.
-  content String?
+  content  String?
   /// What serving this city actually involves: engineers based there, response
   /// times, hospitals already equipped. Written by a person who knows — never
   /// generated — because it is the one part of the page a competitor could not
@@ -570,12 +570,13 @@ model City {
   /// Whether search engines are asked to index the page. Off until somebody
   /// turns it on: a published city page with nothing specific on it is better
   /// visible to visitors and invisible to search than the other way round.
-  indexable Boolean @default(false)
+  indexable      Boolean @default(false)
 
   categories  CityCategory[]
   products    CityProduct[]
   specialties CitySpecialty[]
   sections    PageSection[]
+  leads       Lead[]
 
   status      ContentStatus @default(DRAFT)
   publishedAt DateTime?
@@ -875,7 +876,7 @@ model BrandCategory {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@id([brandId, categoryId])
   @@index([categoryId])
@@ -931,7 +932,7 @@ model CategorySpecialty {
   specialtyId String
   specialty   Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@id([categoryId, specialtyId])
   @@index([specialtyId])
@@ -988,7 +989,7 @@ model SolutionCategory {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@id([solutionId, categoryId])
   @@index([categoryId])
@@ -1055,8 +1056,8 @@ model Product {
   /// so deleting one by mistake is expensive and restoring it is a real need.
   deletedAt DateTime?
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([categoryId])
   @@index([brandId])
@@ -1222,9 +1223,9 @@ enum ProductPointKind {
 /// measurement; a highlight is a decision about which measurement matters to a
 /// buyer, and that is editorial work the specification rows cannot do.
 model ProductPoint {
-  id        String       @id @default(cuid())
+  id        String  @id @default(cuid())
   productId String
-  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   kind ProductPointKind
 
@@ -1414,8 +1415,8 @@ model Form {
   submissions FormSubmission[]
 
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([status])
   @@index([deletedAt])
@@ -1596,6 +1597,13 @@ model Lead {
   category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryName String?
 
+  /// The city page the enquiry was sent from, as a link and a snapshot name.
+  /// Distinct from `city`, which is whatever the visitor typed about where
+  /// they are: a hospital in Pune can enquire from the Mumbai page.
+  landingCityId   String?
+  landingCity     City?   @relation(fields: [landingCityId], references: [id], onDelete: SetNull)
+  landingCityName String?
+
   /// The page the enquiry was sent from, as a path. Which page produced a lead
   /// is the first question asked of any campaign, and it cannot be recovered
   /// afterwards.
@@ -1647,6 +1655,7 @@ model Lead {
   @@index([email])
   @@index([productId])
   @@index([categoryId])
+  @@index([landingCityId])
   @@index([priority, createdAt])
   @@index([deletedAt])
   @@index([createdAt])
