@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { categoryPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -96,12 +98,13 @@ export async function createCategoryAction(
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
 
   let parentId: string | null = null;
+  let parentSlug: string | null = null;
   let depth = 0;
 
   if (parsed.data.parentId) {
     const parent = await prisma.category.findFirst({
       where: { id: parsed.data.parentId, deletedAt: null },
-      select: { id: true, depth: true },
+      select: { id: true, depth: true, slug: true },
     });
     // Checked rather than trusted: the parent id comes from the form.
     if (!parent)
@@ -112,6 +115,7 @@ export async function createCategoryAction(
       };
     }
     parentId = parent.id;
+    parentSlug = parent.slug;
     depth = parent.depth + 1;
   }
 
@@ -157,6 +161,13 @@ export async function createCategoryAction(
   await syncImageUsage(category.id, "image", parsed.data.imageId);
   await syncImageUsage(category.id, "banner", parsed.data.bannerId);
 
+  if (parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({
+      before: null,
+      after: categoryPath(parsed.data.slug, parentSlug),
+    });
+  }
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -188,6 +199,13 @@ export async function updateCategoryAction(
       publishedAt: true,
       imageId: true,
       bannerId: true,
+      parent: { select: { slug: true } },
+      // A parent's slug is part of every child's address, so its published
+      // children move with it.
+      children: {
+        where: { deletedAt: null, status: "PUBLISHED" },
+        select: { slug: true },
+      },
     },
   });
   if (!category) return { error: "That category no longer exists." };
@@ -233,6 +251,30 @@ export async function updateCategoryAction(
 
   await syncImageUsage(category.id, "image", parsed.data.imageId);
   await syncImageUsage(category.id, "banner", parsed.data.bannerId);
+
+  // A published category that changes address leaves a redirect behind, and
+  // so does each published subcategory whose address contained the old slug.
+  const parentSlug = category.parent?.slug ?? null;
+  await syncPublicPath({
+    before:
+      category.status === "PUBLISHED"
+        ? categoryPath(category.slug, parentSlug)
+        : null,
+    after:
+      parsed.data.status === "PUBLISHED"
+        ? categoryPath(parsed.data.slug, parentSlug)
+        : null,
+    actorId: actor.id,
+  });
+  if (category.slug !== parsed.data.slug) {
+    for (const child of category.children) {
+      await syncPublicPath({
+        before: categoryPath(child.slug, category.slug),
+        after: categoryPath(child.slug, parsed.data.slug),
+        actorId: actor.id,
+      });
+    }
+  }
 
   await recordAuditEvent({
     actorId: actor.id,

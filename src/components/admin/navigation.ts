@@ -186,7 +186,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/seo",
         icon: Search,
         module: "SEO",
-        available: false,
+        available: true,
       },
     ],
   },

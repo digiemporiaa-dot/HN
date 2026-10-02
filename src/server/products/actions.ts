@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { productPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -227,6 +229,13 @@ export async function createProductAction(
   const gallery = await syncRelations(product.id, parsed.data);
   await syncMediaUsage(product.id, parsed.data.primaryImageId, gallery);
 
+  if (parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({
+      before: null,
+      after: productPath(parsed.data.slug),
+    });
+  }
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -250,7 +259,7 @@ export async function updateProductAction(
   const productId = String(formData.get("productId") ?? "");
   const product = await prisma.product.findFirst({
     where: { id: productId, deletedAt: null },
-    select: { id: true, status: true, publishedAt: true },
+    select: { id: true, slug: true, status: true, publishedAt: true },
   });
   if (!product) return { error: "That product no longer exists." };
 
@@ -302,6 +311,14 @@ export async function updateProductAction(
 
   const gallery = await syncRelations(product.id, parsed.data);
   await syncMediaUsage(product.id, parsed.data.primaryImageId, gallery);
+
+  // A published product that changes address leaves a redirect behind.
+  await syncPublicPath({
+    before: product.status === "PUBLISHED" ? productPath(product.slug) : null,
+    after:
+      parsed.data.status === "PUBLISHED" ? productPath(parsed.data.slug) : null,
+    actorId: actor.id,
+  });
 
   await recordAuditEvent({
     actorId: actor.id,

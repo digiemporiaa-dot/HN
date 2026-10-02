@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { brandPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -93,7 +95,8 @@ export async function createBrandAction(
     where: { slug: parsed.data.slug },
     select: { id: true },
   });
-  if (clash) return { fieldErrors: { slug: "A brand already uses that slug." } };
+  if (clash)
+    return { fieldErrors: { slug: "A brand already uses that slug." } };
 
   if (parsed.data.status === "PUBLISHED") {
     await requirePermission("BRANDS", "PUBLISH");
@@ -124,6 +127,10 @@ export async function createBrandAction(
   await syncCategories(brand.id, parsed.data.categoryIds);
   await syncLogoUsage(brand.id, "logo", parsed.data.logoId);
   await syncLogoUsage(brand.id, "banner", parsed.data.bannerId);
+
+  if (parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({ before: null, after: brandPath(parsed.data.slug) });
+  }
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -192,6 +199,14 @@ export async function updateBrandAction(
   await syncCategories(brand.id, parsed.data.categoryIds);
   await syncLogoUsage(brand.id, "logo", parsed.data.logoId);
   await syncLogoUsage(brand.id, "banner", parsed.data.bannerId);
+
+  // A published brand that changes address leaves a redirect behind.
+  await syncPublicPath({
+    before: brand.status === "PUBLISHED" ? brandPath(brand.slug) : null,
+    after:
+      parsed.data.status === "PUBLISHED" ? brandPath(parsed.data.slug) : null,
+    actorId: actor.id,
+  });
 
   await recordAuditEvent({
     actorId: actor.id,

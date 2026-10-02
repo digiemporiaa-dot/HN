@@ -167,6 +167,7 @@ model Staff {
   leadNotes           LeadNote[]                @relation("LeadNoteAuthor")
   leadActivities      LeadActivity[]            @relation("LeadActivityActor")
   uploadedMedia       MediaAsset[]              @relation("MediaUploader")
+  redirects           Redirect[]                @relation("RedirectCreator")
   twoFactorSecret     TwoFactorSecret?
   recoveryCodes       RecoveryCode[]
   sessions            StaffSession[]
@@ -1818,4 +1819,48 @@ enum MailStatus {
   FAILED
   /// No transport is configured, so nothing was attempted.
   SKIPPED
+}
+
+/// A permanent redirect is a promise to search engines that the old address
+/// has moved for good; a temporary one says it will come back.
+enum RedirectType {
+  PERMANENT
+  TEMPORARY
+}
+
+/// Who made a redirect: an editor, or the system when a published address
+/// changed. Kept so an automatic one can be told apart and reviewed.
+enum RedirectSource {
+  MANUAL
+  AUTOMATIC
+}
+
+/// An old public address and where it now leads.
+///
+/// `fromPath` is stored normalised — lower case, a leading slash, no trailing
+/// slash, no query string — so a lookup is one exact match whatever form the
+/// old link arrives in. `toPath` is an internal path or an absolute https URL.
+model Redirect {
+  id       String         @id @default(cuid())
+  fromPath String         @unique
+  toPath   String
+  type     RedirectType   @default(PERMANENT)
+  source   RedirectSource @default(MANUAL)
+  active   Boolean        @default(true)
+  note     String?
+
+  /// How often the redirect has been followed. A redirect nobody has hit in a
+  /// year is a candidate for removal; one hit every day is not.
+  hits      Int       @default(0)
+  lastHitAt DateTime?
+
+  createdById String?
+  createdBy   Staff?  @relation("RedirectCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@index([toPath])
+  @@index([source])
 }

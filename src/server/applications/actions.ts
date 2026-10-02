@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { applicationPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -87,7 +89,19 @@ export async function updateApplicationAction(
   const applicationId = String(formData.get("applicationId") ?? "");
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { id: true },
+    select: {
+      id: true,
+      slug: true,
+      // An application's page is public while a published product is filed
+      // under it, which is what makes its old address worth redirecting.
+      _count: {
+        select: {
+          products: {
+            where: { product: { status: "PUBLISHED", deletedAt: null } },
+          },
+        },
+      },
+    },
   });
   if (!application) return { error: "That application no longer exists." };
 
@@ -110,6 +124,14 @@ export async function updateApplicationAction(
       description: parsed.data.description || null,
     },
   });
+
+  if (application._count.products > 0) {
+    await syncPublicPath({
+      before: applicationPath(application.slug),
+      after: applicationPath(parsed.data.slug),
+      actorId: actor.id,
+    });
+  }
 
   await recordAuditEvent({
     actorId: actor.id,

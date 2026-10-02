@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { specialtyPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -124,6 +126,13 @@ export async function createSpecialtyAction(
   await syncImageUsage(specialty.id, "image", parsed.data.imageId);
   await syncImageUsage(specialty.id, "banner", parsed.data.bannerId);
 
+  if (parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({
+      before: null,
+      after: specialtyPath(parsed.data.slug),
+    });
+  }
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -191,6 +200,17 @@ export async function updateSpecialtyAction(
   await syncImageUsage(specialty.id, "image", parsed.data.imageId);
   await syncImageUsage(specialty.id, "banner", parsed.data.bannerId);
 
+  // A published specialty that changes address leaves a redirect behind.
+  await syncPublicPath({
+    before:
+      specialty.status === "PUBLISHED" ? specialtyPath(specialty.slug) : null,
+    after:
+      parsed.data.status === "PUBLISHED"
+        ? specialtyPath(parsed.data.slug)
+        : null,
+    actorId: actor.id,
+  });
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -213,9 +233,7 @@ export async function updateSpecialtyAction(
   return { success: "Specialty saved." };
 }
 
-export async function deleteSpecialtyAction(
-  formData: FormData,
-): Promise<void> {
+export async function deleteSpecialtyAction(formData: FormData): Promise<void> {
   const actor = await requirePermission("SPECIALTIES", "DELETE");
 
   const parsed = specialtyIdSchema.safeParse({

@@ -26,6 +26,7 @@ import { hasPlaceholder } from "@/lib/cms/placeholders";
 import { PAGE_TEMPLATE_KEYS } from "@/lib/cms/page-templates";
 import { templateSections } from "./templates";
 import { isLegalPageSlug } from "@/server/legal/links";
+import { syncPublicPath } from "@/server/seo/redirects";
 import {
   describeSection,
   placeholderRefusal,
@@ -133,6 +134,10 @@ export async function createPageAction(
     },
     select: { id: true, slug: true },
   });
+
+  if (sections.length === 0 && parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({ before: null, after: `/${page.slug}` });
+  }
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -256,6 +261,16 @@ export async function updatePageAction(
 
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${page.id}`);
+  // A published page that changes address leaves a redirect behind. The
+  // homepage's address never changes, and / is never redirected.
+  if (!isHome) {
+    await syncPublicPath({
+      before: page.status === "PUBLISHED" ? `/${page.slug}` : null,
+      after: data.status === "PUBLISHED" ? `/${slug}` : null,
+      actorId: actor.id,
+    });
+  }
+
   revalidatePath(pagePublicPath(page.slug));
   revalidatePath(pagePublicPath(slug));
   // A policy page appearing or disappearing changes the footer and the

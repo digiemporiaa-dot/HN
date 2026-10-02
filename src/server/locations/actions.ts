@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
 import {
   placeholderRefusal,
   sectionsWithPlaceholders,
@@ -433,6 +434,14 @@ export async function updateCityAction(
       });
     }
   }
+
+  // A published city page that changes address leaves a redirect behind.
+  await syncPublicPath({
+    before: city.status === "PUBLISHED" ? cityPath(city.slug) : null,
+    after:
+      parsed.data.status === "PUBLISHED" ? cityPath(parsed.data.slug) : null,
+    actorId: actor.id,
+  });
 
   await recordAuditEvent({
     actorId: actor.id,

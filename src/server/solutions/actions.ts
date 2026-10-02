@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncPublicPath } from "@/server/seo/redirects";
+import { solutionPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
@@ -8,10 +10,7 @@ import { recordAuditEvent } from "@/server/audit/log";
 import { requirePermission } from "@/server/permissions";
 import { fieldErrorsFrom } from "@/lib/validation/field-errors";
 import { clearUsage, recordUsage } from "@/server/media/service";
-import {
-  solutionIdSchema,
-  solutionSchema,
-} from "@/lib/validation/solutions";
+import { solutionIdSchema, solutionSchema } from "@/lib/validation/solutions";
 
 export type SolutionActionState = {
   error?: string;
@@ -124,6 +123,13 @@ export async function createSolutionAction(
   await syncImageUsage(solution.id, "image", parsed.data.imageId);
   await syncImageUsage(solution.id, "banner", parsed.data.bannerId);
 
+  if (parsed.data.status === "PUBLISHED") {
+    await syncPublicPath({
+      before: null,
+      after: solutionPath(parsed.data.slug),
+    });
+  }
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -191,6 +197,17 @@ export async function updateSolutionAction(
   await syncImageUsage(solution.id, "image", parsed.data.imageId);
   await syncImageUsage(solution.id, "banner", parsed.data.bannerId);
 
+  // A published solution that changes address leaves a redirect behind.
+  await syncPublicPath({
+    before:
+      solution.status === "PUBLISHED" ? solutionPath(solution.slug) : null,
+    after:
+      parsed.data.status === "PUBLISHED"
+        ? solutionPath(parsed.data.slug)
+        : null,
+    actorId: actor.id,
+  });
+
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -213,9 +230,7 @@ export async function updateSolutionAction(
   return { success: "Solution saved." };
 }
 
-export async function deleteSolutionAction(
-  formData: FormData,
-): Promise<void> {
+export async function deleteSolutionAction(formData: FormData): Promise<void> {
   const actor = await requirePermission("SOLUTIONS", "DELETE");
 
   const parsed = solutionIdSchema.safeParse({
