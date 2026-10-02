@@ -31,6 +31,9 @@ import { publicProductListing } from "@/server/products/public";
 import { entityFaqs } from "@/server/faqs/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqPageJsonLd, itemListJsonLd } from "@/server/seo/structured-data";
+import { listingMetadata } from "@/server/seo/listing";
 
 const PAGE_SIZE = 16;
 
@@ -78,9 +81,14 @@ async function pageMetadata({ params }: RouteParams): Promise<Metadata> {
 
 /** The page's own metadata, with any override the SEO team has set for it. */
 export async function generateMetadata(route: RouteParams): Promise<Metadata> {
-  const base = await pageMetadata(route);
   const { path } = await route.params;
-  return withSeoOverride(`/categories/${path.join("/")}`, base);
+  const here = `/categories/${path.join("/")}`;
+  const base = listingMetadata(
+    await pageMetadata(route),
+    here,
+    await route.searchParams,
+  );
+  return withSeoOverride(here, base);
 }
 
 export default async function CategoryPage({
@@ -138,6 +146,23 @@ export default async function CategoryPage({
           </Container>
         </div>
       )}
+
+      {/* Described to search engines only once public, like the product page. */}
+      {published ? (
+        <>
+          <JsonLd
+            data={itemListJsonLd(
+              category.name,
+              products.map((product) => ({
+                name: product.name,
+                path: `/products/${product.slug}`,
+              })),
+              (page - 1) * PAGE_SIZE,
+            )}
+          />
+          <JsonLd data={faqPageJsonLd(faqs)} />
+        </>
+      ) : null}
 
       <CategoryHero category={category} total={total} />
 

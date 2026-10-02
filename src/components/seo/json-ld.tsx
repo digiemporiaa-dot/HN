@@ -6,7 +6,10 @@
  * unescaped `</script>` inside one of them would end the block early and turn
  * the rest into markup.
  */
-export function JsonLd({ data }: { data: Record<string, unknown> }) {
+export function JsonLd({ data }: { data: Record<string, unknown> | null }) {
+  // Builders return null when there is nothing true to say, and then nothing
+  // is rendered rather than an empty block.
+  if (!data) return null;
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
 
   return (

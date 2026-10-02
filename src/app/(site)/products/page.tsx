@@ -23,6 +23,9 @@ import {
   publicProductListing,
 } from "@/server/products/public";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { JsonLd } from "@/components/seo/json-ld";
+import { itemListJsonLd } from "@/server/seo/structured-data";
+import { listingMetadata } from "@/server/seo/listing";
 
 const PAGE_SIZE = 12;
 
@@ -34,8 +37,18 @@ const BASE_METADATA: Metadata = {
 };
 
 /** The page's own metadata, with any override the SEO team has set for it. */
-export async function generateMetadata(): Promise<Metadata> {
-  return withSeoOverride("/products", BASE_METADATA);
+export async function generateMetadata({
+  searchParams,
+}: RouteParams): Promise<Metadata> {
+  return withSeoOverride(
+    "/products",
+    listingMetadata(BASE_METADATA, "/products", await searchParams, [
+      "q",
+      "category",
+      "brand",
+      "specialty",
+    ]),
+  );
 }
 
 type RouteParams = {
@@ -83,6 +96,16 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
 
   return (
     <>
+      <JsonLd
+        data={itemListJsonLd(
+          "Products",
+          products.map((product) => ({
+            name: product.name,
+            path: `/products/${product.slug}`,
+          })),
+          (page - 1) * PAGE_SIZE,
+        )}
+      />
       <Container className="pt-6">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Products" }]}

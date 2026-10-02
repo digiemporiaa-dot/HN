@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileSearch, Route } from "lucide-react";
+import { ArrowRight, FileSearch, Route, ScanSearch } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/permissions";
+import { getSiteSettings } from "@/server/settings/service";
 
 export const metadata: Metadata = {
   title: "SEO",
@@ -16,14 +17,25 @@ export const metadata: Metadata = {
 export default async function SeoPage() {
   await requirePermission("SEO", "VIEW");
 
-  const [redirects, unusedRedirects, overrides, noindexed] = await Promise.all([
-    prisma.redirect.count({ where: { active: true } }),
-    prisma.redirect.count({ where: { active: true, hits: 0 } }),
-    prisma.seoOverride.count(),
-    prisma.seoOverride.count({ where: { noindex: true } }),
-  ]);
+  const [redirects, unusedRedirects, overrides, noindexed, settings] =
+    await Promise.all([
+      prisma.redirect.count({ where: { active: true } }),
+      prisma.redirect.count({ where: { active: true, hits: 0 } }),
+      prisma.seoOverride.count(),
+      prisma.seoOverride.count({ where: { noindex: true } }),
+      getSiteSettings(),
+    ]);
 
   const tools = [
+    {
+      href: "/admin/seo/indexation",
+      icon: ScanSearch,
+      title: "Indexation",
+      body: "What search engines are offered, what is held back, and what needs fixing.",
+      stat: settings.seo.noindex
+        ? "The whole site is set to noindex"
+        : "Checked live on each visit",
+    },
     {
       href: "/admin/seo/redirects",
       icon: Route,
@@ -46,7 +58,7 @@ export default async function SeoPage() {
         title="SEO"
         description="What search engines are told about the site, beyond what each page says for itself."
       />
-      <ul className="grid gap-5 md:grid-cols-2">
+      <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {tools.map((tool) => (
           <li key={tool.href}>
             <Link href={tool.href} className="group block h-full">

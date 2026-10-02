@@ -120,3 +120,89 @@ export function productJsonLd(product: ProductStructuredData) {
     // one to satisfy a rich-result checker would be publishing a false price.
   };
 }
+
+/**
+ * The plain text of a rich-text value, for structured data, which carries
+ * text rather than markup: emphasis markers dropped, links reduced to their
+ * labels, paragraphs joined by a blank line.
+ */
+export function richTextToPlain(value: string): string {
+  return value
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Questions and answers shown on the page, as an FAQPage.
+ *
+ * Only ever built from the questions the page itself displays, so the markup
+ * describes what a visitor can read rather than anything held back for search
+ * engines. Questions with an empty answer are left out.
+ */
+export function faqPageJsonLd(
+  faqs: Array<{ question: string; answer: string }>,
+) {
+  const items = faqs
+    .map((faq) => ({
+      question: faq.question.trim(),
+      answer: richTextToPlain(faq.answer),
+    }))
+    .filter((faq) => faq.question && faq.answer);
+  if (items.length === 0) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  };
+}
+
+/**
+ * The products listed on a catalogue page, in the order shown.
+ *
+ * A summary list of links, as schema.org intends for a category or search
+ * page: each entry points at the product's own page, which carries the
+ * product's details.
+ */
+export function itemListJsonLd(
+  name: string,
+  items: Array<{ name: string; path: string }>,
+  offset = 0,
+) {
+  if (items.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: offset + index + 1,
+      url: absolute(item.path),
+      name: item.name,
+    })),
+  };
+}
+
+/** The contact page, tied to the organisation the layout already describes. */
+export function contactPageJsonLd(settings: SiteSettings) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: `Contact ${settings.companyName}`,
+    url: absolute("/contact"),
+    about: {
+      "@type": "Organization",
+      name: settings.companyName,
+      url: appUrl(),
+    },
+  };
+}

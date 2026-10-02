@@ -25,6 +25,8 @@ import {
   TabbedPanels,
   VideoFacade,
 } from "@/cms/sections/client-sections";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqPageJsonLd } from "@/server/seo/structured-data";
 
 export type RendererProps = {
   content: Record<string, unknown>;
@@ -284,6 +286,14 @@ function Faq({ content }: RendererProps) {
 
   return (
     <div className="flex flex-col gap-8">
+      <JsonLd
+        data={faqPageJsonLd(
+          items.map((item) => ({
+            question: String(item.question ?? ""),
+            answer: String(item.answer ?? ""),
+          })),
+        )}
+      />
       {text(content, "heading") ? (
         <h2 className="text-h2 text-ink">{text(content, "heading")}</h2>
       ) : null}

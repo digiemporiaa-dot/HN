@@ -30,9 +30,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
-  return taxonomyMetadata(CONFIG, slug);
+  return taxonomyMetadata(CONFIG, slug, await searchParams);
 }
 
 export default async function Page({ params, searchParams }: RouteParams) {

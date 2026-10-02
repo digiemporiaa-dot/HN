@@ -24,6 +24,8 @@ import {
 import { entityFaqs } from "@/server/faqs/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqPageJsonLd } from "@/server/seo/structured-data";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -123,6 +125,8 @@ export default async function CityPage({ params }: RouteParams) {
           </Container>
         </div>
       )}
+
+      {published ? <JsonLd data={faqPageJsonLd(faqs)} /> : null}
 
       <CityHero city={city} />
 

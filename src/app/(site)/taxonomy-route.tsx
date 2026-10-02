@@ -7,6 +7,9 @@ import { publicProductListing } from "@/server/products/public";
 import type { PermissionModule } from "@/generated/prisma/enums";
 import type { TaxonomyRecord } from "@/server/catalogue/public";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { JsonLd } from "@/components/seo/json-ld";
+import { itemListJsonLd } from "@/server/seo/structured-data";
+import { listingMetadata } from "@/server/seo/listing";
 
 export const LANDING_PAGE_SIZE = 16;
 
@@ -40,6 +43,7 @@ export type TaxonomyRouteConfig = {
 export async function taxonomyMetadata(
   config: TaxonomyRouteConfig,
   slug: string,
+  query: Record<string, string | string[] | undefined> = {},
 ): Promise<Metadata> {
   const record = await config.load(slug);
   if (!record) return { title: "Not found" };
@@ -48,26 +52,33 @@ export async function taxonomyMetadata(
     record.shortDescription ?? `Equipment we supply for ${record.name}.`;
 
   const path = `${config.basePath}/${record.slug}`;
-  return withSeoOverride(path, {
-    title: record.name,
-    description,
-    alternates: { canonical: path },
-    openGraph: {
-      title: record.name,
-      description,
-      type: "website",
-      images: record.banner
-        ? [{ url: record.banner.url }]
-        : record.image
-          ? [{ url: record.image.url }]
-          : undefined,
-    },
-    // Spread rather than set to undefined, so a published page inherits the
-    // site-wide robots setting instead of replacing it.
-    ...(record.status === "PUBLISHED"
-      ? {}
-      : { robots: { index: false, follow: false } }),
-  });
+  return withSeoOverride(
+    path,
+    listingMetadata(
+      {
+        title: record.name,
+        description,
+        alternates: { canonical: path },
+        openGraph: {
+          title: record.name,
+          description,
+          type: "website",
+          images: record.banner
+            ? [{ url: record.banner.url }]
+            : record.image
+              ? [{ url: record.image.url }]
+              : undefined,
+        },
+        // Spread rather than set to undefined, so a published page inherits the
+        // site-wide robots setting instead of replacing it.
+        ...(record.status === "PUBLISHED"
+          ? {}
+          : { robots: { index: false, follow: false } }),
+      },
+      path,
+      query,
+    ),
+  );
 }
 
 export async function TaxonomyRoute({
@@ -98,25 +109,39 @@ export async function TaxonomyRoute({
   } as Parameters<typeof publicProductListing>[0]);
 
   return (
-    <TaxonomyLanding
-      record={record}
-      trail={[
-        { label: "Home", href: "/" },
-        { label: config.indexLabel, href: config.basePath },
-        { label: record.name },
-      ]}
-      products={products}
-      total={total}
-      page={page}
-      pageSize={LANDING_PAGE_SIZE}
-      basePath={`${config.basePath}/${record.slug}`}
-      searchParams={searchParams}
-      emptyMessage={`No products are listed under this ${config.noun} yet.`}
-      preview={
-        published
-          ? null
-          : { href: config.adminPath(record.id), label: config.noun }
-      }
-    />
+    <>
+      {published ? (
+        <JsonLd
+          data={itemListJsonLd(
+            record.name,
+            products.map((product) => ({
+              name: product.name,
+              path: `/products/${product.slug}`,
+            })),
+            (page - 1) * LANDING_PAGE_SIZE,
+          )}
+        />
+      ) : null}
+      <TaxonomyLanding
+        record={record}
+        trail={[
+          { label: "Home", href: "/" },
+          { label: config.indexLabel, href: config.basePath },
+          { label: record.name },
+        ]}
+        products={products}
+        total={total}
+        page={page}
+        pageSize={LANDING_PAGE_SIZE}
+        basePath={`${config.basePath}/${record.slug}`}
+        searchParams={searchParams}
+        emptyMessage={`No products are listed under this ${config.noun} yet.`}
+        preview={
+          published
+            ? null
+            : { href: config.adminPath(record.id), label: config.noun }
+        }
+      />
+    </>
   );
 }

@@ -13,6 +13,8 @@ import { EnquiryForm } from "@/components/site/enquiry-form";
 import { getSiteSettings } from "@/server/settings/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { JsonLd } from "@/components/seo/json-ld";
+import { contactPageJsonLd } from "@/server/seo/structured-data";
 
 const DESCRIPTION =
   "Ask about a product, a department or a whole project. Our sales team replies within one working day.";
@@ -115,6 +117,7 @@ export default async function ContactPage() {
 
   return (
     <>
+      <JsonLd data={contactPageJsonLd(settings)} />
       <Container className="pt-6">
         <Breadcrumb
           items={[{ label: "Home", href: "/" }, { label: "Contact" }]}

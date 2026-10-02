@@ -27,7 +27,7 @@ import {
 } from "@/server/products/public";
 import { productPath } from "@/server/products/service";
 import { JsonLd } from "@/components/seo/json-ld";
-import { productJsonLd } from "@/server/seo/structured-data";
+import { faqPageJsonLd, productJsonLd } from "@/server/seo/structured-data";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { AddToQuoteButton } from "@/components/site/quote-basket";
 import { StickyQuoteBar } from "@/components/site/sticky-quote-bar";
@@ -149,6 +149,7 @@ export default async function ProductPage({ params }: RouteParams) {
           })}
         />
       ) : null}
+      {published ? <JsonLd data={faqPageJsonLd(product.faqs)} /> : null}
 
       <Container className="pt-6">
         <Breadcrumb items={trail} />
