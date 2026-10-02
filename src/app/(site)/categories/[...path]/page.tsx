@@ -30,6 +30,7 @@ import {
 import { publicProductListing } from "@/server/products/public";
 import { entityFaqs } from "@/server/faqs/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 const PAGE_SIZE = 16;
 
@@ -46,9 +47,7 @@ export async function generateStaticParams() {
   return paths.map((path) => ({ path }));
 }
 
-export async function generateMetadata({
-  params,
-}: RouteParams): Promise<Metadata> {
+async function pageMetadata({ params }: RouteParams): Promise<Metadata> {
   const { path } = await params;
   const category = await publicCategory(path);
   if (!category) return { title: "Category not found" };
@@ -75,6 +74,13 @@ export async function generateMetadata({
       ? {}
       : { robots: { index: false, follow: false } }),
   };
+}
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(route: RouteParams): Promise<Metadata> {
+  const base = await pageMetadata(route);
+  const { path } = await route.params;
+  return withSeoOverride(`/categories/${path.join("/")}`, base);
 }
 
 export default async function CategoryPage({

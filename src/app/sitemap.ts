@@ -5,6 +5,8 @@ import { prisma } from "@/server/db";
 import { getSiteSettings } from "@/server/settings/service";
 import { cityPath } from "@/server/locations/service";
 import { HOME_SLUG } from "@/server/cms/homepage";
+import { sitemapExclusions } from "@/server/seo/overrides";
+import { normalisePath } from "@/lib/seo/redirect-paths";
 
 /**
  * The sitemap.
@@ -115,7 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }),
     ]);
 
-    return [
+    const entries: Entry[] = [
       ...STATIC_ENTRIES,
       ...pages.map((row) => entry(`/${row.slug}`, row.updatedAt, 0.7)),
       ...products.map((row) =>
@@ -142,6 +144,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ),
       ...cities.map((row) => entry(cityPath(row.slug), row.updatedAt, 0.6)),
     ];
+
+    // Addresses the SEO team has taken out of the index, or pointed at
+    // another canonical, do not belong in a list of pages to index.
+    const excluded = await sitemapExclusions();
+    return excluded.size === 0
+      ? entries
+      : entries.filter(
+          (item) => !excluded.has(normalisePath(new URL(item.url).pathname)),
+        );
   } catch (error) {
     // A sitemap listing the handful of pages that always exist is worth more
     // than a 500 that tells a crawler the whole file is broken.

@@ -168,6 +168,7 @@ model Staff {
   leadActivities      LeadActivity[]            @relation("LeadActivityActor")
   uploadedMedia       MediaAsset[]              @relation("MediaUploader")
   redirects           Redirect[]                @relation("RedirectCreator")
+  seoOverrides        SeoOverride[]             @relation("SeoOverrideEditor")
   twoFactorSecret     TwoFactorSecret?
   recoveryCodes       RecoveryCode[]
   sessions            StaffSession[]
@@ -447,6 +448,7 @@ model MediaAsset {
   productGalleryImages ProductImage[]    @relation("ProductGalleryImage")
   productDocuments     ProductDocument[] @relation("ProductDocumentFile")
   cityHeroImages       City[]            @relation("CityHeroImage")
+  seoOverrideImages    SeoOverride[]     @relation("SeoOverrideImage")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -1863,4 +1865,40 @@ model Redirect {
   @@index([active])
   @@index([toPath])
   @@index([source])
+}
+
+/// What search engines and social previews are told about one public address,
+/// in place of what the page would say on its own.
+///
+/// Keyed by path rather than attached to each kind of record, so the same
+/// screen covers a product, a category index, a city or the homepage alike.
+/// `path` is normalised the way redirect paths are. Every field is optional:
+/// a blank one leaves the page's own value alone.
+model SeoOverride {
+  id   String @id @default(cuid())
+  path String @unique
+
+  title         String?
+  /// Use the title exactly as written instead of adding the site name to it.
+  titleAbsolute Boolean @default(false)
+  description   String?
+  /// A canonical address other than the page's own, path or absolute URL.
+  canonical     String?
+
+  /// Ask search engines not to index the page. An override can only ever
+  /// add this: it never makes a draft or a non-indexable page indexable.
+  noindex Boolean @default(false)
+
+  ogImageId String?
+  ogImage   MediaAsset? @relation("SeoOverrideImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+
+  note String?
+
+  updatedById String?
+  updatedBy   Staff?  @relation("SeoOverrideEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([noindex])
 }

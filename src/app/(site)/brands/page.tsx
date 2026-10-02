@@ -2,13 +2,19 @@ import type { Metadata } from "next";
 
 import { TaxonomyIndex } from "@/components/site/taxonomy-landing";
 import { brandIndex } from "@/server/catalogue/public";
+import { withSeoOverride } from "@/server/seo/overrides";
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: "Brands",
   description:
     "The manufacturers whose equipment we supply, install and service.",
   alternates: { canonical: "/brands" },
 };
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withSeoOverride("/brands", BASE_METADATA);
+}
 
 export default async function Page() {
   const cards = await brandIndex();

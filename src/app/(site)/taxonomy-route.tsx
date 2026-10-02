@@ -6,6 +6,7 @@ import { visitorHasPermission } from "@/server/permissions";
 import { publicProductListing } from "@/server/products/public";
 import type { PermissionModule } from "@/generated/prisma/enums";
 import type { TaxonomyRecord } from "@/server/catalogue/public";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 export const LANDING_PAGE_SIZE = 16;
 
@@ -46,10 +47,11 @@ export async function taxonomyMetadata(
   const description =
     record.shortDescription ?? `Equipment we supply for ${record.name}.`;
 
-  return {
+  const path = `${config.basePath}/${record.slug}`;
+  return withSeoOverride(path, {
     title: record.name,
     description,
-    alternates: { canonical: `${config.basePath}/${record.slug}` },
+    alternates: { canonical: path },
     openGraph: {
       title: record.name,
       description,
@@ -65,7 +67,7 @@ export async function taxonomyMetadata(
     ...(record.status === "PUBLISHED"
       ? {}
       : { robots: { index: false, follow: false } }),
-  };
+  });
 }
 
 export async function TaxonomyRoute({

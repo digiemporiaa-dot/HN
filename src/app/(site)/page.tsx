@@ -5,6 +5,7 @@ import {
   publishedHomeSections,
   starterHomeForRender,
 } from "@/server/cms/homepage";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 /**
  * Rebuilt at most every five minutes as well as on every homepage save.
@@ -16,10 +17,15 @@ import {
  */
 export const revalidate = 300;
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   // The site's default title and description, from the settings, untemplated.
   alternates: { canonical: "/" },
 };
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withSeoOverride("/", BASE_METADATA);
+}
 
 /**
  * The homepage.

@@ -9,15 +9,21 @@ import {
   SectionHeader,
 } from "@/components/ui";
 import { locationsIndex } from "@/server/locations/public";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 const DESCRIPTION =
   "The cities we supply, install and service medical and surgical equipment in, by state.";
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: "Locations",
   description: DESCRIPTION,
   alternates: { canonical: "/locations" },
 };
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withSeoOverride("/locations", BASE_METADATA);
+}
 
 /**
  * Every published city, grouped by state.

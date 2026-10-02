@@ -7,6 +7,7 @@ import { prisma } from "@/server/db";
 import { visitorHasPermission } from "@/server/permissions";
 import { RenderedSections, type StoredSection } from "@/cms/render-page";
 import { HOME_SLUG, isHomeSlug } from "@/server/cms/homepage";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 type RouteParams = { params: Promise<{ slug: string[] }> };
 
@@ -81,9 +82,7 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({
-  params,
-}: RouteParams): Promise<Metadata> {
+async function pageMetadata({ params }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const page = await loadPage(slug);
 
@@ -108,6 +107,13 @@ export async function generateMetadata({
       ? {}
       : { robots: { index: false, follow: false } }),
   };
+}
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(route: RouteParams): Promise<Metadata> {
+  const base = await pageMetadata(route);
+  const { slug } = await route.params;
+  return withSeoOverride(`/${slug.join("/")}`, base);
 }
 
 export default async function CmsPage({ params }: RouteParams) {

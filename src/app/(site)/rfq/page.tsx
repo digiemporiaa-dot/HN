@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Breadcrumb, Container, Section, SectionHeader } from "@/components/ui";
 import { RfqComposer } from "@/components/site/rfq-composer";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 /**
  * The quotation list.
@@ -11,13 +12,18 @@ import { RfqComposer } from "@/components/site/rfq-composer";
  * an empty page, and to anyone arriving on it from a search result it would be
  * one too.
  */
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: "Your quotation list",
   description:
     "The products you have shortlisted, with quantities and notes, ready to send to us as one quotation request.",
   alternates: { canonical: "/rfq" },
   robots: { index: false, follow: true },
 };
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withSeoOverride("/rfq", BASE_METADATA);
+}
 
 export default function RfqPage() {
   return (

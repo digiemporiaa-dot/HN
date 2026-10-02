@@ -22,15 +22,21 @@ import {
   catalogueFacets,
   publicProductListing,
 } from "@/server/products/public";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 const PAGE_SIZE = 12;
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: "Products",
   description:
     "Medical, surgical and hospital equipment supplied, installed and serviced for healthcare institutions.",
   alternates: { canonical: "/products" },
 };
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withSeoOverride("/products", BASE_METADATA);
+}
 
 type RouteParams = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

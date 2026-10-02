@@ -23,6 +23,7 @@ import {
 } from "@/server/locations/public";
 import { entityFaqs } from "@/server/faqs/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -42,9 +43,7 @@ function fallbackDescription(city: PublicCity): string {
   );
 }
 
-export async function generateMetadata({
-  params,
-}: RouteParams): Promise<Metadata> {
+async function pageMetadata({ params }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const city = await publicCity(slug);
   if (!city) return { title: "Location not found" };
@@ -71,6 +70,13 @@ export async function generateMetadata({
     // site-wide robots setting instead of replacing it.
     ...(indexed ? {} : { robots: { index: false, follow: true } }),
   };
+}
+
+/** The page's own metadata, with any override the SEO team has set for it. */
+export async function generateMetadata(route: RouteParams): Promise<Metadata> {
+  const base = await pageMetadata(route);
+  const { slug } = await route.params;
+  return withSeoOverride(`/locations/${slug}`, base);
 }
 
 export default async function CityPage({ params }: RouteParams) {

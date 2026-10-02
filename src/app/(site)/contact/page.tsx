@@ -12,17 +12,18 @@ import { Breadcrumb, Container, Section } from "@/components/ui";
 import { EnquiryForm } from "@/components/site/enquiry-form";
 import { getSiteSettings } from "@/server/settings/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
+import { withSeoOverride } from "@/server/seo/overrides";
 
 const DESCRIPTION =
   "Ask about a product, a department or a whole project. Our sales team replies within one working day.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  return {
+  return withSeoOverride("/contact", {
     title: "Contact",
     description: `Contact ${settings.companyName}. ${DESCRIPTION}`,
     alternates: { canonical: "/contact" },
-  };
+  });
 }
 
 type Channel = {
