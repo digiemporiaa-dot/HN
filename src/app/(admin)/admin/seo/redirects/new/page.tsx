@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { requirePermission } from "@/server/permissions";
+import { readStringParam } from "@/lib/utils/query";
 import { RedirectForm } from "../redirect-form";
 
 export const metadata: Metadata = {
@@ -11,8 +12,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function NewRedirectPage() {
+export default async function NewRedirectPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requirePermission("SEO", "EDIT");
+  // Prefilled from the not-found log's "Create redirect".
+  const from = readStringParam((await searchParams).from) ?? "";
 
   return (
     <AdminPage width="narrow">
@@ -29,7 +36,7 @@ export default async function NewRedirectPage() {
             version="new"
             readOnly={false}
             values={{
-              fromPath: "",
+              fromPath: from,
               toPath: "",
               type: "PERMANENT",
               active: true,

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { Container } from "@/components/ui";
 import { prisma } from "@/server/db";
-import { visitorHasPermission } from "@/server/permissions";
 import { RenderedSections, type StoredSection } from "@/cms/render-page";
 import { HOME_SLUG, isHomeSlug } from "@/server/cms/homepage";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { missingPage } from "@/server/seo/missing";
+import { canPreview } from "@/server/preview";
 
 type RouteParams = { params: Promise<{ slug: string[] }> };
 
@@ -53,7 +54,7 @@ async function loadPage(segments: string[]) {
  * probed for.
  */
 async function mayPreview(): Promise<boolean> {
-  return visitorHasPermission("PAGES", "VIEW");
+  return canPreview("PAGES");
 }
 
 /**
@@ -123,7 +124,7 @@ export default async function CmsPage({ params }: RouteParams) {
   // /home is never a page of its own. Before a homepage exists it still means
   // the front page to anyone who types it.
   if (!page && slug.length === 1 && isHomeSlug(slug[0])) redirect("/");
-  if (!page) notFound();
+  if (!page) return missingPage(`/${slug.join("/")}`);
 
   const home = isHomeSlug(page.slug);
   const published = page.status === "PUBLISHED";
@@ -132,7 +133,8 @@ export default async function CmsPage({ params }: RouteParams) {
   // saved, published or not; everyone else is sent to the real one, which
   // also tells them nothing about whether a draft exists.
   if (home && !(await mayPreview())) redirect("/");
-  if (!published && !(await mayPreview())) notFound();
+  if (!published && !(await mayPreview()))
+    return missingPage(`/${slug.join("/")}`);
 
   return (
     <>

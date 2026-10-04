@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { internalTargetPath, normalisePath } from "@/lib/seo/redirect-paths";
 import { invalidateRedirectCache } from "./redirect-cache";
+import { resolveNotFound } from "./not-found-log";
 
 /** Pages that exist whatever is in the database. */
 const STATIC_ROUTES = new Set([
@@ -218,6 +219,11 @@ export async function syncPublicPath(change: {
     await repointChains(before, target);
     changed = true;
   }
+
+  // An address that is published again, or now redirects, is no longer
+  // missing.
+  if (before) await resolveNotFound(before);
+  if (after) await resolveNotFound(after);
 
   if (changed) invalidateRedirectCache();
 }

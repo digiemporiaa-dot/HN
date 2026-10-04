@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Check, Download, Mail, MessageCircle, Phone } from "lucide-react";
 
 import {
@@ -14,7 +13,6 @@ import {
 import { ProductCard } from "@/components/site/product-card";
 import { ProductGallery } from "@/components/site/product-gallery";
 import { RichText } from "@/cms/rich-text";
-import { visitorHasPermission } from "@/server/permissions";
 import { getSiteSettings } from "@/server/settings/service";
 import { brandPath } from "@/server/brands/service";
 import { categoryPath } from "@/server/categories/service";
@@ -33,6 +31,8 @@ import { AddToQuoteButton } from "@/components/site/quote-basket";
 import { StickyQuoteBar } from "@/components/site/sticky-quote-bar";
 import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
+import { missingPage } from "@/server/seo/missing";
+import { canPreview } from "@/server/preview";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -98,13 +98,13 @@ export async function generateMetadata(route: RouteParams): Promise<Metadata> {
 export default async function ProductPage({ params }: RouteParams) {
   const { slug } = await params;
   const product = await publicProduct(slug);
-  if (!product) notFound();
+  if (!product) return missingPage(`/products/${slug}`);
 
   const published = product.status === "PUBLISHED";
   // The same response as a slug that does not exist, so an unpublished URL
   // cannot be probed for.
-  if (!published && !(await visitorHasPermission("PRODUCTS", "VIEW")))
-    notFound();
+  if (!published && !(await canPreview("PRODUCTS")))
+    return missingPage(`/products/${slug}`);
 
   const settings = await getSiteSettings();
   const parent = product.category.parent;

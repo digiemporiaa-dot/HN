@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalogue } from "@/server/catalogue/revalidate";
 
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
@@ -23,6 +24,8 @@ export type InfoActionState = {
 };
 
 function revalidateProduct(): void {
+  // The public pages showing this record, not only the admin screens.
+  revalidateCatalogue();
   revalidatePath("/admin/products");
   revalidatePath("/admin/products/[id]", "page");
 }

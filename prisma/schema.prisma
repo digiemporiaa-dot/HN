@@ -1902,3 +1902,26 @@ model SeoOverride {
 
   @@index([noindex])
 }
+
+/// An address that answered "not found", and how often.
+///
+/// The working list for redirects after a move from an old site: the paths
+/// people and crawlers still ask for, most requested first. Logged on the
+/// server, so crawler requests count as well as browsers. No IP address or
+/// user agent is kept: the path and where the link came from are enough.
+model NotFoundHit {
+  id   String @id @default(cuid())
+  path String @unique
+
+  hits         Int      @default(1)
+  firstSeenAt  DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+  /// The last page that linked here, when the browser said.
+  lastReferrer String?
+
+  /// Dismissed by an editor: known noise, or deliberately gone.
+  ignored Boolean @default(false)
+
+  @@index([ignored, hits])
+  @@index([lastSeenAt])
+}

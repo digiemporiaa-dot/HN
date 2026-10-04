@@ -19,6 +19,7 @@ import { brandPath, findBrand } from "@/server/brands/service";
 import { linkableCategories } from "@/server/categories/service";
 import { deleteBrandAction } from "@/server/brands/actions";
 import { BrandForm } from "../brand-form";
+import { previewHref } from "@/server/preview";
 
 export const metadata: Metadata = {
   title: "Edit brand",
@@ -67,11 +68,27 @@ export default async function EditBrandPage({
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}
+            {/* Unpublished: opened through preview, which lets signed-in staff see
+                what the public cannot. */}
+            {brand.status !== "PUBLISHED" ? (
+              <Link
+                href={previewHref(path)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
+              >
+                Preview
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </Link>
+            ) : null}
             {can("BRANDS", "DELETE") ? (
               <form action={deleteBrandAction}>
                 <input type="hidden" name="brandId" value={brand.id} />
                 <Button type="submit" variant="outline" size="sm">
-                  <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
                   Delete
                 </Button>
               </form>
@@ -88,8 +105,8 @@ export default async function EditBrandPage({
           <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           <span>
             Products still name this brand. Reassign or delete them before
-            deleting the brand — which manufacturer made a device is not
-            detail the catalogue can silently lose.
+            deleting the brand — which manufacturer made a device is not detail
+            the catalogue can silently lose.
           </span>
         </div>
       ) : null}

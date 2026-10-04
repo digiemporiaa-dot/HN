@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalogue } from "@/server/catalogue/revalidate";
 import { syncPublicPath } from "@/server/seo/redirects";
 import { brandPath } from "./service";
 import { redirect } from "next/navigation";
@@ -25,6 +26,8 @@ export type BrandActionState = {
  * no-op for a dynamic segment in Next 15.
  */
 function revalidateBrands(): void {
+  // The public pages showing this record, not only the admin screens.
+  revalidateCatalogue();
   revalidatePath("/admin/brands");
   revalidatePath("/admin/brands/[id]", "page");
 }

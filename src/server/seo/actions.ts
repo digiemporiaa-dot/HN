@@ -13,6 +13,7 @@ import {
   targetProblem,
 } from "@/lib/seo/redirect-paths";
 import { invalidateRedirectCache } from "./redirect-cache";
+import { resolveNotFound } from "./not-found-log";
 import { finalTarget, livePathOwner, repointChains } from "./redirects";
 
 export type RedirectActionState = {
@@ -141,6 +142,7 @@ export async function createRedirectAction(
   });
   const repointed = await repointChains(input.fromPath, target!);
   invalidateRedirectCache();
+  if (input.active) await resolveNotFound(input.fromPath);
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -182,6 +184,7 @@ export async function updateRedirectAction(
   });
   const repointed = await repointChains(input.fromPath, target!);
   invalidateRedirectCache();
+  if (input.active) await resolveNotFound(input.fromPath);
 
   await recordAuditEvent({
     actorId: actor.id,

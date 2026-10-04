@@ -19,6 +19,7 @@ import { findSpecialty, specialtyPath } from "@/server/specialties/service";
 import { linkableCategories } from "@/server/categories/service";
 import { deleteSpecialtyAction } from "@/server/specialties/actions";
 import { SpecialtyForm } from "../specialty-form";
+import { previewHref } from "@/server/preview";
 
 export const metadata: Metadata = {
   title: "Edit specialty",
@@ -64,11 +65,27 @@ export default async function EditSpecialtyPage({
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}
+            {/* Unpublished: opened through preview, which lets signed-in staff see
+                what the public cannot. */}
+            {specialty.status !== "PUBLISHED" ? (
+              <Link
+                href={previewHref(path)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
+              >
+                Preview
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </Link>
+            ) : null}
             {can("SPECIALTIES", "DELETE") ? (
               <form action={deleteSpecialtyAction}>
                 <input type="hidden" name="specialtyId" value={specialty.id} />
                 <Button type="submit" variant="outline" size="sm">
-                  <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
                   Delete
                 </Button>
               </form>

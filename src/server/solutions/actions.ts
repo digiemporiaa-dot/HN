@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalogue } from "@/server/catalogue/revalidate";
 import { syncPublicPath } from "@/server/seo/redirects";
 import { solutionPath } from "./service";
 import { redirect } from "next/navigation";
@@ -21,6 +22,8 @@ export type SolutionActionState = {
 /** The dynamic admin route is invalidated by its pattern; a literal path is a
  *  no-op for a dynamic segment in Next 15. */
 function revalidateSolutions(): void {
+  // The public pages showing this record, not only the admin screens.
+  revalidateCatalogue();
   revalidatePath("/admin/solutions");
   revalidatePath("/admin/solutions/[id]", "page");
 }

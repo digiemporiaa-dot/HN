@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 import { TaxonomyLanding } from "@/components/site/taxonomy-landing";
-import { visitorHasPermission } from "@/server/permissions";
 import { publicProductListing } from "@/server/products/public";
 import type { PermissionModule } from "@/generated/prisma/enums";
 import type { TaxonomyRecord } from "@/server/catalogue/public";
@@ -10,6 +8,8 @@ import { withSeoOverride } from "@/server/seo/overrides";
 import { JsonLd } from "@/components/seo/json-ld";
 import { itemListJsonLd } from "@/server/seo/structured-data";
 import { listingMetadata } from "@/server/seo/listing";
+import { missingPage } from "@/server/seo/missing";
+import { canPreview } from "@/server/preview";
 
 export const LANDING_PAGE_SIZE = 16;
 
@@ -93,13 +93,13 @@ export async function TaxonomyRoute({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const record = await config.load(slug);
-  if (!record) notFound();
+  if (!record) return missingPage(`${config.basePath}/${slug}`);
 
   const published = record.status === "PUBLISHED";
   // The same response as a slug that does not exist, so an unpublished URL
   // cannot be probed for.
-  if (!published && !(await visitorHasPermission(config.module, "VIEW"))) {
-    notFound();
+  if (!published && !(await canPreview(config.module))) {
+    return missingPage(`${config.basePath}/${slug}`);
   }
 
   const { total, products } = await publicProductListing({

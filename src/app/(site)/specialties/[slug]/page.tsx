@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 
 import { readPageParam } from "@/lib/utils/query";
-import {
-  publicSpecialty,
-  publishedSpecialtySlugs,
-} from "@/server/catalogue/public";
+import { publicSpecialty } from "@/server/catalogue/public";
 import {
   taxonomyMetadata,
   TaxonomyRoute,
@@ -26,10 +23,13 @@ type RouteParams = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateStaticParams() {
-  const slugs = await publishedSpecialtySlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+/**
+ * Rendered per request: the product list is paginated with ?page=, and a
+ * prerendered route cannot read the query string. Left static, an address
+ * that was not built at deploy time — a brand published since, or one that
+ * does not exist — failed with a server error instead of rendering.
+ */
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import {
   Accordion,
@@ -14,7 +13,6 @@ import { ProductCard } from "@/components/site/product-card";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { RichText } from "@/cms/rich-text";
 import { RenderedSections } from "@/cms/render-page";
-import { visitorHasPermission } from "@/server/permissions";
 import {
   cityHeadline,
   publicCity,
@@ -26,6 +24,8 @@ import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqPageJsonLd } from "@/server/seo/structured-data";
+import { missingPage } from "@/server/seo/missing";
+import { canPreview } from "@/server/preview";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -84,13 +84,13 @@ export async function generateMetadata(route: RouteParams): Promise<Metadata> {
 export default async function CityPage({ params }: RouteParams) {
   const { slug } = await params;
   const city = await publicCity(slug);
-  if (!city) notFound();
+  if (!city) return missingPage(`/locations/${slug}`);
 
   const published = city.status === "PUBLISHED";
   // The same 404 for a draft as for a slug that does not exist, so unpublished
   // cities cannot be discovered by guessing.
-  if (!published && !(await visitorHasPermission("LOCATIONS", "VIEW"))) {
-    notFound();
+  if (!published && !(await canPreview("LOCATIONS"))) {
+    return missingPage(`/locations/${slug}`);
   }
 
   const faqs = await entityFaqs("City", city.id);

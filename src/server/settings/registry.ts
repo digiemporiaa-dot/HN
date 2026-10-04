@@ -274,6 +274,24 @@ export const SETTINGS: SettingDefinition[] = [
       "For staging and pre-launch sites. Turns the whole site away in robots.txt and adds a noindex tag to every page. Leave off in production.",
     defaultValue: "false",
   },
+  {
+    key: "seo.googleVerification",
+    group: "seo",
+    type: "STRING",
+    label: "Google Search Console verification",
+    description:
+      "The content value of the HTML tag Search Console offers, without the rest of the tag.",
+    placeholder: "abc123…",
+    maxLength: 100,
+  },
+  {
+    key: "seo.bingVerification",
+    group: "seo",
+    type: "STRING",
+    label: "Bing Webmaster Tools verification",
+    description: "The content value of the msvalidate.01 tag.",
+    maxLength: 100,
+  },
 
   // --- analytics -----------------------------------------------------------
   {

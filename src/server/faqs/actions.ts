@@ -22,7 +22,7 @@ const OWNERS = {
     module: "PRODUCTS",
     action: "PRODUCT_FAQS_UPDATED",
     revalidate: ["/admin/products", "/admin/products/[id]"],
-    publicRoute: "/products/[slug]",
+    publicRoute: "/(site)/products/[slug]",
     find: (id: string) =>
       prisma.product.findFirst({
         where: { id, deletedAt: null },
@@ -33,7 +33,7 @@ const OWNERS = {
     module: "LOCATIONS",
     action: "CITY_FAQS_UPDATED",
     revalidate: ["/admin/locations", "/admin/locations/cities/[id]"],
-    publicRoute: "/locations/[slug]",
+    publicRoute: "/(site)/locations/[slug]",
     find: (id: string) =>
       prisma.city.findFirst({
         where: { id, deletedAt: null },
@@ -44,7 +44,7 @@ const OWNERS = {
     module: "CATEGORIES",
     action: "CATEGORY_FAQS_UPDATED",
     revalidate: ["/admin/categories", "/admin/categories/[id]"],
-    publicRoute: "/categories/[...path]",
+    publicRoute: "/(site)/categories/[...path]",
     find: (id: string) =>
       prisma.category.findFirst({
         where: { id, deletedAt: null },

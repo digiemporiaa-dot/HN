@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import {
   Accordion,
@@ -16,7 +15,6 @@ import { ProductCard } from "@/components/site/product-card";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { RichText } from "@/cms/rich-text";
 import { buildQueryHref, readPageParam } from "@/lib/utils/query";
-import { visitorHasPermission } from "@/server/permissions";
 import { categoryPath } from "@/server/categories/service";
 import { brandPath } from "@/server/brands/service";
 import { specialtyPath } from "@/server/specialties/service";
@@ -24,7 +22,6 @@ import {
   categoryApplications,
   categoryFeaturedProducts,
   publicCategory,
-  publishedCategoryPaths,
   type PublicCategory,
 } from "@/server/catalogue/public";
 import { publicProductListing } from "@/server/products/public";
@@ -34,6 +31,8 @@ import { withSeoOverride } from "@/server/seo/overrides";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqPageJsonLd, itemListJsonLd } from "@/server/seo/structured-data";
 import { listingMetadata } from "@/server/seo/listing";
+import { missingPage } from "@/server/seo/missing";
+import { canPreview } from "@/server/preview";
 
 const PAGE_SIZE = 16;
 
@@ -45,10 +44,13 @@ type RouteParams = {
 /* eslint-disable @next/next/no-img-element -- catalogue images are served from
    our own media route at their stored size. */
 
-export async function generateStaticParams() {
-  const paths = await publishedCategoryPaths();
-  return paths.map((path) => ({ path }));
-}
+/**
+ * Rendered per request: the product list is paginated with ?page=, and a
+ * prerendered route cannot read the query string. Left static, an address
+ * that was not built at deploy time — a brand published since, or one that
+ * does not exist — failed with a server error instead of rendering.
+ */
+export const dynamic = "force-dynamic";
 
 async function pageMetadata({ params }: RouteParams): Promise<Metadata> {
   const { path } = await params;
@@ -100,11 +102,11 @@ export default async function CategoryPage({
   const page = readPageParam(query.page);
 
   const category = await publicCategory(path);
-  if (!category) notFound();
+  if (!category) return missingPage(`/categories/${path.join("/")}`);
 
   const published = category.status === "PUBLISHED";
-  if (!published && !(await visitorHasPermission("CATEGORIES", "VIEW"))) {
-    notFound();
+  if (!published && !(await canPreview("CATEGORIES"))) {
+    return missingPage(`/categories/${path.join("/")}`);
   }
 
   // A parent lists everything under it, including what sits in its

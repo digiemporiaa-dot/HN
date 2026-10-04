@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalogue } from "@/server/catalogue/revalidate";
 import { syncPublicPath } from "@/server/seo/redirects";
 import { categoryPath } from "./service";
 import { redirect } from "next/navigation";
@@ -33,6 +34,8 @@ export type CategoryActionState = {
  * its pattern, which is the only form Next honours for a dynamic segment.
  */
 function revalidateCategories(): void {
+  // The public pages showing this record, not only the admin screens.
+  revalidateCatalogue();
   revalidatePath("/admin/categories");
   revalidatePath("/admin/subcategories");
   revalidatePath("/admin/categories/[id]", "page");

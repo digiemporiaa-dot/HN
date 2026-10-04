@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileSearch, Route, ScanSearch } from "lucide-react";
+import {
+  ArrowRight,
+  FileQuestion,
+  FileSearch,
+  Route,
+  ScanSearch,
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
@@ -25,6 +31,13 @@ export default async function SeoPage() {
       prisma.seoOverride.count({ where: { noindex: true } }),
       getSiteSettings(),
     ]);
+  const [missing, missingRequests] = await Promise.all([
+    prisma.notFoundHit.count({ where: { ignored: false } }),
+    prisma.notFoundHit.aggregate({
+      where: { ignored: false },
+      _sum: { hits: true },
+    }),
+  ]);
 
   const tools = [
     {
@@ -42,6 +55,16 @@ export default async function SeoPage() {
       title: "Redirects",
       body: "Old addresses and where they now lead.",
       stat: `${redirects} active${unusedRedirects > 0 ? `, ${unusedRedirects} never followed` : ""}`,
+    },
+    {
+      href: "/admin/seo/not-found",
+      icon: FileQuestion,
+      title: "Not found",
+      body: "Addresses people and search engines ask for that do not exist.",
+      stat:
+        missing === 0
+          ? "Nothing open"
+          : `${missing} open, ${missingRequests._sum.hits ?? 0} requests`,
     },
     {
       href: "/admin/seo/metadata",

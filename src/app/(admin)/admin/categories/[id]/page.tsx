@@ -36,6 +36,7 @@ import { entityFaqs, faqSignature } from "@/server/faqs/service";
 import { FaqEditor } from "@/components/admin/faq-editor";
 import { CategoryForm } from "../category-form";
 import { SpecTemplateEditor } from "./spec-template-editor";
+import { previewHref } from "@/server/preview";
 
 export const metadata: Metadata = {
   title: "Edit category",
@@ -85,6 +86,19 @@ export default async function EditCategoryPage({
                 className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
               >
                 View page
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </Link>
+            ) : null}
+            {/* Unpublished: opened through preview, which lets signed-in staff see
+                what the public cannot. */}
+            {category.status !== "PUBLISHED" ? (
+              <Link
+                href={previewHref(path)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
+              >
+                Preview
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}

@@ -15,6 +15,7 @@ import {
   type SettingDefinition,
 } from "./registry";
 import { writeSettings } from "./service";
+import { GA4_ID, GTM_ID, VERIFICATION_TOKEN } from "@/lib/seo/tracking";
 
 export type SettingsActionState = {
   error?: string;
@@ -89,6 +90,25 @@ function validate(
 
   if (definition.key === "contact.whatsapp" && !/^[0-9]{8,15}$/.test(value)) {
     return { error: "Digits only, including the country code." };
+  }
+
+  // These end up inside a script or meta tag, so only the documented format
+  // is accepted; anything else could carry markup into every page.
+  if (definition.key === "analytics.ga4Id" && !GA4_ID.test(value)) {
+    return { error: "A GA4 measurement ID looks like G-XXXXXXXXXX." };
+  }
+  if (definition.key === "analytics.gtmId" && !GTM_ID.test(value)) {
+    return { error: "A Tag Manager container ID looks like GTM-XXXXXXX." };
+  }
+  if (
+    (definition.key === "seo.googleVerification" ||
+      definition.key === "seo.bingVerification") &&
+    !VERIFICATION_TOKEN.test(value)
+  ) {
+    return {
+      error:
+        "Paste only the content value from the tag: letters, digits, dashes and underscores.",
+    };
   }
 
   if (definition.group === "social" && !/^https:\/\/[^\s]+$/i.test(value)) {

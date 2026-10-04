@@ -123,6 +123,8 @@ export const getSiteSettings = cache(async () => {
        * can never silently hide a production site from search.
        */
       noindex: values["seo.noindex"] === "true",
+      googleVerification: values["seo.googleVerification"] ?? null,
+      bingVerification: values["seo.bingVerification"] ?? null,
     },
 
     analytics: {

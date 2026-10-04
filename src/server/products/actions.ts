@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateCatalogue } from "@/server/catalogue/revalidate";
 import { syncPublicPath } from "@/server/seo/redirects";
 import { productPath } from "./service";
 import { redirect } from "next/navigation";
@@ -19,6 +20,8 @@ export type ProductActionState = {
 };
 
 function revalidateProducts(): void {
+  // The public pages showing this record, not only the admin screens.
+  revalidateCatalogue();
   revalidatePath("/admin/products");
   revalidatePath("/admin/products/[id]", "page");
 }

@@ -7,6 +7,7 @@ import {
 
 import { authConfig } from "@/server/auth/config";
 import { lookupRedirect, recordRedirectHit } from "@/server/seo/redirect-cache";
+import { countKnownMissing } from "@/server/seo/not-found-log";
 
 const adminGate = NextAuth(authConfig).auth as unknown as (
   request: NextRequest,
@@ -38,7 +39,13 @@ export default async function middleware(
   }
 
   const hit = await lookupRedirect(pathname);
-  if (!hit) return NextResponse.next();
+  if (!hit) {
+    // A request for an address already logged as missing is counted here,
+    // because a prerendered route serves its cached 404 without running any
+    // of our code.
+    await countKnownMissing(pathname);
+    return NextResponse.next();
+  }
 
   // A path on this site keeps the visitor's query string unless the target
   // sets its own: campaign parameters on an old link should survive the move.

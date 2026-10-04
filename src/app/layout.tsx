@@ -3,6 +3,7 @@ import { Inter, Inter_Tight } from "next/font/google";
 
 import { appUrl } from "@/lib/site-config";
 import { getSiteSettings } from "@/server/settings/service";
+import { validId, VERIFICATION_TOKEN } from "@/lib/seo/tracking";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,6 +45,25 @@ export async function generateMetadata(): Promise<Metadata> {
     ...(settings.seo.noindex
       ? { robots: { index: false, follow: false } }
       : {}),
+    ...verification(settings),
+  };
+}
+
+/**
+ * Search-engine ownership tags. Only well-formed tokens are written, so a
+ * malformed value is simply absent rather than broken markup in every page.
+ */
+function verification(
+  settings: Awaited<ReturnType<typeof getSiteSettings>>,
+): Pick<Metadata, "verification"> {
+  const google = validId(settings.seo.googleVerification, VERIFICATION_TOKEN);
+  const bing = validId(settings.seo.bingVerification, VERIFICATION_TOKEN);
+  if (!google && !bing) return {};
+  return {
+    verification: {
+      ...(google ? { google } : {}),
+      ...(bing ? { other: { "msvalidate.01": bing } } : {}),
+    },
   };
 }
 

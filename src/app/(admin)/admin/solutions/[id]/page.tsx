@@ -19,6 +19,7 @@ import { findSolution, solutionPath } from "@/server/solutions/service";
 import { linkableCategories } from "@/server/categories/service";
 import { deleteSolutionAction } from "@/server/solutions/actions";
 import { SolutionForm } from "../solution-form";
+import { previewHref } from "@/server/preview";
 
 export const metadata: Metadata = {
   title: "Edit solution",
@@ -64,11 +65,27 @@ export default async function EditSolutionPage({
                 <ExternalLink aria-hidden="true" className="size-3.5" />
               </Link>
             ) : null}
+            {/* Unpublished: opened through preview, which lets signed-in staff see
+                what the public cannot. */}
+            {solution.status !== "PUBLISHED" ? (
+              <Link
+                href={previewHref(path)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-body-sm text-primary inline-flex items-center gap-1.5 underline underline-offset-4"
+              >
+                Preview
+                <ExternalLink aria-hidden="true" className="size-3.5" />
+              </Link>
+            ) : null}
             {can("SOLUTIONS", "DELETE") ? (
               <form action={deleteSolutionAction}>
                 <input type="hidden" name="solutionId" value={solution.id} />
                 <Button type="submit" variant="outline" size="sm">
-                  <Trash2 aria-hidden="true" className="text-danger-600 size-4" />
+                  <Trash2
+                    aria-hidden="true"
+                    className="text-danger-600 size-4"
+                  />
                   Delete
                 </Button>
               </form>
