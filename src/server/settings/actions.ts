@@ -94,6 +94,25 @@ function validate(
 
   // These end up inside a script or meta tag, so only the documented format
   // is accepted; anything else could carry markup into every page.
+  if (
+    definition.key === "backups.schedule" &&
+    !["off", "daily", "weekly"].includes(value.toLowerCase())
+  ) {
+    return { error: "Enter off, daily or weekly." };
+  }
+  if (definition.key === "backups.hour") {
+    const hour = Number(value);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+      return { error: "Enter a whole hour from 0 to 23." };
+    }
+  }
+  if (definition.key === "backups.keep") {
+    const keep = Number(value);
+    if (!Number.isInteger(keep) || keep < 1 || keep > 365) {
+      return { error: "Keep between 1 and 365 automatic backups." };
+    }
+  }
+
   if (definition.key === "analytics.ga4Id" && !GA4_ID.test(value)) {
     return { error: "A GA4 measurement ID looks like G-XXXXXXXXXX." };
   }

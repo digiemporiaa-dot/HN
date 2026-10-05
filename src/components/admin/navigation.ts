@@ -212,7 +212,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/backups",
         icon: Archive,
         module: "BACKUPS",
-        available: false,
+        available: true,
       },
       {
         label: "Audit Logs",

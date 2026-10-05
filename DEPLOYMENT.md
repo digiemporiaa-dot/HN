@@ -324,8 +324,80 @@ database.
 
 A database dump is **not** a backup of this application. The `uploads` volume
 must be captured alongside it, or a restore will bring back rows referencing
-files that no longer exist. This is handled by the backup module; until then,
-include `/data/hnmedical/uploads` in any manual backup.
+files that no longer exist. The application's own backups (next section)
+capture both together.
+
+---
+
+## Backups and restore
+
+**Admin → Backups.** Each backup is one `.tar.gz` archive holding every
+database table (as JSON, read from a single consistent snapshot while the site
+keeps running) and every uploaded file, plus a manifest listing the database
+migrations it was made with.
+
+### Schedule
+
+**Settings → Backups** sets it: daily (default) or weekly on Sundays, at an
+hour in India time (default 02:00), keeping the newest 14 scheduled backups
+(older ones are deleted, file and all). The schedule runs inside the
+application, so there is no cron to set up. Manual, pre-restore and uploaded
+backups are never deleted automatically.
+
+A scheduled backup that fails is shown as **Failed** in the list with the
+reason, and is tried again at the next slot.
+
+### Keep copies off the server
+
+Archives live on the backup volume (`BACKUP_ROOT`), on the same server as the
+site. That protects against mistakes — a deleted product, a bad import — but
+not against losing the server. **Download a backup regularly (weekly at
+least) and keep it somewhere else**: an office computer, an encrypted drive,
+your own cloud storage. Treat the files as confidential: they contain every
+enquiry, staff email and password hash.
+
+Also turn on Coolify's own scheduled backups for the PostgreSQL resource
+(step 3 above); they are an independent second copy of the database.
+
+### Restoring
+
+Open **Backups**, choose **Restore…** on an archive, re-enter your password
+and type `RESTORE`. Then:
+
+1. a **pre-restore** backup of the site as it is now is taken first — restore
+   that one to undo;
+2. every table and the whole uploads folder are replaced with the archive's
+   contents, in a single database transaction (nothing changes if it fails);
+3. the **audit log is kept** — entries since the backup are not rolled back;
+4. **everyone is signed out**. Staff sign in with the password they had when
+   the backup was made; accounts created since then no longer exist.
+
+A backup made by a newer version of the application (one with database
+migrations this deployment has not applied) is refused: deploy that version
+first. Older backups restore into newer versions; columns added since take
+their defaults.
+
+Only roles with the Backups **Restore** permission can restore or upload
+archives (by default, Super Admin only). Downloading needs **Export**. Every
+backup, download, upload, restore and deletion is recorded in the audit log.
+
+### Moving to a new server
+
+1. On the old site: **Backups → Back up now**, then **Download**.
+2. Deploy the new server as described above, with the **same `AUTH_SECRET`**
+   (two-factor secrets are encrypted with it; with a different one, enrolled
+   authenticator apps stop working and staff must re-enrol).
+3. Create a first admin with `bootstrap-admin`, sign in, open **Backups →
+   Upload an archive**, then **Restore…** the uploaded archive.
+4. Sign in again with your account from the old site.
+
+### Without the admin screen
+
+If the application cannot start, the archive is an ordinary tarball:
+`tar -xzf hnmedical-….tar.gz` gives `manifest.json`, `database/<Table>.json`
+(each a JSON array of rows) and `uploads/`. The uploads can be copied back to
+the media volume directly; the database is restored by the application once
+it is running again.
 
 ---
 
@@ -342,7 +414,7 @@ wrong, never its value — if a required one is missing or unsafe.
 | `APP_URL` | yes | The public origin, `https://` and no path, e.g. `https://www.example.com` |
 | `AUTH_TRUST_HOST` | yes | `true` — the app runs behind Coolify's proxy |
 | `UPLOAD_ROOT` | set by the image | `/data/hnmedical/uploads`, the media volume |
-| `BACKUP_ROOT` | set by the image | `/data/hnmedical/backups`, the backup volume |
+| `BACKUP_ROOT` | set by the image | `/data/hnmedical/backups`, the backup volume (archives; see *Backups and restore*) |
 | `SKIP_MIGRATIONS` | no | `1` to stop the container applying migrations at start-up |
 | `PORT` | no | Port inside the container (default `3000`) |
 

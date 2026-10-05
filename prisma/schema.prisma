@@ -1925,3 +1925,54 @@ model NotFoundHit {
   @@index([ignored, hits])
   @@index([lastSeenAt])
 }
+
+/// Why a backup exists.
+enum BackupKind {
+  MANUAL
+  SCHEDULED
+  /// Taken automatically just before a restore, so the restore can be undone.
+  PRE_RESTORE
+  /// An archive uploaded from elsewhere, to restore from.
+  UPLOADED
+}
+
+enum BackupStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// One backup archive on the backup volume.
+///
+/// The archive holds every application table and every uploaded file, so it
+/// is a complete copy of the site. This table only describes the archives; it
+/// is itself left out of them, so restoring an old backup never forgets the
+/// archives taken since.
+model Backup {
+  id       String       @id @default(cuid())
+  /// The archive's file name inside BACKUP_ROOT. Never a path.
+  filename String       @unique
+  kind     BackupKind
+  status   BackupStatus @default(RUNNING)
+
+  sizeBytes BigInt?
+  /// SHA-256 of the archive, checked again before any restore.
+  checksum  String?
+  /// What the archive holds: table row counts, upload counts, migrations.
+  manifest  Json?
+  error     String?
+  note      String?
+
+  /// Who took it, as plain values rather than a relation: a restore empties
+  /// the staff table, and a foreign key would empty this one with it.
+  createdById   String?
+  createdByName String?
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  /// When this archive was last restored, if ever.
+  restoredAt DateTime?
+
+  @@index([kind, startedAt])
+  @@index([status])
+}

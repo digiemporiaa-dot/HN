@@ -22,6 +22,12 @@ const NOTICES = {
     tone: "success",
     message: "Your password has been updated. Sign in with your new password.",
   },
+  "site-restored": {
+    icon: CheckCircle2,
+    tone: "success",
+    message:
+      "The site was restored from a backup and everyone was signed out. Sign in with the password that was valid when the backup was made.",
+  },
 } as const;
 
 type NoticeKey = keyof typeof NOTICES;

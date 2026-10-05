@@ -16,7 +16,8 @@ export type SettingGroup =
   | "seo"
   | "analytics"
   | "legal"
-  | "mail";
+  | "mail"
+  | "backups";
 
 export type SettingDefinition = {
   key: string;
@@ -77,6 +78,12 @@ export const SETTING_GROUPS: Array<{
     key: "legal",
     label: "Legal",
     description: "Policy links shown in the footer.",
+  },
+  {
+    key: "backups",
+    label: "Backups",
+    description:
+      "Automatic backups of the database and every uploaded file. Archives are listed, downloaded and restored under Backups.",
   },
 ];
 
@@ -395,6 +402,37 @@ export const SETTINGS: SettingDefinition[] = [
     type: "STRING",
     label: "Cookie policy URL",
     maxLength: 300,
+  },
+
+  // --- backups -------------------------------------------------------------
+  {
+    key: "backups.schedule",
+    group: "backups",
+    type: "STRING",
+    label: "Automatic backups",
+    description: "off, daily or weekly. Weekly backups run on Sundays.",
+    placeholder: "daily",
+    defaultValue: "daily",
+    maxLength: 10,
+  },
+  {
+    key: "backups.hour",
+    group: "backups",
+    type: "NUMBER",
+    label: "Hour to run (India time, 0–23)",
+    description: "Pick a quiet hour. 2 means 2 am.",
+    defaultValue: "2",
+    maxLength: 2,
+  },
+  {
+    key: "backups.keep",
+    group: "backups",
+    type: "NUMBER",
+    label: "Automatic backups to keep",
+    description:
+      "Older automatic backups beyond this number are deleted. Manual backups are kept until someone deletes them.",
+    defaultValue: "14",
+    maxLength: 3,
   },
 ];
 
