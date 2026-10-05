@@ -46,10 +46,14 @@ WORKDIR /migrate
 RUN apt-get update \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
+COPY package.json /tmp/package.json
 COPY package-lock.json /tmp/package-lock.json
 RUN PRISMA_VERSION="$(node -p "require('/tmp/package-lock.json').packages['node_modules/prisma'].version")" \
  && DOTENV_VERSION="$(node -p "require('/tmp/package-lock.json').packages['node_modules/dotenv'].version")" \
  && npm init -y >/dev/null \
+ # The application's security overrides for the CLI's own dependencies
+ # (plain version pins only; references to the app's dependencies do not apply).
+ && node -e "const fs=require('fs');const p=require('./package.json');const o=require('/tmp/package.json').overrides||{};p.overrides=Object.fromEntries(Object.entries(o).filter(([,v])=>typeof v==='string'&&!v.startsWith('$')));fs.writeFileSync('package.json',JSON.stringify(p,null,2))" \
  && npm install --no-audit --no-fund --omit=dev "prisma@${PRISMA_VERSION}" "dotenv@${DOTENV_VERSION}" \
  # An embedded Postgres for `prisma dev`; migrate never loads it. (Studio and
  # @prisma/dev look just as unused but the CLI imports them at start-up.)

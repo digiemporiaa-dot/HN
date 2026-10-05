@@ -62,6 +62,9 @@
   --color-steel-300: #c2cdda;
   --color-steel-400: #93a3b5;
   --color-steel-500: #6e8098;
+  /* Subtle text on light surfaces: the lightest step that still reads at
+     4.5:1 (WCAG AA) on white, steel-50 and steel-100. */
+  --color-steel-550: #5b6d84;
   --color-steel-600: #55677d;
   --color-steel-700: #415264;
   --color-steel-800: #2f3d4c;
@@ -105,7 +108,7 @@
 
   --color-ink: var(--color-navy-950);
   --color-ink-muted: var(--color-steel-600);
-  --color-ink-subtle: var(--color-steel-500);
+  --color-ink-subtle: var(--color-steel-550);
   --color-ink-inverse: #ffffff;
 
   --color-line: var(--color-steel-200);

@@ -2,7 +2,8 @@
 
 Deployment notes for HN Medical System. Start with **Going live with
 Coolify**, a step-by-step guide; the sections after it explain the image,
-storage and variables in detail.
+storage and variables in detail. `LAUNCH-CHECKLIST.md` is the same journey as
+a tick-list.
 
 ---
 
