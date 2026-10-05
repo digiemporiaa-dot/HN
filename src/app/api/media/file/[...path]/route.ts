@@ -29,6 +29,13 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
+  // Files visitors attach to forms are strangers' uploads and personal data:
+  // they are only ever served by the admin's authorised download, as
+  // attachments, never from this public route.
+  if (storageKey.startsWith("submissions/")) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
   const contentType = contentTypeForExtension(extensionOf(storageKey));
   if (!contentType) {
     return new NextResponse("Not found", { status: 404 });

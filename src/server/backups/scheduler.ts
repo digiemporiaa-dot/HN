@@ -51,7 +51,7 @@ function readInteger(
 async function tick(): Promise<void> {
   if (!backupConfigured()) return;
   const settings = await getSettings();
-  const schedule = settings["backups.schedule"] ?? "daily";
+  const schedule = (settings["backups.schedule"] ?? "daily").toLowerCase();
   const hour = readInteger(settings["backups.hour"], 2, 0, 23);
   const keep = readInteger(settings["backups.keep"], 14, 1, 365);
 

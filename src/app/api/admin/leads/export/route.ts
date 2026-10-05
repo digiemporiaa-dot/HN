@@ -3,36 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
 import { requirePermission } from "@/server/permissions";
-
-/**
- * Exports enquiries as CSV.
- *
- * Three things are deliberately absent. Internal comments never leave the team:
- * the column carries the notes about the conversation with the customer and
- * nothing a colleague wrote to a colleague about them, which is the whole
- * distinction between the two and would be worth nothing if an export ignored
- * it. The IP address and user agent are kept
- * for investigating abuse and do not leave the system — an export lands in a
- * spreadsheet on somebody's laptop, and that is not where a visitor's address
- * should end up. And every value is escaped for the spreadsheet as well as for
- * CSV: a cell beginning with =, +, - or @ is a formula to Excel, and enquiry
- * text is written by strangers.
- */
-function csvCell(value: unknown): string {
-  const text =
-    value === null || value === undefined
-      ? ""
-      : value instanceof Date
-        ? value.toISOString()
-        : String(value);
-
-  // Prefixing with an apostrophe stops a spreadsheet treating the cell as a
-  // formula, which is how a CSV export becomes a way to run something on a
-  // colleague's machine.
-  const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-
-  return `"${guarded.replace(/"/g, '""')}"`;
-}
+import { csvDocument } from "@/lib/utils/csv";
 
 const COLUMNS = [
   "Reference",
@@ -61,6 +32,20 @@ const COLUMNS = [
   "Consent given",
 ] as const;
 
+/**
+ * Exports enquiries as CSV.
+ *
+ * Three things are deliberately absent. Internal comments never leave the team:
+ * the column carries the notes about the conversation with the customer and
+ * nothing a colleague wrote to a colleague about them, which is the whole
+ * distinction between the two and would be worth nothing if an export ignored
+ * it. The IP address and user agent are kept
+ * for investigating abuse and do not leave the system — an export lands in a
+ * spreadsheet on somebody's laptop, and that is not where a visitor's address
+ * should end up. And every value is escaped for the spreadsheet as well as for
+ * CSV: a cell beginning with =, +, - or @ is a formula to Excel, and enquiry
+ * text is written by strangers.
+ */
 export async function GET(request: Request) {
   const actor = await requirePermission("LEADS", "EXPORT");
 
@@ -121,52 +106,48 @@ export async function GET(request: Request) {
     },
   });
 
-  const rows = leads.map((lead) =>
-    [
-      lead.reference,
-      lead.createdAt,
-      lead.status,
-      lead.source,
-      lead.name,
-      lead.email,
-      lead.phone,
-      lead.organisation,
-      lead.city,
-      lead.priority,
-      lead.productName,
-      lead.categoryName,
-      lead.landingCityName,
-      // A quotation request's whole list in one cell, one line per product, so
-      // a row still reads as a row in a spreadsheet.
-      lead.items
-        .map(
-          (item) =>
-            `${item.quantity} x ${item.productName}` +
-            (item.modelNumber ? ` (${item.modelNumber})` : "") +
-            (item.notes ? ` - ${item.notes.replace(/\s+/g, " ")}` : ""),
-        )
-        .join("\n"),
-      lead.landingPage,
-      lead.utmSource,
-      lead.utmMedium,
-      lead.utmCampaign,
-      lead.utmTerm,
-      lead.utmContent,
-      lead.assignedTo?.name ?? "",
-      lead.message,
-      lead.notes
-        .map(
-          (note) =>
-            `${note.createdAt.toISOString().slice(0, 10)} ${note.authorName}: ${note.body.replace(/\s+/g, " ")}`,
-        )
-        .join("\n"),
-      lead.consentedAt,
-    ]
-      .map(csvCell)
-      .join(","),
-  );
+  const rows = leads.map((lead) => [
+    lead.reference,
+    lead.createdAt,
+    lead.status,
+    lead.source,
+    lead.name,
+    lead.email,
+    lead.phone,
+    lead.organisation,
+    lead.city,
+    lead.priority,
+    lead.productName,
+    lead.categoryName,
+    lead.landingCityName,
+    // A quotation request's whole list in one cell, one line per product, so
+    // a row still reads as a row in a spreadsheet.
+    lead.items
+      .map(
+        (item) =>
+          `${item.quantity} x ${item.productName}` +
+          (item.modelNumber ? ` (${item.modelNumber})` : "") +
+          (item.notes ? ` - ${item.notes.replace(/\s+/g, " ")}` : ""),
+      )
+      .join("\n"),
+    lead.landingPage,
+    lead.utmSource,
+    lead.utmMedium,
+    lead.utmCampaign,
+    lead.utmTerm,
+    lead.utmContent,
+    lead.assignedTo?.name ?? "",
+    lead.message,
+    lead.notes
+      .map(
+        (note) =>
+          `${note.createdAt.toISOString().slice(0, 10)} ${note.authorName}: ${note.body.replace(/\s+/g, " ")}`,
+      )
+      .join("\n"),
+    lead.consentedAt,
+  ]);
 
-  const body = [COLUMNS.map(csvCell).join(","), ...rows].join("\r\n");
+  const body = csvDocument(COLUMNS, rows);
 
   await recordAuditEvent({
     actorId: actor.id,

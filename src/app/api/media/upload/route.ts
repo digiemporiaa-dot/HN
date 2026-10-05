@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
 import { getCurrentStaff } from "@/server/auth/guards";
-import { getEffectivePermissions } from "@/server/permissions";
-import { permissionKey } from "@/server/permissions/catalogue";
+import { isSameOrigin } from "@/server/http/client";
+import { hasPermission } from "@/server/permissions";
 import { storeFile } from "@/server/storage/files";
 import { MAX_UPLOAD_BYTES } from "@/server/storage/config";
 import {
@@ -21,15 +21,17 @@ import {
  * is a poor experience for a 20MB brochure on a hospital's connection.
  */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Refused." }, { status: 403 });
+  }
+
   const staff = await getCurrentStaff();
   if (!staff) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  const permissions = await getEffectivePermissions(staff.id);
-  const allowed =
-    permissions.has("*") || permissions.has(permissionKey("MEDIA", "CREATE"));
-  if (!allowed) {
+  // Through the shared gate, so the two-factor requirement applies here too.
+  if (!(await hasPermission("MEDIA", "CREATE"))) {
     return NextResponse.json(
       { error: "You do not have permission to upload media." },
       { status: 403 },
@@ -54,7 +56,10 @@ export async function POST(request: Request) {
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file was provided." }, { status: 400 });
+    return NextResponse.json(
+      { error: "No file was provided." },
+      { status: 400 },
+    );
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {

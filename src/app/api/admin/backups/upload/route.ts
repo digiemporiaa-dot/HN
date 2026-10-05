@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-import { appUrl } from "@/lib/site-config";
 import { recordAuditEvent } from "@/server/audit/log";
+import { clientIpFrom, isSameOrigin } from "@/server/http/client";
 import { requirePermission } from "@/server/permissions";
 import { backupConfigured } from "@/server/backups/paths";
 import {
@@ -19,23 +19,6 @@ import {
 const MAX_BYTES = 20 * 1024 ** 3;
 
 /**
- * The browser's own origin, as the proxy saw it. A cross-site page cannot
- * forge this header, so a mismatch is a request this admin did not make.
- */
-function sameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  if (origin === new URL(appUrl()).origin) return true;
-  const host =
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  try {
-    return host !== null && new URL(origin).host === host;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Receives a backup archive as the raw request body, streamed to the backup
  * volume. Adopting it is not restoring it: the archive joins the list, and
  * restoring is a separate, confirmed step.
@@ -43,7 +26,7 @@ function sameOrigin(request: Request): boolean {
 export async function POST(request: Request) {
   const actor = await requirePermission("BACKUPS", "RESTORE");
 
-  if (!sameOrigin(request)) {
+  if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Refused." }, { status: 403 });
   }
   if (!backupConfigured()) {
@@ -95,8 +78,6 @@ export async function POST(request: Request) {
       id: actor.id,
       name: actor.name,
     });
-
-    const forwarded = request.headers.get("x-forwarded-for");
     await recordAuditEvent({
       actorId: actor.id,
       actorEmail: actor.email,
@@ -106,8 +87,7 @@ export async function POST(request: Request) {
       entityId: backup.id,
       summary: `Backup archive uploaded as ${backup.filename}`,
       metadata: { bytes: received },
-      ipAddress:
-        forwarded?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip"),
+      ipAddress: clientIpFrom(request.headers),
       userAgent: request.headers.get("user-agent"),
     });
 

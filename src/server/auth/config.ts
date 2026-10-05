@@ -32,6 +32,14 @@ export const authConfig = {
       },
     },
   },
+  logger: {
+    // A wrong password is an expected outcome, recorded in the audit log and
+    // the sign-in throttle; logged as an error it would bury real ones.
+    error(error) {
+      if (error.name === "CredentialsSignin") return;
+      console.error(`[auth][error] ${error.name}: ${error.message}`);
+    },
+  },
   callbacks: {
     /**
      * Coarse gate used by middleware. This is a fast redirect for unauthenticated

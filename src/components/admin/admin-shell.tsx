@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { getSiteSettings } from "@/server/settings/service";
-import { currentPermissions } from "@/server/permissions";
+import { navigationPermissions } from "@/server/permissions";
 import { AdminNavList, type VisibleNav } from "./admin-nav-list";
 import { AdminTopBar } from "./admin-topbar";
 import { ADMIN_NAV } from "./navigation";
@@ -14,7 +14,7 @@ import { ADMIN_NAV } from "./navigation";
  */
 export async function AdminShell({ children }: { children: ReactNode }) {
   const [{ staff, can }, settings] = await Promise.all([
-    currentPermissions(),
+    navigationPermissions(),
     getSiteSettings(),
   ]);
 

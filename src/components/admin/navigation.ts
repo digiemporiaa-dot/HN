@@ -219,7 +219,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/audit-logs",
         icon: ScrollText,
         module: "AUDIT_LOGS",
-        available: false,
+        available: true,
       },
       {
         label: "Settings",

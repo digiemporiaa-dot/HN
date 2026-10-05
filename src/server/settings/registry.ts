@@ -17,7 +17,8 @@ export type SettingGroup =
   | "analytics"
   | "legal"
   | "mail"
-  | "backups";
+  | "backups"
+  | "security";
 
 export type SettingDefinition = {
   key: string;
@@ -84,6 +85,11 @@ export const SETTING_GROUPS: Array<{
     label: "Backups",
     description:
       "Automatic backups of the database and every uploaded file. Archives are listed, downloaded and restored under Backups.",
+  },
+  {
+    key: "security",
+    label: "Security",
+    description: "Sign-in requirements for staff.",
   },
 ];
 
@@ -433,6 +439,19 @@ export const SETTINGS: SettingDefinition[] = [
       "Older automatic backups beyond this number are deleted. Manual backups are kept until someone deletes them.",
     defaultValue: "14",
     maxLength: 3,
+  },
+
+  // --- security ------------------------------------------------------------
+  {
+    key: "security.twoFactor",
+    group: "security",
+    type: "STRING",
+    label: "Require two-factor authentication",
+    description:
+      "privileged (recommended): anyone who can manage staff, roles or settings, or download or restore backups, must set up an authenticator app before using the admin. everyone: all staff. off: optional for all.",
+    placeholder: "privileged",
+    defaultValue: "privileged",
+    maxLength: 12,
   },
 ];
 

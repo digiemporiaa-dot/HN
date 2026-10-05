@@ -80,5 +80,12 @@ export function environmentProblems(
     problems.push("BACKUP_ROOT must be an absolute path.");
   }
 
+  const hops = env.TRUSTED_PROXY_HOPS?.trim();
+  if (hops && !/^[1-5]$/.test(hops)) {
+    problems.push(
+      "TRUSTED_PROXY_HOPS must be a whole number from 1 to 5 (the number of proxies in front of the app).",
+    );
+  }
+
   return problems;
 }

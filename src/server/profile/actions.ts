@@ -9,10 +9,7 @@ import { recordAuditEvent } from "@/server/audit/log";
 import { requireStaff } from "@/server/auth/guards";
 import { verifyPassword } from "@/server/auth/password";
 import { signOut } from "@/server/auth";
-import {
-  revokeOtherSessions,
-  revokeSession,
-} from "@/server/auth/sessions";
+import { revokeOtherSessions, revokeSession } from "@/server/auth/sessions";
 import {
   beginEnrolment,
   confirmEnrolment,
@@ -20,6 +17,7 @@ import {
   regenerateRecoveryCodes,
 } from "@/server/auth/two-factor";
 import { clearUsage, recordUsage } from "@/server/media/service";
+import { isTwoFactorRequired } from "@/server/permissions";
 
 export type ProfileState = {
   error?: string;
@@ -48,11 +46,7 @@ const profileSchema = z.object({
     .transform((value) => (value ? value : null)),
 });
 
-const codeSchema = z
-  .string()
-  .trim()
-  .min(6, "Enter the 6-digit code")
-  .max(32);
+const codeSchema = z.string().trim().min(6, "Enter the 6-digit code").max(32);
 
 export async function updateProfileAction(
   _previous: ProfileState,
@@ -109,7 +103,11 @@ export async function updateProfilePhotoAction(
 
   if (assetId) {
     const asset = await prisma.mediaAsset.findFirst({
-      where: { id: assetId, deletedAt: null, kind: { in: ["IMAGE", "VECTOR"] } },
+      where: {
+        id: assetId,
+        deletedAt: null,
+        kind: { in: ["IMAGE", "VECTOR"] },
+      },
       select: { id: true },
     });
     if (!asset) return { error: "Choose an image from the media library." };
@@ -144,7 +142,9 @@ export async function updateProfilePhotoAction(
   });
 
   revalidatePath("/admin/profile");
-  return { success: assetId ? "Profile photo updated." : "Profile photo removed." };
+  return {
+    success: assetId ? "Profile photo updated." : "Profile photo removed.",
+  };
 }
 
 /**
@@ -257,6 +257,13 @@ export async function disableTwoFactorAction(
   });
   if (!record || !(await verifyPassword(password, record.passwordHash))) {
     return { fieldErrors: { password: "That password is incorrect." } };
+  }
+
+  if (await isTwoFactorRequired(staff.id)) {
+    return {
+      error:
+        "Your access requires two-factor authentication, so it cannot be turned off. Regenerate recovery codes or set up a new authenticator instead.",
+    };
   }
 
   await disableTwoFactor(staff.id);

@@ -11,6 +11,8 @@ import {
   requireStaff,
   type CurrentStaff,
 } from "@/server/auth/guards";
+import { isTwoFactorEnabled } from "@/server/auth/two-factor";
+import { getSetting } from "@/server/settings/service";
 import { permissionKey, SUPER_ADMIN_ROLE_KEY } from "./catalogue";
 
 export { permissionKey } from "./catalogue";
@@ -32,7 +34,9 @@ export const getEffectivePermissions = cache(
           select: {
             key: true,
             permissions: {
-              select: { permission: { select: { module: true, action: true } } },
+              select: {
+                permission: { select: { module: true, action: true } },
+              },
             },
           },
         },
@@ -83,12 +87,66 @@ function grants(
   return permissions.has(permissionKey(module, action));
 }
 
+/**
+ * Permissions that make an account worth more to an attacker than the rest:
+ * whoever holds one can create staff, change what staff may do, or walk away
+ * with — or overwrite — the whole database.
+ */
+const PRIVILEGED = [
+  permissionKey("STAFF", "CREATE"),
+  permissionKey("STAFF", "EDIT"),
+  permissionKey("ROLES", "EDIT"),
+  permissionKey("SETTINGS", "MANAGE_SETTINGS"),
+  permissionKey("BACKUPS", "EXPORT"),
+  permissionKey("BACKUPS", "RESTORE"),
+];
+
+/**
+ * Whether Settings → Security requires this staff member to use two-factor
+ * authentication.
+ */
+async function twoFactorRequiredBy(
+  permissions: ReadonlySet<string>,
+): Promise<boolean> {
+  const policy = (
+    (await getSetting("security.twoFactor")) ?? "privileged"
+  ).toLowerCase();
+  if (policy === "off") return false;
+  if (policy === "everyone") return true;
+  return permissions.has("*") || PRIVILEGED.some((key) => permissions.has(key));
+}
+
+export async function isTwoFactorRequired(staffId: string): Promise<boolean> {
+  return twoFactorRequiredBy(await getEffectivePermissions(staffId));
+}
+
+/**
+ * Required but not yet set up: the admin is closed to them until it is. The
+ * profile screen, where it is set up, checks the session only and so stays
+ * reachable. Per request.
+ */
+const mustEnrolTwoFactor = cache(
+  async (staffId: string, permissions: ReadonlySet<string>) =>
+    (await twoFactorRequiredBy(permissions)) &&
+    !(await isTwoFactorEnabled(staffId)),
+);
+
+async function enforceTwoFactor(
+  staffId: string,
+  permissions: ReadonlySet<string>,
+): Promise<void> {
+  if (await mustEnrolTwoFactor(staffId, permissions)) {
+    redirect("/admin/profile?two-factor=required");
+  }
+}
+
 export async function hasPermission(
   module: PermissionModule,
   action: PermissionAction,
 ): Promise<boolean> {
   const staff = await requireStaff();
   const permissions = await getEffectivePermissions(staff.id);
+  await enforceTwoFactor(staff.id, permissions);
   return grants(permissions, module, action);
 }
 
@@ -125,6 +183,7 @@ export async function requirePermission(
 ): Promise<CurrentStaff> {
   const staff = await requireStaff();
   const permissions = await getEffectivePermissions(staff.id);
+  await enforceTwoFactor(staff.id, permissions);
 
   if (!grants(permissions, module, action)) {
     redirect("/access-denied");
@@ -138,6 +197,24 @@ export async function requirePermission(
  * Never a substitute for requirePermission on the server.
  */
 export async function currentPermissions(): Promise<{
+  staff: CurrentStaff;
+  can: (module: PermissionModule, action: PermissionAction) => boolean;
+}> {
+  const staff = await requireStaff();
+  const permissions = await getEffectivePermissions(staff.id);
+  await enforceTwoFactor(staff.id, permissions);
+  return {
+    staff,
+    can: (module, action) => grants(permissions, module, action),
+  };
+}
+
+/**
+ * Permissions for drawing the admin menu only. Unlike currentPermissions it
+ * does not enforce the two-factor requirement: the frame around the profile
+ * screen — where two-factor is set up — must still render.
+ */
+export async function navigationPermissions(): Promise<{
   staff: CurrentStaff;
   can: (module: PermissionModule, action: PermissionAction) => boolean;
 }> {

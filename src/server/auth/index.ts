@@ -6,7 +6,8 @@ import { loginSchema } from "@/lib/validation/auth";
 import { authConfig } from "./config";
 import { burnPasswordComparison, verifyPassword } from "./password";
 import { createSession } from "./sessions";
-import { recordLoginAttempt } from "./throttle";
+import { clientIpFrom } from "@/server/http/client";
+import { checkLoginThrottle, recordLoginAttempt } from "./throttle";
 import {
   consumeRecoveryCode,
   isTwoFactorEnabled,
@@ -28,10 +29,7 @@ export class TwoFactorInvalidError extends CredentialsSignin {
 }
 
 function clientAddress(request: Request | undefined): string | null {
-  if (!request) return null;
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim() ?? null;
-  return request.headers.get("x-real-ip");
+  return request ? clientIpFrom(request.headers) : null;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -59,6 +57,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           typeof credentials?.code === "string" ? credentials.code.trim() : "";
         const ipAddress = clientAddress(request);
         const userAgent = request?.headers.get("user-agent") ?? null;
+
+        // Enforced here as well as in the sign-in form's action: Auth.js
+        // also accepts credentials posted straight to its callback route,
+        // and that path must not be a way around the limit.
+        const throttle = await checkLoginThrottle(email, ipAddress);
+        if (!throttle.allowed) return null;
 
         const fail = async () => {
           await recordLoginAttempt({
@@ -91,7 +95,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return fail();
         }
 
-        const passwordValid = await verifyPassword(password, staff.passwordHash);
+        const passwordValid = await verifyPassword(
+          password,
+          staff.passwordHash,
+        );
         if (!passwordValid) return fail();
 
         if (staff.status !== "ACTIVE") return fail();

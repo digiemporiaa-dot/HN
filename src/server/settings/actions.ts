@@ -94,11 +94,19 @@ function validate(
 
   // These end up inside a script or meta tag, so only the documented format
   // is accepted; anything else could carry markup into every page.
-  if (
-    definition.key === "backups.schedule" &&
-    !["off", "daily", "weekly"].includes(value.toLowerCase())
-  ) {
-    return { error: "Enter off, daily or weekly." };
+  if (definition.key === "backups.schedule") {
+    const schedule = value.toLowerCase();
+    if (!["off", "daily", "weekly"].includes(schedule)) {
+      return { error: "Enter off, daily or weekly." };
+    }
+    return { value: schedule };
+  }
+  if (definition.key === "security.twoFactor") {
+    const policy = value.toLowerCase();
+    if (!["off", "privileged", "everyone"].includes(policy)) {
+      return { error: "Enter off, privileged or everyone." };
+    }
+    return { value: policy };
   }
   if (definition.key === "backups.hour") {
     const hour = Number(value);

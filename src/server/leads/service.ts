@@ -1,7 +1,5 @@
 import { randomBytes } from "node:crypto";
 
-import { headers } from "next/headers";
-
 import { prisma } from "@/server/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { leadContextSchema } from "@/lib/validation/leads";
@@ -69,18 +67,7 @@ export async function nextLeadReference(): Promise<string> {
  * Kept for abuse handling only, which is why the user agent is truncated and
  * neither field leaves the database: the export deliberately omits both.
  */
-export async function requestContext(): Promise<{
-  ipAddress: string | null;
-  userAgent: string | null;
-}> {
-  const headerList = await headers();
-  const forwarded = headerList.get("x-forwarded-for");
-  return {
-    ipAddress:
-      forwarded?.split(",")[0]?.trim() ?? headerList.get("x-real-ip") ?? null,
-    userAgent: headerList.get("user-agent")?.slice(0, 512) ?? null,
-  };
-}
+export { requestContext } from "@/server/http/client";
 
 /**
  * Stores an enquiry under the next free reference.

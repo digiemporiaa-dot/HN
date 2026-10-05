@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
+import { clientIpFrom } from "@/server/http/client";
 import { requirePermission } from "@/server/permissions";
 import { archivePath } from "@/server/backups/paths";
 
@@ -38,8 +39,6 @@ export async function GET(
   } catch {
     return new NextResponse("Not found", { status: 404 });
   }
-
-  const forwarded = request.headers.get("x-forwarded-for");
   await recordAuditEvent({
     actorId: actor.id,
     actorEmail: actor.email,
@@ -48,8 +47,7 @@ export async function GET(
     entityType: "Backup",
     entityId: backup.id,
     summary: `Backup ${backup.filename} downloaded`,
-    ipAddress:
-      forwarded?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip"),
+    ipAddress: clientIpFrom(request.headers),
     userAgent: request.headers.get("user-agent"),
   });
 

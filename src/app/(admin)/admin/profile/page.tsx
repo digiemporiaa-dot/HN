@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ShieldAlert } from "lucide-react";
 
 import {
   Badge,
@@ -34,8 +35,13 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   timeZone: "Asia/Kolkata",
 });
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const staff = await requireStaff();
+  const { "two-factor": twoFactorNotice } = await searchParams;
 
   const [twoFactor, sessions, record, photoAssets] = await Promise.all([
     getTwoFactorStatus(staff.id),
@@ -66,6 +72,19 @@ export default async function ProfilePage() {
         description={staff.email}
         actions={<Badge tone="brand">{staff.roleName}</Badge>}
       />
+
+      {twoFactorNotice === "required" && !twoFactor.enabled ? (
+        <div
+          role="alert"
+          className="border-warning-100 bg-warning-50 text-warning-700 text-body-sm flex items-start gap-2.5 rounded-md border p-3.5"
+        >
+          <ShieldAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Your access requires two-factor authentication. Set it up below with
+            an authenticator app; the rest of the admin opens once it is on.
+          </span>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -117,7 +136,8 @@ export default async function ProfilePage() {
           {twoFactor.enabled ? (
             <p className="text-body-sm text-ink-muted">
               {twoFactor.unusedRecoveryCodes} unused recovery{" "}
-              {twoFactor.unusedRecoveryCodes === 1 ? "code" : "codes"} remaining.
+              {twoFactor.unusedRecoveryCodes === 1 ? "code" : "codes"}{" "}
+              remaining.
             </p>
           ) : null}
         </CardHeader>

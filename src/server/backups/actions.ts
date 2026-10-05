@@ -1,12 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { RESTORE_CONFIRMATION } from "@/lib/backups/constants";
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
+import { requestContext } from "@/server/http/client";
 import { signOut } from "@/server/auth";
 import { verifyPassword } from "@/server/auth/password";
 import { requirePermission } from "@/server/permissions";
@@ -25,16 +25,6 @@ export type BackupActionState = {
   fieldErrors?: Record<string, string>;
   success?: string;
 };
-
-async function requestContext() {
-  const headerList = await headers();
-  const forwarded = headerList.get("x-forwarded-for");
-  return {
-    ipAddress:
-      forwarded?.split(",")[0]?.trim() ?? headerList.get("x-real-ip") ?? null,
-    userAgent: headerList.get("user-agent"),
-  };
-}
 
 function failure(error: unknown, fallback: string): BackupActionState {
   if (error instanceof BackupError) return { error: error.message };

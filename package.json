@@ -26,7 +26,7 @@
     "lucide-react": "^1.46.0",
     "next": "15.5.25",
     "next-auth": "^5.0.0-beta.32",
-    "nodemailer": "^8.0.11",
+    "nodemailer": "^10.0.15",
     "otplib": "^13.5.0",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
@@ -52,5 +52,17 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"
+  },
+  "overrides": {
+    "next-auth": {
+      "nodemailer": "$nodemailer"
+    },
+    "@auth/core": {
+      "nodemailer": "$nodemailer"
+    },
+    "postcss": "^8.5.29",
+    "deepmerge-ts": "^8.0.2",
+    "mysql2": "^3.24.5",
+    "fast-uri": "^3.1.8"
   }
 }

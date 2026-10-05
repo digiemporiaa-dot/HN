@@ -1,11 +1,11 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
+import { requestContext } from "@/server/http/client";
 import { changePasswordSchema, loginSchema } from "@/lib/validation/auth";
 import { getCurrentStaff } from "./guards";
 import { signIn, signOut } from "./index";
@@ -17,8 +17,7 @@ import { checkLoginThrottle } from "./throttle";
  * One message for every authentication failure. Distinguishing "no such user"
  * from "wrong password" would let anyone enumerate staff addresses.
  */
-const GENERIC_CREDENTIALS_ERROR =
-  "The email address or password is incorrect.";
+const GENERIC_CREDENTIALS_ERROR = "The email address or password is incorrect.";
 
 export type LoginState = {
   error?: string;
@@ -26,16 +25,6 @@ export type LoginState = {
   /** Set once the password is accepted and an authenticator code is needed. */
   requiresTwoFactor?: boolean;
 };
-
-async function requestContext() {
-  const headerList = await headers();
-  const forwarded = headerList.get("x-forwarded-for");
-  return {
-    ipAddress:
-      forwarded?.split(",")[0]?.trim() ?? headerList.get("x-real-ip") ?? null,
-    userAgent: headerList.get("user-agent"),
-  };
-}
 
 export async function loginAction(
   _previous: LoginState,

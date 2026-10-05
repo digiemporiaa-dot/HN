@@ -142,6 +142,9 @@ In the admin, in this order:
 5. **Catalogue** — categories, products, brands; publish them.
 6. **SEO → Redirects** — add a redirect for each address from any old site.
 7. **Staff** — create accounts with the least access each person needs.
+   Anyone who can manage staff, roles or settings, or download or restore
+   backups, must set up two-factor authentication at first sign-in
+   (**Settings → Security**).
 8. **Backups** — confirm a backup runs and can be downloaded (see
    *Backups and restore*).
 9. Submit `https://www.your-domain.com/sitemap.xml` in Google Search Console.
@@ -415,8 +418,59 @@ wrong, never its value — if a required one is missing or unsafe.
 | `AUTH_TRUST_HOST` | yes | `true` — the app runs behind Coolify's proxy |
 | `UPLOAD_ROOT` | set by the image | `/data/hnmedical/uploads`, the media volume |
 | `BACKUP_ROOT` | set by the image | `/data/hnmedical/backups`, the backup volume (archives; see *Backups and restore*) |
+| `TRUSTED_PROXY_HOPS` | no | Number of reverse proxies in front of the app (default `1`; `2` with Cloudflare in front of Coolify). Decides which `X-Forwarded-For` entry is the visitor, for sign-in limits and audit records. |
 | `SKIP_MIGRATIONS` | no | `1` to stop the container applying migrations at start-up |
 | `PORT` | no | Port inside the container (default `3000`) |
+
+---
+
+## Security
+
+What the application enforces on its own, and what to keep an eye on.
+
+**Sign-in.** Five wrong passwords for one account, or twenty from one
+address, lock sign-in for 15 minutes — on the form and on the underlying
+Auth.js endpoint alike. Wrong two-factor codes count too. The visitor's
+address is taken from the entries our own proxies add to `X-Forwarded-For`
+(see `TRUSTED_PROXY_HOPS`), so it cannot be chosen by the client. Error
+messages never reveal whether an email has an account.
+
+**Two-factor authentication.** **Settings → Security**:
+
+| Value | Who must use an authenticator app |
+|---|---|
+| `privileged` (default) | Anyone who can manage staff, roles or settings, or download or restore backups |
+| `everyone` | All staff |
+| `off` | Nobody (optional for all) |
+
+Until a required person has set it up, every admin screen sends them to
+**My profile**, and they cannot turn it off. Keep the recovery codes offline.
+
+**Sessions.** Sessions last 8 hours from the last activity. Each one is
+listed under **My profile → Active sessions** and can be ended there;
+changing a password, deactivating an account, or restoring a backup ends
+every session at once.
+
+**Content-Security-Policy.** Admin and sign-in screens use a per-request
+nonce with `'strict-dynamic'`: only scripts the application emitted run
+there. Public pages are cached, so they use an allow-list instead — this
+site, Google Tag Manager / Analytics, and YouTube (privacy-enhanced) and
+Vimeo players. A tag added inside Google Tag Manager that loads scripts from
+another host will be blocked; add that host in `src/lib/security/csp.ts`.
+
+**Files.** Uploads are checked against their real type, stored under random
+names outside the web root, and served with `nosniff`; SVGs are sandboxed.
+Files visitors attach to forms are only ever downloadable by staff, as
+attachments.
+
+**Audit log.** **Audit Logs** records sign-ins, failed sign-ins, changes,
+exports, backups and restores, with filters and CSV export. Entries cannot be
+edited or deleted from the application, and a restore does not roll them
+back.
+
+**Dependencies.** Run `npm audit --omit=dev` before each release; at the time
+of writing it reports none. The remaining development-only advisories (lint
+tooling) are not part of the production image.
 
 ---
 
