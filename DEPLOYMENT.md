@@ -1,7 +1,159 @@
 # Deployment
 
-Deployment notes for HN Medical System: the container image, persistent
-storage, environment variables and first-run steps.
+Deployment notes for HN Medical System. Start with **Going live with
+Coolify**, a step-by-step guide; the sections after it explain the image,
+storage and variables in detail.
+
+---
+
+## Going live with Coolify
+
+You need: a VPS with Coolify v4 installed, the domain's DNS, and this
+repository on GitHub. Deploy from the branch you intend to run in production
+(normally `main`, after merging the development branch into it).
+
+### 1. Point the domain at the server
+
+At your DNS provider, create:
+
+| Type | Name | Value |
+|---|---|---|
+| `A` | `@` (the bare domain) | the server's public IPv4 address |
+| `CNAME` | `www` | the bare domain |
+
+Wait until `ping www.your-domain.com` answers from the server's IP. Coolify
+can only issue the HTTPS certificate once DNS points at it.
+
+### 2. Prepare the server's folders
+
+Over SSH on the server, once:
+
+```bash
+mkdir -p /data/hnmedical/uploads /data/hnmedical/backups
+chown -R 1001:1001 /data/hnmedical
+chmod 750 /data/hnmedical/uploads /data/hnmedical/backups
+```
+
+### 3. Create the database
+
+In Coolify: **Projects → your project → + New → Database → PostgreSQL**
+(version 16). Leave it **not** publicly accessible. Start it, then open it and
+copy the **internal** connection URL (`postgres://…@<container>:5432/…`).
+Coolify backs up its databases on a schedule you can set here too — turn it
+on; the application's own backups (media included) come on top of that.
+
+### 4. Create the application
+
+**+ New → Application →** your GitHub repository (via the Coolify GitHub
+App for a private repository). Then:
+
+| Setting | Value |
+|---|---|
+| Branch | `main` (or the branch you deploy) |
+| Build Pack | **Dockerfile** |
+| Dockerfile location | `/Dockerfile` |
+| Ports Exposes | `3000` |
+| Domains | `https://www.your-domain.com,https://your-domain.com` |
+
+Coolify redirects one domain to the other if you set the redirect option;
+choose the same address as `APP_URL` below as the primary one.
+
+### 5. Environment variables
+
+Under **Environment Variables**, add (mark them as runtime, not build-time —
+the image is built without secrets):
+
+```
+DATABASE_URL=<the internal URL from step 3>
+AUTH_SECRET=<output of: openssl rand -base64 32>
+APP_URL=https://www.your-domain.com
+AUTH_TRUST_HOST=true
+```
+
+Keep a copy of `AUTH_SECRET` somewhere safe: restoring a backup on a new
+server needs the same value, or enrolled two-factor apps stop working.
+
+### 6. Persistent storage
+
+Under **Persistent Storage → + Add → Volume mount / Directory mount**:
+
+| Source (host) | Destination (container) |
+|---|---|
+| `/data/hnmedical/uploads` | `/data/hnmedical/uploads` |
+| `/data/hnmedical/backups` | `/data/hnmedical/backups` |
+
+Without these, every uploaded image is lost on the next deploy.
+
+### 7. Health check
+
+Under **Health Check**, enable it with path `/api/health`, port `3000`.
+(The image declares the same check; Coolify's setting makes the proxy wait
+for it.) A new version only receives traffic once it reports healthy, so a
+broken deploy leaves the previous one serving.
+
+### 8. Deploy
+
+Press **Deploy** and watch the logs. A good start ends with:
+
+```
+All migrations have been successfully applied.
+[warm] / 200
+…
+[entrypoint] ready
+```
+
+If it stops with "The server cannot start: the environment is not configured
+correctly", the lines below it name the variable to fix.
+
+### 9. First run
+
+Open the application's **Terminal** in Coolify and run:
+
+```bash
+node ops/bootstrap-admin.mjs --email you@your-domain.com --name "Your Name"
+node ops/seed-states.mjs
+```
+
+The first prints a temporary password once; sign in at
+`https://www.your-domain.com/login`, set a new password and enrol two-factor
+authentication.
+
+### 10. Automatic deploys
+
+With the Coolify GitHub App, enable **Auto Deploy**: every push to the
+deployed branch builds and rolls out a new version. The repository's CI
+workflow (`.github/workflows/ci.yml`) runs lint, typecheck and the same
+database-less build on every push, so a broken change shows up on GitHub
+before it reaches the server.
+
+### 11. Before announcing the site
+
+In the admin, in this order:
+
+1. **Settings → Company / Contact / Branding** — real name, phone, email,
+   address, logo, colours.
+2. **Settings → Mail** — SMTP details, then send the test email. Enquiry
+   notifications depend on it.
+3. **Settings → SEO** — confirm **"Ask search engines not to index this
+   site" is off**, set the default title and description, and add the Search
+   Console / Bing verification codes.
+4. **Pages** — publish the homepage, About, Privacy policy and Terms (their
+   placeholders must be filled in before they can be published).
+5. **Catalogue** — categories, products, brands; publish them.
+6. **SEO → Redirects** — add a redirect for each address from any old site.
+7. **Staff** — create accounts with the least access each person needs.
+8. **Backups** — confirm a backup runs and can be downloaded (see
+   *Backups and restore*).
+9. Submit `https://www.your-domain.com/sitemap.xml` in Google Search Console.
+
+### Without Coolify
+
+`docker-compose.yml` runs the application and its own PostgreSQL on any
+server with Docker: copy `.env.example` to `.env`, set `POSTGRES_PASSWORD`,
+`AUTH_SECRET` and `APP_URL`, then `docker compose up -d --build`. Put a
+TLS-terminating reverse proxy (Caddy, nginx) in front of port 3000. The
+first-run commands are the same, via
+`docker compose exec app node ops/bootstrap-admin.mjs …`.
 
 ---
 
@@ -179,22 +331,20 @@ include `/data/hnmedical/uploads` in any manual backup.
 
 ## Environment variables
 
-See `.env.example` for the full list with descriptions. Required so far:
+See `.env.example` for the full list with descriptions. A production server
+checks these at start-up and **refuses to start** — printing which variable is
+wrong, never its value — if a required one is missing or unsafe.
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | Signs session tokens and encrypts two-factor secrets. Rotating it signs everyone out and invalidates enrolled authenticators. |
-| `AUTH_TRUST_HOST` | `true` when running behind a reverse proxy |
-| `APP_URL` | Public base URL, used for canonical URLs and metadata |
-| `UPLOAD_ROOT` | Absolute path to the media volume (the image defaults it to `/data/hnmedical/uploads`) |
-
-Optional:
-
-| Variable | Purpose |
-|---|---|
-| `SKIP_MIGRATIONS` | `1` to stop the container applying migrations at start-up |
-| `PORT` | Port the server listens on inside the container (default `3000`) |
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | yes | PostgreSQL connection string (`postgresql://…`) |
+| `AUTH_SECRET` | yes | At least 32 characters (`openssl rand -base64 32`). Signs sessions and encrypts two-factor secrets; changing it signs everyone out and invalidates enrolled authenticators. |
+| `APP_URL` | yes | The public origin, `https://` and no path, e.g. `https://www.example.com` |
+| `AUTH_TRUST_HOST` | yes | `true` — the app runs behind Coolify's proxy |
+| `UPLOAD_ROOT` | set by the image | `/data/hnmedical/uploads`, the media volume |
+| `BACKUP_ROOT` | set by the image | `/data/hnmedical/backups`, the backup volume |
+| `SKIP_MIGRATIONS` | no | `1` to stop the container applying migrations at start-up |
+| `PORT` | no | Port inside the container (default `3000`) |
 
 ---
 

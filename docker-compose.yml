@@ -1,0 +1,56 @@
+# HN Medical System — the application and its database, together.
+#
+# Two ways to use this file:
+#   * Coolify: create a "Docker Compose" resource from this repository and
+#     fill in the variables marked REQUIRED under Environment Variables.
+#   * Any server with Docker: copy .env.example to .env, fill it in, then
+#       docker compose up -d --build
+#
+# Data lives in named volumes and survives rebuilds, restarts and redeploys.
+# DEPLOYMENT.md explains each variable and the first-run steps.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hnmedical}
+      POSTGRES_USER: ${POSTGRES_USER:-hnmedical}
+      # REQUIRED. A long random string; never the example value.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - hnmedical-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published to the host: only the application talks to the database.
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hnmedical}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-hnmedical}?schema=public
+      # REQUIRED. openssl rand -base64 32 — changing it signs everyone out.
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      # REQUIRED. The public https:// address, with no trailing path.
+      APP_URL: ${APP_URL:?Set APP_URL}
+      UPLOAD_ROOT: /data/hnmedical/uploads
+      BACKUP_ROOT: /data/hnmedical/backups
+    volumes:
+      - hnmedical-uploads:/data/hnmedical/uploads
+      - hnmedical-backups:/data/hnmedical/backups
+    ports:
+      # Coolify routes the domain to this port itself; elsewhere put a
+      # TLS-terminating reverse proxy in front of it.
+      - "${APP_PORT:-3000}:3000"
+
+volumes:
+  hnmedical-postgres:
+  hnmedical-uploads:
+  hnmedical-backups:

@@ -2,8 +2,9 @@
 # Container start-up: migrate, serve, warm, then report ready.
 set -eu
 
-: "${DATABASE_URL:?DATABASE_URL must be set}"
-: "${AUTH_SECRET:?AUTH_SECRET must be set}"
+# 0. Refuse to start with a missing or unsafe environment, before touching
+#    the database. Prints which variable is wrong, never its value.
+node /app/ops/check-env.mjs
 
 # 1. Apply pending migrations. `migrate deploy` only ever moves forward and
 #    never resets or drops data. Set SKIP_MIGRATIONS=1 to run them separately.
