@@ -67,8 +67,10 @@ COPY prisma.config.ts ./
 # ------------------------------------------------------------- runner -----
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
+# curl is for Coolify's health check, which runs curl (or wget) inside the
+# container; the image's own HEALTHCHECK below needs only node.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && apt-get install -y --no-install-recommends openssl ca-certificates curl \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 1001 hnmedical \
  && useradd --system --uid 1001 --gid hnmedical --no-create-home hnmedical \
