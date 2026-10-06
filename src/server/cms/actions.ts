@@ -432,14 +432,17 @@ function revalidateOwner(owner: SectionOwner): void {
   revalidatePath(owner.publicPath);
 }
 
-/** Reads which owner an add-section form is for. Only the two known kinds. */
+/** Reads which owner an add-section form is for. Only the known kinds. */
 function readOwnerRef(formData: FormData): OwnerRef | null {
+  const refs: OwnerRef[] = [];
   const pageId = String(formData.get("pageId") ?? "");
   const cityId = String(formData.get("cityId") ?? "");
+  const postId = String(formData.get("postId") ?? "");
+  if (pageId) refs.push({ kind: "page", id: pageId });
+  if (cityId) refs.push({ kind: "city", id: cityId });
+  if (postId) refs.push({ kind: "post", id: postId });
   // Exactly one, the same rule the database enforces on the row itself.
-  if (pageId && !cityId) return { kind: "page", id: pageId };
-  if (cityId && !pageId) return { kind: "city", id: cityId };
-  return null;
+  return refs.length === 1 ? refs[0] : null;
 }
 
 export async function addSectionAction(

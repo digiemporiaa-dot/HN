@@ -46,6 +46,8 @@ section of `DEPLOYMENT.md` that explains it.
 - [ ] Pages: homepage, About, Privacy policy, Terms — placeholders filled,
       published.
 - [ ] Catalogue: categories, products, brands published.
+- [ ] Blog (optional): publish articles, then add a "Blog" link (`/blog`) to
+      the header or footer under Navigation.
 - [ ] SEO → Redirects: one per address on the old site.
 - [ ] Staff: accounts with the least access each person needs.
 

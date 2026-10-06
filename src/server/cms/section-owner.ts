@@ -14,10 +14,10 @@ import { isHomeSlug, pagePublicPath } from "./homepage";
  * editor's permission by claiming the section belongs to a page.
  */
 export type SectionOwner = {
-  kind: "page" | "city";
+  kind: "page" | "city" | "post";
   id: string;
   /** The permission module whose EDIT right governs this owner's sections. */
-  module: Extract<PermissionModule, "PAGES" | "LOCATIONS">;
+  module: Extract<PermissionModule, "PAGES" | "LOCATIONS" | "BLOGS">;
   /** How the audit log names it: "/about" or "Pune, Maharashtra". */
   label: string;
   adminPath: string;
@@ -27,7 +27,7 @@ export type SectionOwner = {
   published: boolean;
 };
 
-export type OwnerRef = { kind: "page" | "city"; id: string };
+export type OwnerRef = { kind: "page" | "city" | "post"; id: string };
 
 const OWNER_SELECT = {
   page: { select: { id: true, slug: true, status: true, deletedAt: true } },
@@ -39,6 +39,15 @@ const OWNER_SELECT = {
       status: true,
       deletedAt: true,
       state: { select: { name: true } },
+    },
+  },
+  post: {
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      status: true,
+      deletedAt: true,
     },
   },
 } as const;
@@ -57,6 +66,13 @@ type OwnerRows = {
     status: string;
     deletedAt: Date | null;
     state: { name: string };
+  } | null;
+  post?: {
+    id: string;
+    slug: string;
+    title: string;
+    status: string;
+    deletedAt: Date | null;
   } | null;
 };
 
@@ -83,6 +99,17 @@ function describe(rows: OwnerRows): SectionOwner | null {
       published: rows.city.status === "PUBLISHED",
     };
   }
+  if (rows.post && !rows.post.deletedAt) {
+    return {
+      kind: "post",
+      id: rows.post.id,
+      module: "BLOGS",
+      label: `the post “${rows.post.title}”`,
+      adminPath: `/admin/blogs/${rows.post.id}`,
+      publicPath: `/blog/${rows.post.slug}`,
+      published: rows.post.status === "PUBLISHED",
+    };
+  }
   // A section whose owner has been soft-deleted belongs to nothing anyone can
   // edit, and is treated as gone.
   return null;
@@ -99,6 +126,7 @@ export async function sectionWithOwner(sectionId: string) {
       order: true,
       pageId: true,
       cityId: true,
+      postId: true,
       content: true,
       design: true,
       enabled: true,
@@ -107,7 +135,11 @@ export async function sectionWithOwner(sectionId: string) {
   });
   if (!section) return null;
 
-  const owner = describe({ page: section.page, city: section.city });
+  const owner = describe({
+    page: section.page,
+    city: section.city,
+    post: section.post,
+  });
   if (!owner) return null;
 
   return { section, owner };
@@ -124,6 +156,13 @@ export async function resolveOwner(
     });
     return describe({ page, city: null });
   }
+  if (ref.kind === "post") {
+    const post = await prisma.blogPost.findFirst({
+      where: { id: ref.id },
+      ...OWNER_SELECT.post,
+    });
+    return describe({ page: null, city: null, post });
+  }
   const city = await prisma.city.findFirst({
     where: { id: ref.id },
     ...OWNER_SELECT.city,
@@ -133,5 +172,7 @@ export async function resolveOwner(
 
 /** The where-clause that selects every section with the same owner. */
 export function siblingsOf(owner: SectionOwner) {
-  return owner.kind === "page" ? { pageId: owner.id } : { cityId: owner.id };
+  if (owner.kind === "page") return { pageId: owner.id };
+  if (owner.kind === "post") return { postId: owner.id };
+  return { cityId: owner.id };
 }

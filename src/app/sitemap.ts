@@ -40,6 +40,7 @@ const STATIC_ENTRIES: Entry[] = [
   entry("/applications", undefined, 0.5),
   entry("/locations", undefined, 0.5),
   entry("/contact", undefined, 0.6),
+  entry("/blog", undefined, 0.6),
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -58,6 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       solutions,
       applications,
       cities,
+      posts,
     ] = await Promise.all([
       prisma.page.findMany({
         // The homepage is the root entry above, not /home.
@@ -115,6 +117,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         select: { slug: true, updatedAt: true },
         take: 5000,
       }),
+      prisma.blogPost.findMany({
+        where: { status: "PUBLISHED", deletedAt: null },
+        select: { slug: true, updatedAt: true },
+        take: 5000,
+      }),
     ]);
 
     const entries: Entry[] = [
@@ -143,6 +150,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         entry(`/applications/${row.slug}`, row.updatedAt, 0.5),
       ),
       ...cities.map((row) => entry(cityPath(row.slug), row.updatedAt, 0.6)),
+      ...posts.map((row) => entry(`/blog/${row.slug}`, row.updatedAt, 0.5)),
     ];
 
     // Addresses the SEO team has taken out of the index, or pointed at

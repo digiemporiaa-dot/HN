@@ -8,7 +8,7 @@ import { hasPlaceholder } from "@/lib/cms/placeholders";
  * it has one, its heading.
  */
 export async function sectionsWithPlaceholders(
-  owner: { pageId: string } | { cityId: string },
+  owner: { pageId: string } | { cityId: string } | { postId: string },
 ): Promise<string[]> {
   const sections = await prisma.pageSection.findMany({
     where: { ...owner, enabled: true },

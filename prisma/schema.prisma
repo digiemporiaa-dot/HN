@@ -449,6 +449,7 @@ model MediaAsset {
   productDocuments     ProductDocument[] @relation("ProductDocumentFile")
   cityHeroImages       City[]            @relation("CityHeroImage")
   seoOverrideImages    SeoOverride[]     @relation("SeoOverrideImage")
+  blogPostCovers       BlogPost[]        @relation("BlogPostCover")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -649,21 +650,61 @@ model Page {
   @@index([deletedAt])
 }
 
+/// An article in the blog at /blog/<slug>.
+///
+/// The body is built from the same sections as a page, so a post can carry
+/// images, a video, an FAQ or related products without a second editor. The
+/// byline is text rather than a link to a staff account: posts are often
+/// written by someone outside the admin, and a byline must survive the account
+/// that typed it being removed.
+model BlogPost {
+  id    String @id @default(cuid())
+  slug  String @unique
+  title String
+
+  /// The summary on cards and in search results; also the default meta
+  /// description.
+  excerpt String?
+
+  coverId String?
+  cover   MediaAsset? @relation("BlogPostCover", fields: [coverId], references: [id], onDelete: SetNull)
+
+  authorName String?
+
+  /// Pinned to the top of the blog index.
+  featured Boolean @default(false)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  sections PageSection[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([deletedAt])
+  @@index([coverId])
+}
+
 /// `content` and `design` are the only JSON columns in the content model. Each
 /// is validated against a per-section-type Zod schema in the section registry,
 /// and `design` accepts only enumerated token values — never raw CSS.
 ///
-/// A section belongs to exactly one owner: a page or a city. The owner columns
+/// A section belongs to exactly one owner: a page, a city or a blog post. The owner columns
 /// are siblings rather than a polymorphic "ownerType/ownerId" pair so each is a
 /// real foreign key that cascades, and a database CHECK constraint (in the
-/// migration that introduced cityId) refuses a row with none or with both.
+/// migration that introduced postId) refuses a row with none or with two.
 /// Further owners — a category, a brand — join as further sibling columns.
 model PageSection {
-  id     String  @id @default(cuid())
+  id     String    @id @default(cuid())
   pageId String?
-  page   Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page   Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
   cityId String?
-  city   City?   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  city   City?     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  postId String?
+  post   BlogPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   type     SectionType
   order    Int
@@ -678,6 +719,7 @@ model PageSection {
 
   @@index([pageId, order])
   @@index([cityId, order])
+  @@index([postId, order])
   @@index([type])
 }
 

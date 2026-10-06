@@ -206,3 +206,44 @@ export function contactPageJsonLd(settings: SiteSettings) {
     },
   };
 }
+
+export type ArticleStructuredData = {
+  title: string;
+  path: string;
+  description: string | null;
+  image: string | null;
+  publishedAt: Date;
+  updatedAt: Date;
+  authorName: string | null;
+};
+
+/**
+ * A blog post. The author is named only when the post carries a byline, and
+ * the publisher is the company as configured — never a placeholder.
+ */
+export function articleJsonLd(
+  article: ArticleStructuredData,
+  settings: SiteSettings,
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title.slice(0, 110),
+    mainEntityOfPage: absolute(article.path),
+    url: absolute(article.path),
+    datePublished: article.publishedAt.toISOString(),
+    dateModified: article.updatedAt.toISOString(),
+    ...(article.description ? { description: article.description } : {}),
+    ...(article.image ? { image: [absolute(article.image)] } : {}),
+    ...(article.authorName
+      ? { author: { "@type": "Person", name: article.authorName } }
+      : {}),
+    publisher: {
+      "@type": "Organization",
+      name: settings.companyName,
+      ...(settings.logoUrl
+        ? { logo: { "@type": "ImageObject", url: absolute(settings.logoUrl) } }
+        : {}),
+    },
+  };
+}

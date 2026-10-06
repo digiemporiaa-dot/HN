@@ -39,7 +39,13 @@ export function AddSectionForm({
     >
       <input
         type="hidden"
-        name={owner.kind === "page" ? "pageId" : "cityId"}
+        name={
+          owner.kind === "page"
+            ? "pageId"
+            : owner.kind === "post"
+              ? "postId"
+              : "cityId"
+        }
         value={owner.id}
       />
       <FormFeedback state={state} />

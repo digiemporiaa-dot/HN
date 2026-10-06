@@ -146,7 +146,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/blogs",
         icon: Newspaper,
         module: "BLOGS",
-        available: false,
+        available: true,
       },
       {
         label: "Navigation",
