@@ -35,7 +35,7 @@ RUN npx prisma generate \
 # The operational scripts, bundled with everything they import, so they
 # run in the slim runtime image without the source tree or dev dependencies.
 RUN mkdir -p ops \
- && for script in bootstrap-admin seed-states check-env; do \
+ && for script in bootstrap-admin seed-states seed-demo check-env; do \
       node_modules/.bin/esbuild "scripts/${script}.ts" --bundle --platform=node \
         --format=esm --target=node22 --outfile="ops/${script}.mjs" --log-level=warning \
         --banner:js='import { createRequire as __cr } from "node:module"; const require = __cr(import.meta.url);'; \

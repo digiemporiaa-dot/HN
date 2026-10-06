@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:states": "tsx scripts/seed-states.ts"
+    "db:seed:states": "tsx scripts/seed-states.ts",
+    "db:seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

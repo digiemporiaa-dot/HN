@@ -225,6 +225,16 @@ Both are safe to run again: the first refuses an email that already has an
 account,
 the second only adds what is missing.
 
+To try the admin and the site's layout before the real catalogue is ready,
+load sample content — a few categories, products, specialties and a blog
+post, all **drafts** (seen only by staff, through Preview), every name
+starting "Demo –", no brands, prices or claims:
+
+```bash
+node ops/seed-demo.mjs            # add the samples
+node ops/seed-demo.mjs --remove   # remove every sample (slugs starting "demo-")
+```
+
 ---
 
 ## Persistent volumes
