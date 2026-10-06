@@ -27,6 +27,9 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     BUILD_WITHOUT_DATABASE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# public/ holds nothing the application ships yet, and git does not keep an
+# empty folder, so a fresh clone has none; the runtime stage copies it.
+RUN mkdir -p public
 RUN npx prisma generate \
  && npx next build
 # The operational scripts, bundled with everything they import, so they
