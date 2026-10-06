@@ -73,7 +73,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/rfqs",
         icon: FileText,
         module: "RFQ",
-        available: false,
+        available: true,
       },
     ],
   },
