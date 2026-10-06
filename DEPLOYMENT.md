@@ -225,15 +225,23 @@ Both are safe to run again: the first refuses an email that already has an
 account,
 the second only adds what is missing.
 
-To try the admin and the site's layout before the real catalogue is ready,
-load sample content — a few categories, products, specialties and a blog
-post, all **drafts** (seen only by staff, through Preview), every name
-starting "Demo –", no brands, prices or claims:
+To see the whole site populated before the real catalogue and copy are
+ready, load demo content: categories, products (with placeholder images and
+FAQs), brands, specialties, solutions, applications, About / Privacy / Terms
+pages, blog posts, and header and footer menus if those are empty — all
+published, so the site looks complete. Every name starts "Demo –", every
+image says DEMO, and there are no prices, ratings, clients or
+certifications. Loading it also switches on **"Ask search engines not to
+index this site"**, so none of it is indexed.
 
 ```bash
-node ops/seed-demo.mjs            # add the samples
-node ops/seed-demo.mjs --remove   # remove every sample (slugs starting "demo-")
+node ops/seed-demo.mjs            # add and publish the demo content
+node ops/seed-demo.mjs --remove   # remove all of it
 ```
+
+After either command, **restart the application** in Coolify so cached
+pages are rebuilt. When the real content is in and the demo is removed,
+switch indexing back on in **Settings → SEO**.
 
 ---
 
