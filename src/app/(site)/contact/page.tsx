@@ -171,7 +171,7 @@ export default async function ContactPage() {
               : "mx-auto max-w-[48rem]"
           }
         >
-          <div className="border-line bg-surface relative min-w-0 rounded-2xl border p-5 shadow-[var(--shadow-card)] sm:p-10 lg:col-span-7">
+          <div className="bg-surface-panel relative min-w-0 rounded-xl p-5 sm:p-10 lg:col-span-7">
             <div className="mb-8 flex flex-col gap-2">
               <span className="eyebrow">Enquiry</span>
               <h2 className="text-h2 text-ink">Send us your requirement.</h2>
@@ -191,13 +191,13 @@ export default async function ContactPage() {
                   Other ways to reach us
                 </h2>
               </div>
-              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <dl className="border-line grid grid-cols-1 border-t sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-1">
                 {channels.map((channel) => {
                   const Icon = channel.icon;
                   return (
                     <div
                       key={channel.key}
-                      className="border-line bg-surface hover:border-line-strong relative flex gap-4 rounded-xl border p-5 transition-colors"
+                      className="border-line relative flex gap-4 border-b py-5"
                     >
                       <span className="bg-medical-50 text-primary flex size-11 shrink-0 items-center justify-center rounded-lg">
                         <Icon aria-hidden="true" className="size-5" />
@@ -240,7 +240,7 @@ export default async function ContactPage() {
                 })}
               </dl>
 
-              <div className="surface-pearl border-line rounded-xl border p-6">
+              <div className="bg-surface-panel rounded-xl p-6">
                 <h3 className="text-h4 text-ink">What happens next</h3>
                 <ol className="mt-4 flex flex-col gap-4">
                   {NEXT_STEPS.map((step, index) => (
@@ -265,7 +265,7 @@ export default async function ContactPage() {
             return (
               <li
                 key={route.href}
-                className="group border-line bg-surface relative flex flex-col gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-[box-shadow,transform] duration-[var(--duration-slow)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] sm:p-8"
+                className="group border-ink/15 relative flex flex-col gap-4 border-t pt-6"
               >
                 <span className="text-primary">
                   <Icon aria-hidden="true" className="size-6" />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarDays } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils/cn";
@@ -319,15 +319,15 @@ export function ArticleCard({
 }) {
   const date = formatDate(data.date);
   const meta = (
-    <p className="text-caption text-ink-subtle flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="text-primary font-semibold tracking-[0.12em] uppercase">
+    <p className="text-ink-subtle flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem]">
+      <span className="text-ink font-medium tracking-[0.08em] uppercase">
         {data.tag ?? "Insight"}
       </span>
       {date ? (
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarDays aria-hidden="true" className="size-3.5" />
+        <>
+          <span aria-hidden="true">·</span>
           <time dateTime={new Date(data.date as string).toISOString()}>{date}</time>
-        </span>
+        </>
       ) : null}
     </p>
   );
@@ -340,11 +340,11 @@ export function ArticleCard({
           name={data.title}
           image={data.image}
           sizes="160px"
-          frameClassName="zoom-media aspect-[4/3] w-32 shrink-0 rounded-xl sm:w-40"
+          frameClassName="zoom-media aspect-[4/3] w-28 shrink-0 rounded-lg sm:w-36"
         />
         <div className="flex min-w-0 flex-col gap-2">
           {meta}
-          <Heading className="text-body-lg text-ink group-hover:text-primary leading-snug font-semibold transition-colors">
+          <Heading className="text-body text-ink group-hover:text-primary leading-snug font-semibold transition-colors">
             <Link href={data.href} className={stretched}>
               {data.title}
             </Link>
@@ -355,30 +355,24 @@ export function ArticleCard({
   }
 
   const featured = variant === "featured";
+  // No box: the photograph, then the words on the page itself. The featured
+  // article is a publication cover; the others are quieter.
   return (
-    <article
-      className={cn(
-        "group border-line bg-surface relative flex h-full flex-col overflow-hidden rounded-2xl border shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-[var(--duration-slow)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-card-hover)]",
-        cardFocus,
-      )}
-    >
+    <article className={cn("group relative flex h-full flex-col gap-5", cardFocus)}>
       <RecordImage
         kind="post"
         name={data.title}
         image={data.image}
         sizes={sizes}
         priority={priority}
-        frameClassName={cn(
-          "zoom-media",
-          featured ? "aspect-[16/10]" : "aspect-[16/10]",
-        )}
+        frameClassName={cn("zoom-media rounded-xl", featured ? "aspect-[16/10] lg:aspect-[3/2]" : "aspect-[3/2]")}
       />
-      <div className={cn("flex flex-1 flex-col gap-3", featured ? "p-6 sm:p-8" : "p-5 sm:p-6")}>
+      <div className="flex flex-1 flex-col gap-3">
         {meta}
         <Heading
           className={cn(
-            "text-ink group-hover:text-primary transition-colors",
-            featured ? "text-h2" : "text-h4",
+            "text-ink group-hover:text-primary text-safe transition-colors",
+            featured ? "text-[clamp(1.75rem,1.2rem+1.8vw,2.75rem)] leading-[1.12] font-normal tracking-[-0.03em]" : "text-h4",
           )}
         >
           <Link href={data.href} className={stretched}>
@@ -386,19 +380,16 @@ export function ArticleCard({
           </Link>
         </Heading>
         {data.excerpt ? (
-          <p
-            className={cn(
-              "text-ink-muted",
-              featured ? "text-body max-w-[60ch]" : "text-body-sm line-clamp-3",
-            )}
-          >
+          <p className={cn("text-ink-muted", featured ? "text-body max-w-[58ch]" : "line-clamp-2 text-[0.875rem]")}>
             {data.excerpt}
           </p>
         ) : null}
-        <span className="text-body-sm text-primary mt-auto inline-flex items-center gap-2 pt-2 font-semibold">
-          Read article
-          <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
-        </span>
+        {featured ? (
+          <span className="text-ink group-hover:text-primary mt-auto inline-flex items-center gap-2 pt-1 text-[0.875rem] font-semibold transition-colors">
+            Read article
+            <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
+          </span>
+        ) : null}
       </div>
     </article>
   );

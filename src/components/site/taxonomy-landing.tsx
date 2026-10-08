@@ -14,7 +14,7 @@ import { ProductCard } from "@/components/site/product-card";
 import { RichText } from "@/cms/rich-text";
 import { categoryPath } from "@/server/categories/service";
 import { buildQueryHref } from "@/lib/utils/query";
-import { sceneVisual, type VisualKind } from "@/lib/visuals";
+import { categoryVisual, sceneVisual, type VisualKind } from "@/lib/visuals";
 import type { ProductCardData, PublicImage } from "@/server/products/public";
 import type { TaxonomyRecord } from "@/server/catalogue/public";
 import {
@@ -135,7 +135,6 @@ export function TaxonomyLanding({
         meta={
           <>
             <MetaChip>
-              <span className="size-1.5 rounded-full bg-cyan-500" />
               {total} product{total === 1 ? "" : "s"}
             </MetaChip>
             {record.categories.length > 0 ? (
@@ -172,14 +171,27 @@ export function TaxonomyLanding({
 
       {record.description ? (
         <Section spacing="large" container="wide">
-          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
-            <div className="flex flex-col gap-5 lg:col-span-4">
+          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-6 lg:col-span-6">
               <span className="eyebrow">Overview</span>
-              <h2 className="text-h1 text-ink">{copy.overview}.</h2>
+              <h2 className="text-section text-ink">{copy.overview}.</h2>
+              <RichText value={record.description} className="prose-hn max-w-[60ch]" />
             </div>
-            <div className="lg:col-span-7 lg:col-start-6">
-              <RichText value={record.description} className="prose-hn max-w-[68ch]" />
-            </div>
+            {/* After the photograph in the hero, the equipment itself: the
+                first range's cut-out on the stage surface. */}
+            {!brand && record.categories.length > 0 ? (
+              <div className="stage-surface reveal-scale relative aspect-[4/3] overflow-hidden rounded-[1.75rem] lg:col-span-6">
+                <div className="absolute inset-[10%]">
+                  <SmartImage
+                    src={categoryVisual(record.categories[0].name).url}
+                    alt={categoryVisual(record.categories[0].name).alt}
+                    sizes="(min-width: 1024px) 45vw, 100vw"
+                    fit="contain"
+                  />
+                </div>
+                <span className="text-ink-muted absolute bottom-5 left-6 text-[0.75rem]">{record.categories[0].name}</span>
+              </div>
+            ) : null}
           </div>
         </Section>
       ) : null}
@@ -322,7 +334,6 @@ export function TaxonomyIndex({
           cards.length > 0 ? (
             <>
               <MetaChip>
-                <span className="size-1.5 rounded-full bg-cyan-500" />
                 {cards.length} {unit}
               </MetaChip>
               {total > 0 ? <MetaChip>{total} linked products</MetaChip> : null}

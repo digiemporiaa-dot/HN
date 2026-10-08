@@ -22,7 +22,7 @@ import { ProductCard } from "@/components/site/product-card";
 import { ProductGallery } from "@/components/site/product-gallery";
 import { SectionNav } from "@/components/site/section-nav";
 import { PageCta } from "@/components/site/page-cta";
-import { ArrowLink, PillLink, SceneCard } from "@/components/site/cards";
+import { ArrowLink, SceneCard } from "@/components/site/cards";
 import { RichText } from "@/cms/rich-text";
 import { getSiteSettings } from "@/server/settings/service";
 import { brandPath } from "@/server/brands/service";
@@ -165,36 +165,31 @@ export default async function ProductPage({ params }: RouteParams) {
         <Container width="wide" className="pt-6">
           <Breadcrumb items={trail} />
         </Container>
-        <Container width="wide" className="grid gap-10 pt-8 pb-14 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:pb-20">
+        <Container width="wide" className="grid gap-10 pt-8 pb-16 lg:grid-cols-[1.3fr_0.9fr] lg:gap-16 lg:pb-24">
           <div className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
             <ProductGallery images={product.gallery} name={product.name} />
           </div>
 
           <div className="flex min-w-0 flex-col gap-7">
             <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="eyebrow flex flex-wrap items-center gap-x-2">
                 {categoryLive ? (
-                  <Link
-                    href={categoryHref}
-                    className="bg-primary-subtle text-primary hover:bg-medical-100 rounded-full px-3 py-1 text-[0.75rem] font-semibold tracking-[0.1em] uppercase transition-colors"
-                  >
+                  <Link href={categoryHref} className="hover:text-primary transition-colors">
                     {product.category.name}
                   </Link>
                 ) : null}
+                {categoryLive && brandLive ? <span aria-hidden="true">·</span> : null}
                 {/* An unpublished brand is not named at all: draft means not
                     visible publicly, and a name on someone else's page is
                     still visible. */}
                 {brandLive ? (
-                  <Link
-                    href={brandPath(brandLive.slug)}
-                    className="border-line text-ink-muted hover:text-ink rounded-full border bg-white px-3 py-1 text-[0.75rem] font-semibold tracking-[0.1em] uppercase transition-colors"
-                  >
+                  <Link href={brandPath(brandLive.slug)} className="hover:text-primary transition-colors">
                     {brandLive.name}
                   </Link>
                 ) : null}
               </div>
 
-              <h1 className="font-display text-ink text-safe text-[clamp(2rem,1.45rem+2.2vw,3.25rem)] leading-[1.08] font-semibold tracking-[-0.03em]">
+              <h1 className="font-display text-ink text-safe text-[clamp(2.25rem,1.5rem+2.6vw,3.75rem)] leading-[1.05] font-normal tracking-[-0.035em]">
                 {product.name}
               </h1>
 
@@ -205,17 +200,15 @@ export default async function ProductPage({ params }: RouteParams) {
               ) : null}
 
               {product.shortDescription ? (
-                <p className="text-lead text-ink-muted">{product.shortDescription}</p>
+                <p className="text-body-lg text-ink-muted max-w-[48ch]">{product.shortDescription}</p>
               ) : null}
             </div>
 
             {highlights.length > 0 ? (
-              <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <ul className="border-line grid border-t sm:grid-cols-2 sm:gap-x-8">
                 {highlights.map((point) => (
-                  <li key={point.id} className="text-body-sm text-ink flex items-start gap-3">
-                    <span className="bg-primary-subtle text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
-                      <Check aria-hidden="true" className="size-3" />
-                    </span>
+                  <li key={point.id} className="border-line text-body-sm text-ink flex items-start gap-3 border-b py-3">
+                    <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-cyan-600" />
                     {point.title}
                   </li>
                 ))}
@@ -260,15 +253,15 @@ export default async function ProductPage({ params }: RouteParams) {
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="flex flex-col gap-6 lg:col-span-7">
               <span className="eyebrow">Overview</span>
-              <h2 className="text-h1 text-ink">Product overview</h2>
+              <h2 className="text-section text-ink">Product overview.</h2>
               {product.description ? (
                 <RichText value={product.description} className="prose-hn max-w-[68ch]" />
               ) : null}
             </div>
             <aside className="lg:col-span-4 lg:col-start-9">
-              <div className="border-line bg-surface sticky top-[calc(var(--header-h)+5rem)] flex flex-col gap-5 rounded-3xl border p-7 shadow-[var(--shadow-card)]">
-                <p className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">At a glance</p>
-                <dl className="divide-line flex flex-col divide-y">
+              <div className="sticky top-[calc(var(--header-h)+5rem)] flex flex-col gap-5">
+                <p className="eyebrow">At a glance</p>
+                <dl className="divide-line border-ink/80 flex flex-col divide-y border-t">
                   {[
                     ["Category", product.category.name],
                     ["Brand", brandLive?.name ?? null],
@@ -292,40 +285,37 @@ export default async function ProductPage({ params }: RouteParams) {
       ) : null}
 
       {product.features.length > 0 ? (
-        <Section spacing="large" container="wide" background="pearl" anchorId="features">
+        <Section spacing="large" container="wide" anchorId="features">
           <SectionHeader
             overline="Key features"
             title="Designed for daily clinical use."
             description="What the equipment does, and what that means in a working department."
           />
-          <ul className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:gap-6">
+          <ol className="reveal-stagger mt-12">
             {product.features.map((point, index) => (
-              <li key={point.id} className="border-line bg-surface flex gap-5 rounded-2xl border p-7 shadow-[var(--shadow-card)]">
-                <span className="font-display text-primary border-medical-100 bg-primary-subtle flex size-12 shrink-0 items-center justify-center rounded-xl border text-[0.9375rem] font-semibold tabular-nums">
+              <li key={point.id} className="border-ink/15 grid gap-3 border-t py-7 last:border-b sm:grid-cols-[6rem_minmax(0,1fr)] lg:grid-cols-[8rem_minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10">
+                <span className="font-display text-ink-subtle text-[2rem] leading-none font-light tracking-[-0.04em] tabular-nums">
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-h4 text-ink">{point.title}</h3>
-                  {point.body ? <p className="text-body-sm text-ink-muted">{point.body}</p> : null}
-                </div>
+                <h3 className="text-h3 text-ink">{point.title}</h3>
+                {point.body ? <p className="text-body text-ink-muted sm:col-start-2 lg:col-start-auto">{point.body}</p> : null}
               </li>
             ))}
-          </ul>
+          </ol>
         </Section>
       ) : null}
 
       {product.specGroups.length > 0 ? (
-        <Section spacing="large" container="wide" anchorId="specifications">
+        <Section spacing="large" container="wide" background="pearl" anchorId="specifications">
           <SectionHeader
             overline="Specifications"
             title="Technical specifications."
             description="Typical values for the standard configuration. Your quotation confirms the exact specification."
           />
-          <div className="mt-12 grid gap-6 lg:grid-cols-2">
+          <div className="mt-12 grid gap-x-12 gap-y-12 lg:grid-cols-2">
             {product.specGroups.map((group) => (
-              <div key={group.id} className="reveal border-line bg-surface overflow-hidden rounded-2xl border">
-                <h3 className="border-line bg-surface-subtle text-ink flex items-center gap-3 border-b px-6 py-4 text-[0.8125rem] font-semibold tracking-[0.12em] uppercase">
-                  <span className="size-1.5 rounded-full bg-cyan-500" />
+              <div key={group.id} className="reveal">
+                <h3 className="border-ink/80 text-ink border-b pb-3 text-[0.75rem] font-semibold tracking-[0.1em] uppercase">
                   {group.label}
                 </h3>
                 {/* A definition list rather than a table, stacked until there
@@ -333,7 +323,7 @@ export default async function ProductPage({ params }: RouteParams) {
                     of a phone is not enough for one. */}
                 <dl className="divide-line divide-y">
                   {group.items.map((item) => (
-                    <div key={item.id} className="grid gap-1 px-6 py-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-6">
+                    <div key={item.id} className="grid gap-1 px-3 py-3.5 odd:bg-surface-subtle sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-6">
                       <dt className="text-body-sm text-ink-muted">{item.label}</dt>
                       <dd className="text-body-sm text-ink text-safe font-medium">
                         {item.value || "—"}
@@ -373,13 +363,13 @@ export default async function ProductPage({ params }: RouteParams) {
       {product.documents.length > 0 ? (
         <Section spacing="large" container="wide" anchorId="documents">
           <SectionHeader overline="Documents" title="Brochures and datasheets." size="compact" />
-          <ul className="mt-10 grid gap-4 md:grid-cols-2">
+          <ul className="mt-10 grid gap-x-12 md:grid-cols-2">
             {product.documents.map((document) => (
               <li
                 key={document.id}
-                className="border-line bg-surface flex flex-wrap items-center gap-4 rounded-2xl border p-5 shadow-[var(--shadow-card)]"
+                className="border-line flex flex-wrap items-center gap-4 border-t py-5"
               >
-                <span className="bg-primary-subtle text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
+                <span className="bg-surface-panel text-ink flex size-11 shrink-0 items-center justify-center rounded-lg">
                   {document.gated ? <Lock aria-hidden="true" className="size-5" /> : <FileText aria-hidden="true" className="size-5" />}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -561,9 +551,9 @@ function EnquiryPanel({
   ].filter((row): row is { href: string; icon: typeof Mail; label: string; external: boolean } => row !== null);
 
   return (
-    <div id={id} className="border-line bg-surface flex flex-col gap-5 rounded-3xl border p-6 shadow-[var(--shadow-card)] sm:p-7">
+    <div id={id} className="flex flex-col gap-5">
       <div className="flex items-start gap-3">
-        <span className="live-dot mt-1.5 size-2 shrink-0 rounded-full bg-teal-500" />
+        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-teal-500" />
         <p className="text-body-sm text-ink-muted">
           <span className="text-ink font-semibold">Quoted to your requirement.</span>{" "}
           Configuration, accessories and installation scope all shape the quotation.
@@ -634,11 +624,14 @@ function TaxonomyLinks({ product }: { product: PublicProduct }) {
           <dt className="text-caption text-ink-subtle w-20 shrink-0 font-semibold tracking-[0.12em] uppercase">
             {group.label}
           </dt>
-          <dd className="flex flex-wrap gap-2">
-            {group.items.map((item) => (
-              <PillLink key={item.href} href={item.href}>
-                {item.name}
-              </PillLink>
+          <dd className="text-body-sm text-ink flex flex-wrap gap-x-1.5 gap-y-1">
+            {group.items.map((item, index) => (
+              <span key={item.href}>
+                <Link href={item.href} className="hover:text-primary underline decoration-[var(--color-line-strong)] underline-offset-4 transition-colors">
+                  {item.name}
+                </Link>
+                {index < group.items.length - 1 ? <span className="text-ink-subtle">,</span> : null}
+              </span>
             ))}
           </dd>
         </div>

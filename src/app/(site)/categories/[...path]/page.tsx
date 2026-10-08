@@ -18,11 +18,11 @@ import {
   BrandCard,
   CategoryCard,
   fitColumns,
-  PillLink,
   SceneCard,
 } from "@/components/site/cards";
 import { SectionNav } from "@/components/site/section-nav";
-import { categoryVisual } from "@/lib/visuals";
+import { categoryVisual, sceneVisual } from "@/lib/visuals";
+import { SmartImage } from "@/components/site/media";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { RichText } from "@/cms/rich-text";
 import { buildQueryHref, readPageParam } from "@/lib/utils/query";
@@ -196,7 +196,6 @@ export default async function CategoryPage({
         meta={
           <>
             <MetaChip>
-              <span className="size-1.5 rounded-full bg-cyan-500" />
               {total} product{total === 1 ? "" : "s"}
             </MetaChip>
             {category.children.length > 0 ? (
@@ -308,22 +307,25 @@ export default async function CategoryPage({
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
             <div className="flex flex-col gap-5 lg:col-span-4">
               <span className="eyebrow">About this category</span>
-              <h2 className="text-h1 text-ink">{category.name} for healthcare institutions.</h2>
+              <h2 className="text-section text-ink">{category.name} for healthcare institutions.</h2>
             </div>
             <div className="lg:col-span-7 lg:col-start-6">
               <RichText value={category.description} className="prose-hn max-w-[68ch]" />
               {applications.length > 0 ? (
                 <div className="mt-10 flex flex-col gap-4">
-                  <p className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">Used in</p>
+                  <p className="eyebrow">Used in</p>
                   {/* Counted from the published products rather than stored
                       against the category, so a procedure stops being listed
                       when the last product for it is withdrawn. */}
-                  <ul className="flex flex-wrap gap-2">
+                  <ul className="border-line border-t">
                     {applications.map((application) => (
-                      <li key={application.slug}>
-                        <PillLink href={`/applications/${application.slug}`} count={application.productCount}>
+                      <li key={application.slug} className="border-line border-b">
+                        <Link href={`/applications/${application.slug}`} className="group text-ink hover:text-primary flex items-center justify-between gap-4 py-3 transition-colors">
                           {application.name}
-                        </PillLink>
+                          <span className="text-ink-subtle text-[0.75rem] tabular-nums">
+                            {application.productCount} product{application.productCount === 1 ? "" : "s"}
+                          </span>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -333,6 +335,17 @@ export default async function CategoryPage({
           </div>
         </Section>
       ) : null}
+
+      {/* The range in its setting: one wide clinical photograph between the
+          reading and the browsing. */}
+      <Section spacing="compact" container="wide">
+        <figure className="flex flex-col gap-3">
+          <div className="media-frame reveal-image aspect-[4/3] rounded-xl sm:aspect-[16/7] lg:aspect-[21/8]">
+            <SmartImage src={sceneVisual(category.name).url} alt={sceneVisual(category.name).alt} sizes="(min-width: 1440px) 1360px, 100vw" />
+          </div>
+          <figcaption className="text-ink-subtle text-[0.75rem]">{category.name} in a clinical setting.</figcaption>
+        </figure>
+      </Section>
 
       {category.specialties.length > 0 ? (
         <Section spacing="large" container="wide" anchorId="specialties">
@@ -367,10 +380,10 @@ export default async function CategoryPage({
 
       {category.procurementInfo ? (
         <Section spacing="large" container="wide" anchorId="procurement">
-          <div className="surface-gradient border-line grid gap-8 rounded-3xl border p-8 sm:p-12 lg:grid-cols-12 lg:gap-12">
+          <div className="border-ink/80 grid gap-8 border-t pt-10 lg:grid-cols-12 lg:gap-12">
             <div className="flex flex-col gap-4 lg:col-span-4">
               <span className="eyebrow">Procurement</span>
-              <h2 className="text-h2 text-ink">Buying this equipment.</h2>
+              <h2 className="text-section text-ink">Buying this equipment.</h2>
               <p className="text-body-sm text-ink-muted">What a purchase team needs before raising a tender.</p>
             </div>
             <div className="lg:col-span-8">

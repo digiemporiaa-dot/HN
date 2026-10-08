@@ -6,7 +6,9 @@ import {
   useId,
   useRef,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -104,113 +106,81 @@ function PanelLink({
 }
 
 function CataloguePanel({ data, href }: { data: MegaMenuData; href: string }) {
-  const categories = data.categories.slice(0, 9);
+  const categories = data.categories.slice(0, 10);
   const feature = data.categories.find((row) => row.image) ?? data.categories[0];
   const featureVisual = feature
     ? (feature.image ?? categoryVisual(feature.name))
     : sceneVisual("icu");
 
   return (
-    <div className="grid gap-10 py-10 lg:grid-cols-12">
+    <div className="grid gap-10 py-8 lg:grid-cols-12">
       <div className="lg:col-span-8">
-        <div className="border-line mb-6 flex items-center justify-between border-b pb-4">
+        <div className="mb-5 flex items-center justify-between">
           <p className="eyebrow">Equipment categories</p>
           <PanelLink href={href}>View all products</PanelLink>
         </div>
-        <ul className="grid grid-cols-2 gap-x-8 gap-y-6 xl:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-x-6 gap-y-1 xl:grid-cols-3">
           {categories.map((category) => {
             const visual = category.image ?? categoryVisual(category.name);
             return (
-              <li key={category.href} className="flex min-w-0 gap-3.5">
+              <li key={category.href}>
                 <Link
                   href={category.href}
-                  className="group media-frame border-line size-12 shrink-0 rounded-lg border"
-                  tabIndex={-1}
-                  aria-hidden="true"
+                  className="group hover:bg-surface-subtle -mx-2 flex min-w-0 items-center gap-3 rounded-lg p-2 transition-colors"
                 >
-                  <SmartImage src={visual.url} alt="" sizes="48px" />
-                </Link>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Link
-                    href={category.href}
-                    className="text-body-sm text-ink hover:text-primary font-semibold transition-colors"
-                  >
-                    {category.name}
-                  </Link>
-                  {category.children.length > 0 ? (
-                    <ul className="flex flex-col gap-0.5">
-                      {category.children.slice(0, 3).map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className="text-caption text-ink-muted hover:text-ink line-clamp-1 transition-colors"
-                          >
-                            {child.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : category.count ? (
-                    <span className="text-caption text-ink-subtle">
-                      {category.count} product{category.count === 1 ? "" : "s"}
+                  <span className="bg-surface-panel relative size-11 shrink-0 overflow-hidden rounded-md">
+                    <span className="absolute inset-1">
+                      <SmartImage src={visual.url} alt="" sizes="44px" fit="contain" />
                     </span>
-                  ) : null}
-                </div>
+                  </span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-body-sm text-ink group-hover:text-primary truncate font-semibold transition-colors">
+                      {category.name}
+                    </span>
+                    <span className="text-ink-subtle truncate text-[0.75rem]">
+                      {category.children.length > 0
+                        ? category.children.slice(0, 2).map((child) => child.name).join(" · ")
+                        : category.count
+                          ? `${category.count} product${category.count === 1 ? "" : "s"}`
+                          : ""}
+                    </span>
+                  </span>
+                </Link>
               </li>
             );
           })}
         </ul>
-      </div>
-
-      <div className="flex flex-col gap-5 lg:col-span-4">
-        {feature ? (
-          <Link
-            href={feature.href}
-            className="group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-xl p-6 text-white"
-          >
-            <div className="media-frame zoom-media absolute inset-0 -z-10">
-              <SmartImage src={featureVisual.url} alt="" sizes="380px" />
-            </div>
-            <span
-              aria-hidden="true"
-              className="from-navy-975/90 via-navy-975/40 absolute inset-0 -z-10 bg-gradient-to-t to-transparent"
-            />
-            <span className="text-overline tracking-[0.14em] text-cyan-200 uppercase">
-              Featured category
-            </span>
-            <span className="text-h4 mt-1 text-white">{feature.name}</span>
-            {feature.summary ? (
-              <span className="text-body-sm mt-1 line-clamp-2 text-white/75">
-                {feature.summary}
-              </span>
-            ) : null}
-            <span className="text-body-sm mt-3 inline-flex items-center gap-1.5 font-medium text-white">
-              Explore range
-              <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
-            </span>
-          </Link>
-        ) : null}
-
         {data.specialties.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-caption text-ink-subtle font-medium tracking-wide uppercase">
-              Browse by specialty
-            </p>
-            <ul className="flex flex-wrap gap-2">
-              {data.specialties.slice(0, 6).map((row) => (
-                <li key={row.href}>
-                  <Link
-                    href={row.href}
-                    className="border-line text-caption text-ink hover:border-primary hover:text-primary inline-flex rounded-full border px-3 py-1.5 transition-colors"
-                  >
-                    {row.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="border-line text-body-sm text-ink-muted mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-4">
+            <span className="text-ink-subtle text-[0.75rem] font-medium tracking-[0.08em] uppercase">By specialty</span>
+            {data.specialties.slice(0, 6).map((row) => (
+              <Link key={row.href} href={row.href} className="hover:text-primary transition-colors">
+                {row.name}
+              </Link>
+            ))}
+          </p>
         ) : null}
       </div>
+
+      {feature ? (
+        <Link
+          href={feature.href}
+          className="group bg-surface-panel relative flex flex-col overflow-hidden rounded-xl p-5 lg:col-span-4"
+        >
+          <span className="zoom-media relative block aspect-[4/3]">
+            <SmartImage src={featureVisual.url} alt="" sizes="380px" fit="contain" />
+          </span>
+          <span className="eyebrow mt-3">Featured category</span>
+          <span className="text-h4 text-ink mt-1">{feature.name}</span>
+          {feature.summary ? (
+            <span className="text-ink-muted mt-1 line-clamp-2 text-[0.8125rem]">{feature.summary}</span>
+          ) : null}
+          <span className="text-ink group-hover:text-primary mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold transition-colors">
+            Explore range
+            <ArrowRight aria-hidden="true" className="arrow-nudge size-3.5" />
+          </span>
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -228,40 +198,44 @@ function CardsPanel({
   allLabel: string;
   kind: "specialty" | "solution";
 }) {
-  const columns = kind === "solution" ? "xl:grid-cols-3" : "xl:grid-cols-4";
+  // The first item leads with its photograph; the rest are a quiet list.
+  const [lead, ...rest] = items;
+  const leadVisual = lead ? (lead.image ?? sceneVisual(lead.name)) : null;
   return (
-    <div className="py-10">
-      <div className="border-line mb-6 flex items-center justify-between border-b pb-4">
-        <p className="eyebrow">{title}</p>
-        <PanelLink href={href}>{allLabel}</PanelLink>
-      </div>
-      <ul className={cn("grid grid-cols-2 gap-4 lg:grid-cols-3", columns)}>
-        {items.map((item) => {
-          const visual = item.image ?? sceneVisual(item.name);
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="group border-line hover:border-line-strong flex h-full items-center gap-4 rounded-xl border p-3 transition-colors"
-              >
-                <span className="media-frame zoom-media size-16 shrink-0 rounded-lg">
-                  <SmartImage src={visual.url} alt="" sizes="64px" />
-                </span>
-                <span className="flex min-w-0 flex-col gap-0.5">
+    <div className="grid gap-10 py-8 lg:grid-cols-12">
+      {lead && leadVisual ? (
+        <Link href={lead.href} className="group relative isolate flex min-h-64 flex-col justify-end overflow-hidden rounded-xl p-5 text-white lg:col-span-4">
+          <span className="media-frame zoom-media absolute inset-0 -z-10">
+            <SmartImage src={leadVisual.url} alt="" sizes="380px" />
+          </span>
+          <span aria-hidden="true" className="from-navy-975/80 absolute inset-0 -z-10 bg-gradient-to-t via-transparent to-transparent" />
+          <span className="text-h4 text-white">{lead.name}</span>
+          {lead.summary ? <span className="mt-1 line-clamp-2 text-[0.8125rem] text-white/80">{lead.summary}</span> : null}
+        </Link>
+      ) : null}
+      <div className="lg:col-span-8">
+        <div className="mb-5 flex items-center justify-between">
+          <p className="eyebrow">{title}</p>
+          <PanelLink href={href}>{allLabel}</PanelLink>
+        </div>
+        <ul className={cn("grid grid-cols-2 gap-x-8", kind === "solution" ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
+          {rest.map((item) => (
+            <li key={item.href} className="border-line border-t">
+              <Link href={item.href} className="group flex items-start justify-between gap-3 py-3">
+                <span className="flex min-w-0 flex-col">
                   <span className="text-body-sm text-ink group-hover:text-primary font-semibold transition-colors">
                     {item.name}
                   </span>
                   {item.summary ? (
-                    <span className="text-caption text-ink-muted line-clamp-2">
-                      {item.summary}
-                    </span>
+                    <span className="text-ink-subtle line-clamp-1 text-[0.75rem]">{item.summary}</span>
                   ) : null}
                 </span>
+                <ArrowRight aria-hidden="true" className="arrow-nudge text-ink-subtle mt-1 size-3.5 shrink-0" />
               </Link>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -269,9 +243,9 @@ function CardsPanel({
 /** Columns built by an administrator in the CMS menu. */
 function MenuColumnsPanel({ node }: { node: NavigationNode }) {
   return (
-    <div className="flex flex-col gap-6 py-10">
+    <div className="flex flex-col gap-6 py-8">
       {node.href ? (
-        <div className="border-line flex items-center justify-between border-b pb-4">
+        <div className="flex items-center justify-between">
           <p className="eyebrow">{node.label}</p>
           <PanelLink href={node.href}>All {node.label.toLowerCase()}</PanelLink>
         </div>
@@ -363,7 +337,7 @@ function DesktopEntry({
   item: HeaderItem;
   data: MegaMenuData;
   openId: string | null;
-  setOpenId: (id: string | null) => void;
+  setOpenId: Dispatch<SetStateAction<string | null>>;
   pathname: string;
 }) {
   const panel = panelFor(item, data);
@@ -413,7 +387,12 @@ function DesktopEntry({
       }}
       onMouseLeave={() => {
         cancelClose();
-        closeTimer.current = setTimeout(() => setOpenId(null), 140);
+        // Close only if this panel is still the open one: moving straight
+        // onto a neighbouring item must not have its panel shut by this timer.
+        closeTimer.current = setTimeout(
+          () => setOpenId((current) => (current === item.id ? null : current)),
+          140,
+        );
       }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node)) {

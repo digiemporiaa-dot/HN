@@ -42,20 +42,20 @@ export function SectionNav({
   return (
     <nav
       aria-label={label}
-      className="border-line sticky top-[var(--header-h)] z-30 border-b bg-white/90 backdrop-blur-md"
+      className="border-line sticky top-[var(--header-h)] z-30 border-b bg-white/85 backdrop-blur-md"
     >
-      <ul className="scrollbar-none mx-auto flex max-w-wide gap-1 overflow-x-auto px-[var(--gutter)]">
+      <ul className="scrollbar-none mx-auto flex max-w-wide gap-7 overflow-x-auto px-[var(--gutter)]">
         {items.map((item) => (
           <li key={item.id} className="shrink-0">
             <a
               href={`#${item.id}`}
               aria-current={active === item.id ? "location" : undefined}
               className={cn(
-                "text-body-sm relative flex h-14 items-center px-3 font-medium whitespace-nowrap transition-colors",
-                "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors",
+                "relative flex h-12 items-center text-[0.8125rem] whitespace-nowrap transition-colors",
+                "after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:bg-ink after:transition-transform after:duration-[var(--duration-base)]",
                 active === item.id
-                  ? "text-ink after:bg-primary"
-                  : "text-ink-muted hover:text-ink after:bg-transparent",
+                  ? "text-ink font-medium after:scale-x-100"
+                  : "text-ink-muted hover:text-ink after:scale-x-0",
               )}
             >
               {item.label}

@@ -185,7 +185,7 @@ export function RfqComposer() {
               <li
                 key={line.productId}
                 className={cn(
-                  "border-line bg-surface flex flex-col gap-5 rounded-2xl border p-4 shadow-[var(--shadow-card)] sm:p-5",
+                  "bg-surface-panel flex flex-col gap-5 rounded-xl p-4 sm:p-5",
                   product ? null : "bg-surface-pearl shadow-none",
                 )}
               >
@@ -307,7 +307,7 @@ export function RfqComposer() {
       ) : (
         <div
           className={cn(
-            "border-line bg-surface min-w-0 rounded-2xl border p-5 shadow-[var(--shadow-card)] sm:p-8",
+            "border-ink/80 min-w-0 border-t pt-6 sm:pt-8",
             submitted
               ? "lg:col-span-8 lg:col-start-3 sm:p-10"
               : "lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:col-span-5",

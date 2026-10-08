@@ -103,27 +103,32 @@ export default async function BlogIndex({ searchParams }: RouteParams) {
         ) : (
           <div className="flex flex-col gap-14">
             {lead ? (
-              <article className="group border-line bg-surface relative grid overflow-hidden rounded-3xl border shadow-[var(--shadow-card)] transition-[box-shadow] duration-[var(--duration-slow)] hover:shadow-[var(--shadow-card-hover)] lg:grid-cols-[1.25fr_1fr]">
+              <article className="group relative grid gap-8 lg:grid-cols-[1.35fr_1fr] lg:items-end lg:gap-14">
                 <RecordImage
                   kind="post"
                   name={lead.title}
                   image={lead.cover}
                   sizes="(min-width: 1024px) 55vw, 100vw"
                   priority
-                  frameClassName="zoom-media aspect-[16/10] lg:aspect-auto lg:min-h-[26rem]"
+                  frameClassName="zoom-media aspect-[16/10] rounded-xl lg:aspect-[3/2]"
                 />
-                <div className="flex flex-col justify-center gap-5 p-7 sm:p-10 lg:p-12">
-                  <p className="text-caption text-ink-subtle flex flex-wrap items-center gap-3">
-                    <span className="text-primary font-semibold tracking-[0.12em] uppercase">Featured</span>
-                    {lead.publishedAt ? <time dateTime={lead.publishedAt.toISOString()}>{formatDate(lead.publishedAt)}</time> : null}
+                <div className="flex flex-col gap-5 lg:pb-4">
+                  <p className="text-ink-subtle flex flex-wrap items-center gap-2 text-[0.75rem]">
+                    <span className="text-ink font-medium tracking-[0.08em] uppercase">Featured</span>
+                    {lead.publishedAt ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <time dateTime={lead.publishedAt.toISOString()}>{formatDate(lead.publishedAt)}</time>
+                      </>
+                    ) : null}
                   </p>
-                  <h2 className="text-h1 text-ink group-hover:text-primary transition-colors">
+                  <h2 className="text-ink group-hover:text-primary text-[clamp(1.875rem,1.2rem+2.2vw,3.25rem)] leading-[1.08] font-normal tracking-[-0.035em] transition-colors">
                     <Link href={`/blog/${lead.slug}`} className="after:absolute after:inset-0">
                       {lead.title}
                     </Link>
                   </h2>
                   {lead.excerpt ? <p className="text-body-lg text-ink-muted">{lead.excerpt}</p> : null}
-                  <span className="text-body-sm text-primary inline-flex items-center gap-2 font-semibold">
+                  <span className="text-ink group-hover:text-primary inline-flex items-center gap-2 text-[0.875rem] font-semibold transition-colors">
                     Read article
                     <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
                   </span>
@@ -132,7 +137,7 @@ export default async function BlogIndex({ searchParams }: RouteParams) {
             ) : null}
 
             {rest.length > 0 ? (
-              <ul className="reveal-stagger grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="reveal-stagger border-line grid gap-x-8 gap-y-12 border-t pt-12 sm:grid-cols-2 lg:grid-cols-3">
                 {rest.map((post) => (
                   <li key={post.id}>
                     <ArticleCard data={card(post)} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />

@@ -157,7 +157,8 @@ export function AddToQuoteButton({
   size?: "sm" | "md" | "lg";
   /** A short label for tight spaces such as cards. */
   compact?: boolean;
-  variant?: "outline" | "outline-inverse";
+  /** "quiet": a text-weight action for cards, secondary to "View product". */
+  variant?: "outline" | "outline-inverse" | "quiet";
   className?: string;
 }) {
   const { add, has, ready, lines } = useQuoteBasket();
@@ -181,16 +182,18 @@ export function AddToQuoteButton({
       disabled={!ready || added || full}
       aria-live="polite"
       className={cn(
-        buttonStyles({ variant, size }),
-        compact && "h-9 px-3",
+        variant === "quiet"
+          ? "text-ink-muted hover:text-ink inline-flex h-8 items-center gap-1 rounded-md px-1.5 text-[0.8125rem] font-medium transition-colors disabled:pointer-events-none"
+          : buttonStyles({ variant, size }),
+        compact && variant !== "quiet" && "h-9 px-3",
         added && "border-success-600/40 text-success-700 opacity-100",
         className,
       )}
     >
       {added ? (
-        <Check aria-hidden="true" className="size-4" />
+        <Check aria-hidden="true" className={variant === "quiet" ? "size-3.5" : "size-4"} />
       ) : (
-        <Plus aria-hidden="true" className="size-4" />
+        <Plus aria-hidden="true" className={variant === "quiet" ? "size-3.5" : "size-4"} />
       )}
       {label}
       {productName ? <span className="sr-only">: {productName}</span> : null}
@@ -213,10 +216,10 @@ export function QuoteBasketLink() {
     <Link
       href="/rfq"
       aria-label={`Quotation list, ${lines.length} product${lines.length === 1 ? "" : "s"}`}
-      className="text-ink hover:bg-surface-muted relative flex size-11 items-center justify-center rounded-lg transition-colors"
+      className="text-ink-muted hover:text-ink hover:bg-surface-muted relative flex size-10 items-center justify-center rounded-md transition-colors"
     >
-      <ClipboardList aria-hidden="true" className="size-5" />
-      <span className="absolute top-1 right-1 flex size-[1.125rem] items-center justify-center rounded-full bg-cyan-500 text-[10px] leading-none font-bold text-white tabular-nums">
+      <ClipboardList aria-hidden="true" className="size-[1.125rem]" />
+      <span className="bg-ink absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[9px] leading-none font-semibold text-white tabular-nums">
         {lines.length}
       </span>
     </Link>

@@ -337,11 +337,11 @@ export function PostGrid({ content, design, entities }: RendererProps) {
     return (
       <Stack>
         <Intro content={content} design={design} />
-        <div className="reveal grid gap-8 lg:grid-cols-12 lg:gap-10">
-          <div className="lg:col-span-7">
-            <ArticleCard data={articleData(lead)} variant="featured" sizes="(min-width: 1024px) 55vw, 100vw" />
+        <div className="reveal grid gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className="lg:col-span-8">
+            <ArticleCard data={articleData(lead)} variant="featured" sizes="(min-width: 1024px) 60vw, 100vw" />
           </div>
-          <div className="flex flex-col gap-6 lg:col-span-5">
+          <div className="flex flex-col gap-6 lg:col-span-4 lg:pt-2">
             {rest.slice(0, 4).map((entity) => (
               <ArticleCard key={entity.id} data={articleData(entity)} variant="compact" sizes="160px" />
             ))}
@@ -372,7 +372,7 @@ function Logo({ entity, hidden }: { entity: ResolvedEntity; hidden?: boolean }) 
     <Link
       href={entity.href}
       tabIndex={hidden ? -1 : undefined}
-      className="group flex h-16 w-full max-w-[13rem] items-center justify-center rounded-xl px-2 transition-colors"
+      className="group flex h-12 w-full max-w-[11rem] items-center justify-center rounded-md px-2 transition-colors"
     >
       {entity.image ? (
         <span className="relative h-10 w-full opacity-60 grayscale transition-[filter,opacity] duration-[var(--duration-slow)] group-hover:opacity-100 group-hover:grayscale-0">
@@ -390,16 +390,14 @@ function Logo({ entity, hidden }: { entity: ResolvedEntity; hidden?: boolean }) 
 export function LogoStrip({ content, design, entities }: RendererProps) {
   const items = entities.items ?? [];
   if (items.length === 0) return null;
-  const marquee = design.layout === "full";
+  const heading = text(content, "heading");
 
-  return (
-    <div className="flex flex-col gap-8">
-      {text(content, "heading") ? (
-        <p className="text-caption text-ink-subtle text-center font-semibold tracking-[0.16em] uppercase">
-          {text(content, "heading")}
-        </p>
-      ) : null}
-      {marquee ? (
+  if (design.layout === "full") {
+    return (
+      <div className="flex flex-col gap-8">
+        {heading ? (
+          <p className="text-caption text-ink-subtle text-center font-semibold tracking-[0.16em] uppercase">{heading}</p>
+        ) : null}
         <div className="marquee relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
           <div
             className="marquee-track flex w-max"
@@ -416,17 +414,23 @@ export function LogoStrip({ content, design, entities }: RendererProps) {
             ))}
           </div>
         </div>
-      ) : (
-        // A quiet grid of hairline cells: logos given room, none louder
-        // than another.
-        <ul className="border-line grid grid-cols-2 border-t border-l sm:grid-cols-3 lg:grid-cols-6">
-          {items.map((entity) => (
-            <li key={entity.id} className="border-line flex min-h-24 items-center justify-center border-r border-b px-4 py-6 sm:min-h-28">
-              <Logo entity={entity} />
-            </li>
-          ))}
-        </ul>
-      )}
+      </div>
+    );
+  }
+
+  // A quiet trust band between two hairlines: the label, then the marks.
+  return (
+    <div className="border-line reveal flex flex-col gap-6 border-y py-8 lg:flex-row lg:items-center lg:gap-12">
+      {heading ? (
+        <p className="text-ink-subtle shrink-0 text-[0.75rem] font-medium tracking-[0.1em] uppercase lg:w-44">{heading}</p>
+      ) : null}
+      <ul className="grid flex-1 grid-cols-2 items-center gap-x-6 gap-y-4 sm:grid-cols-3 lg:flex lg:justify-between">
+        {items.map((entity) => (
+          <li key={entity.id} className="flex min-w-0 justify-center lg:flex-1">
+            <Logo entity={entity} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -438,86 +442,74 @@ export function Locations({ content, design, locations }: RendererProps) {
   const regions = groupByRegion(locations);
   const dark = isDark(design);
   const highlight = text(content, "highlight");
+  const figures = [
+    {
+      value: highlight || (cities.length > 0 ? String(cities.length) : "Pan-India"),
+      label: highlight ? "Service coverage" : cities.length > 0 ? "Cities with local pages" : "Service coverage",
+    },
+    { value: String(regions.length > 0 ? regions.length : 6), label: "Regions served" },
+  ];
 
   return (
     <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
       <div className="reveal flex flex-col gap-6 lg:col-span-5">
         {text(content, "overline") ? <span className="eyebrow">{text(content, "overline")}</span> : null}
-        <h2 className="text-h1 text-ink text-safe">
+        <h2 className="text-section text-ink text-safe">
           <AccentHeading value={text(content, "heading") || "Supplying healthcare institutions across India."} dark={dark} />
         </h2>
-        {text(content, "intro") ? <p className="text-lead text-ink-muted">{text(content, "intro")}</p> : null}
+        {text(content, "intro") ? <p className="text-body-lg text-ink-muted max-w-[46ch]">{text(content, "intro")}</p> : null}
 
-        <div className={cn("mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border", dark ? "border-white/10 bg-white/10" : "border-line bg-line")}>
-          <div className={cn("flex flex-col gap-1 p-6", dark ? "bg-navy-975" : "bg-surface")}>
-            <span className="font-display text-ink text-[clamp(2rem,1.6rem+1.6vw,2.75rem)] leading-none font-semibold tracking-[-0.04em]">
-              {highlight || (cities.length > 0 ? cities.length : "Pan-India")}
-            </span>
-            <span className="text-caption text-ink-muted">
-              {highlight ? "Service coverage" : cities.length > 0 ? "Cities with local pages" : "Service coverage"}
-            </span>
-          </div>
-          <div className={cn("flex flex-col gap-1 p-6", dark ? "bg-navy-975" : "bg-surface")}>
-            <span className="font-display text-ink text-[clamp(2rem,1.6rem+1.6vw,2.75rem)] leading-none font-semibold tracking-[-0.04em]">
-              {regions.length > 0 ? regions.length : 6}
-            </span>
-            <span className="text-caption text-ink-muted">Regions served</span>
-          </div>
-        </div>
+        {/* Two figures, set as type rather than boxed. */}
+        <dl className="mt-4 flex gap-12">
+          {figures.map((figure) => (
+            <div key={figure.label} className="flex flex-col gap-1">
+              <dd className="font-display text-ink order-1 text-[clamp(2.75rem,2rem+2.4vw,4rem)] leading-none font-light tracking-[-0.05em]">
+                {figure.value}
+              </dd>
+              <dt className="text-ink-muted order-2 text-[0.75rem]">{figure.label}</dt>
+            </div>
+          ))}
+        </dl>
 
         {text(content, "ctaLabel") && text(content, "ctaHref") ? (
-          <ArrowLink href={text(content, "ctaHref")} tone={dark ? "inverse" : "primary"} className="w-fit">
+          <ArrowLink href={text(content, "ctaHref")} tone={dark ? "inverse" : "primary"} className="mt-2 w-fit">
             {text(content, "ctaLabel")}
           </ArrowLink>
         ) : null}
       </div>
 
       <div className="lg:col-span-7">
-        {regions.length > 0 ? (
-          <ul className="reveal-stagger grid gap-4 sm:grid-cols-2">
-            {regions.map(([region, list]) => (
-              <li
-                key={region}
-                className={cn(
-                  "flex flex-col gap-4 rounded-2xl border p-6",
-                  dark ? "border-white/10 bg-white/[0.03]" : "border-line bg-surface shadow-[var(--shadow-card)]",
-                )}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-caption text-ink font-semibold tracking-[0.14em] uppercase">{region}</h3>
-                  <span className="text-caption text-ink-subtle tabular-nums">{list.length}</span>
-                </div>
-                <ul className="flex flex-wrap gap-2">
+        {/* Regions as columns under a hairline; cities as plain links. */}
+        <ul className="reveal-stagger grid gap-x-10 gap-y-10 sm:grid-cols-2">
+          {(regions.length > 0 ? regions : REGIONS.map(([region]) => [region, []] as const)).map(([region, list]) => (
+            <li key={region} className={cn("border-t pt-5", dark ? "border-white/15" : "border-ink/15")}>
+              <div className="mb-4 flex items-baseline justify-between gap-3">
+                <h3 className="text-ink text-[0.75rem] font-semibold tracking-[0.12em] uppercase">{region}</h3>
+                {list.length > 0 ? <span className="text-ink-subtle text-[0.75rem] tabular-nums">{String(list.length).padStart(2, "0")}</span> : null}
+              </div>
+              {list.length > 0 ? (
+                <ul className="flex flex-col">
                   {list.map((city) => (
                     <li key={city.id}>
                       <Link
                         href={city.href}
-                        className={cn(
-                          "text-body-sm inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 transition-colors",
-                          dark
-                            ? "border-white/15 text-white/85 hover:border-cyan-300 hover:text-white"
-                            : "border-line text-ink hover:border-primary hover:text-primary",
-                        )}
+                        className="group text-ink hover:text-primary flex items-center justify-between gap-3 py-1.5 text-[1.0625rem] transition-colors"
                       >
-                        <span className="live-dot size-1.5 rounded-full bg-cyan-400" />
                         {city.name}
+                        <ArrowRight aria-hidden="true" className="arrow-nudge text-ink-subtle size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
                       </Link>
                     </li>
                   ))}
                 </ul>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ul className="reveal-stagger grid gap-4 sm:grid-cols-2">
-            {REGIONS.map(([region]) => (
-              <li key={region} className="border-line bg-surface text-body-sm text-ink flex items-center gap-3 rounded-2xl border p-5 font-medium">
-                <MapPin aria-hidden="true" className="text-primary size-4" />
-                {region}
-              </li>
-            ))}
-          </ul>
-        )}
+              ) : (
+                <p className="text-ink-muted flex items-center gap-2 text-[0.875rem]">
+                  <MapPin aria-hidden="true" className="size-3.5" />
+                  Supplied on request
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

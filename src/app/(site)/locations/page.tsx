@@ -51,7 +51,6 @@ export default async function LocationsPage() {
           total > 0 ? (
             <>
               <MetaChip>
-                <span className="size-1.5 rounded-full bg-cyan-500" />
                 {total} cit{total === 1 ? "y" : "ies"}
               </MetaChip>
               <MetaChip>{states.length} state{states.length === 1 ? "" : "s"}</MetaChip>
@@ -61,7 +60,7 @@ export default async function LocationsPage() {
         }
       />
 
-      <Section spacing="large" container="wide" background="grid">
+      <Section spacing="large" container="wide">
         {total === 0 ? (
           <div className="flex flex-col gap-10">
             <EmptyState
@@ -90,34 +89,31 @@ export default async function LocationsPage() {
               title="Find your city."
               description="Each city page lists the equipment hospitals there most often ask about, and how supply and installation work locally."
             />
-            <div className="flex flex-col gap-12">
+            <div className="flex flex-col">
               {regions.map(([region, stateGroups]) => (
-                <section key={region} aria-labelledby={`region-${region}`} className="reveal grid gap-6 lg:grid-cols-12 lg:gap-10">
+                <section key={region} aria-labelledby={`region-${region}`} className="reveal border-ink/15 grid gap-6 border-t py-10 lg:grid-cols-12 lg:gap-10">
                   <div className="lg:col-span-3">
                     <h2 id={`region-${region}`} className="text-h3 text-ink">{region}</h2>
-                    <p className="text-caption text-ink-subtle mt-1">
+                    <p className="text-ink-subtle mt-1 text-[0.75rem]">
                       {stateGroups.reduce((sum, state) => sum + state.cities.length, 0)} cities
                     </p>
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
+                  <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
                     {stateGroups.map((state) => (
-                      <div key={state.id} className="border-line bg-surface flex flex-col gap-3 rounded-2xl border p-5 shadow-[var(--shadow-card)]">
-                        <h3 className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">
+                      <div key={state.id} className="flex flex-col gap-2">
+                        <h3 className="text-ink-subtle text-[0.75rem] font-semibold tracking-[0.1em] uppercase">
                           {state.name}
                         </h3>
                         <ul className="flex flex-col">
                           {state.cities.map((city) => (
-                            <li key={city.id} className="border-line border-t first:border-t-0">
-                              <Link
-                                href={city.href}
-                                className="group flex items-center justify-between gap-3 py-3"
-                              >
+                            <li key={city.id} className="border-line border-b">
+                              <Link href={city.href} className="group flex items-center justify-between gap-3 py-3">
                                 <span className="flex min-w-0 flex-col">
-                                  <span className="text-body text-ink group-hover:text-primary font-semibold transition-colors">
+                                  <span className="text-ink group-hover:text-primary text-[1.0625rem] transition-colors">
                                     {city.name}
                                   </span>
                                   {city.headline ? (
-                                    <span className="text-caption text-ink-muted line-clamp-1">{city.headline}</span>
+                                    <span className="text-ink-muted line-clamp-1 text-[0.8125rem]">{city.headline}</span>
                                   ) : null}
                                 </span>
                                 <ArrowRight aria-hidden="true" className="arrow-nudge text-ink-subtle size-4 shrink-0" />

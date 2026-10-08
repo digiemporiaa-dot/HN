@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, Mail, MapPin, Phone } from "lucide-react";
 
-import { buttonStyles, Container } from "@/components/ui";
+import { Container } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 import { prisma } from "@/server/db";
 import { getMenuTree } from "@/server/navigation/service";
@@ -169,20 +169,26 @@ export async function SiteFooter({
     "Medical equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.";
 
   return (
-    <footer className="surface-pearl border-line relative overflow-hidden border-t">
-      <Container width="wide" className="flex flex-col gap-14 pt-16 pb-10 lg:pt-20">
-        <div className="grid gap-12 lg:grid-cols-12">
+    <footer className="surface-dark relative overflow-hidden border-t border-white/10 bg-navy-975">
+      <Container width="wide" className="flex flex-col pt-16 pb-10 lg:pt-24">
+        {/* The statement: who the company is, in one large line. */}
+        <div className="border-line border-b pb-12 lg:pb-16">
+          <p className="font-display max-w-[30ch] text-[clamp(1.5rem,1.05rem+1.6vw,2.5rem)] leading-[1.2] font-light tracking-[-0.03em] text-white">
+            {description}
+          </p>
+        </div>
+
+        <div className="grid gap-12 pt-12 lg:grid-cols-12 lg:pt-16">
           <div className="flex flex-col gap-6 lg:col-span-4">
             <Link href="/" aria-label={`${settings.companyName} — home`} className="w-fit">
-              <BrandMark name={settings.companyName} logoUrl={settings.logoUrl} />
+              <BrandMark name={settings.companyName} logoUrl={settings.logoUrl} inverse />
             </Link>
-            <p className="text-body-sm text-ink-muted max-w-[42ch]">{description}</p>
 
             <ul className="text-body-sm text-ink-muted flex flex-col gap-3">
               {settings.phone ? (
                 <li>
                   <a href={`tel:${settings.phone.replace(/[^\d+]/g, "")}`} className="hover:text-ink inline-flex items-center gap-3 transition-colors">
-                    <Phone aria-hidden="true" className="size-4 shrink-0 text-cyan-600" />
+                    <Phone aria-hidden="true" className="size-4 shrink-0 text-cyan-400" />
                     {settings.phone}
                   </a>
                 </li>
@@ -190,37 +196,24 @@ export async function SiteFooter({
               {settings.email ? (
                 <li>
                   <a href={`mailto:${settings.email}`} className="hover:text-ink inline-flex items-center gap-3 break-all transition-colors">
-                    <Mail aria-hidden="true" className="size-4 shrink-0 text-cyan-600" />
+                    <Mail aria-hidden="true" className="size-4 shrink-0 text-cyan-400" />
                     {settings.email}
                   </a>
                 </li>
               ) : null}
               {settings.address ? (
                 <li className="flex items-start gap-3">
-                  <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-600" />
+                  <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-400" />
                   <span className="whitespace-pre-line">{settings.address}</span>
                 </li>
               ) : null}
               {settings.hours ? (
                 <li className="flex items-start gap-3">
-                  <Clock aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-600" />
+                  <Clock aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-400" />
                   <span>{settings.hours}</span>
                 </li>
               ) : null}
             </ul>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/rfq" className={cn(buttonStyles({ size: "md" }), "group")}>
-                Get a quote
-                <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
-              </Link>
-              <Link
-                href="/contact"
-                className={buttonStyles({ variant: "outline", size: "md" })}
-              >
-                Contact our team
-              </Link>
-            </div>
 
             {socialLinks.length > 0 ? (
               <ul className="flex flex-wrap gap-2" aria-label="Social media">
@@ -255,7 +248,7 @@ export async function SiteFooter({
           >
             {columns.map((column) => (
               <nav key={column.id} aria-label={column.label} className="min-w-0">
-                <h2 className="text-overline text-ink mb-5 font-semibold tracking-[0.1em] uppercase">
+                <h2 className="text-overline mb-5 font-medium tracking-[0.1em] text-white/50 uppercase">
                   {column.label}
                 </h2>
                 <ul className="flex flex-col gap-3">
@@ -276,7 +269,7 @@ export async function SiteFooter({
           </div>
         </div>
 
-        <div className="border-line flex flex-col gap-4 border-t pt-8 md:flex-row md:items-center md:justify-between">
+        <div className="border-line mt-14 flex flex-col gap-4 border-t pt-8 md:flex-row md:items-center md:justify-between">
           <p className="text-caption text-ink-subtle">
             &copy; {year} {settings.companyName}. All rights reserved.
             {settings.gstin ? ` · GSTIN ${settings.gstin}` : ""}

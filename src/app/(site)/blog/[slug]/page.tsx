@@ -187,7 +187,7 @@ export default async function BlogPostPage({ params }: RouteParams) {
               image={post.cover}
               sizes="(min-width: 1472px) 1400px, 100vw"
               priority
-              frameClassName="aspect-[16/9] rounded-3xl border border-line sm:aspect-[21/9]"
+              frameClassName="reveal-image aspect-[16/9] rounded-xl sm:aspect-[21/9]"
             />
           </Container>
         ) : null}

@@ -199,73 +199,11 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       },
       { layout: "editorial", background: "default", spacing: "compact", container: "wide" },
     ),
-    figures.length >= 3
+    brands.length > 0
       ? section(
-          "STATISTICS",
-          {
-            overline: `Why ${settings.companyName}`,
-            heading:
-              "Every department we equip gets the same promise: **dependable technology**, clear guidance and support that lasts beyond installation.",
-            intro: "",
-            note: "Figures are counted from the live catalogue.",
-            ctaLabel: "Talk to our team",
-            ctaHref: "/contact",
-            items: figures.slice(0, 3),
-          },
-          { layout: "bento", background: "default", spacing: "large", container: "wide" },
-        )
-      : null,
-    solutions.length > 0
-      ? section(
-          "SOLUTION_GRID",
-          {
-            overline: "Healthcare solutions",
-            heading: "Designed around **clinical needs**.",
-            intro: "",
-            items: ids(solutions),
-            ctaLabel: "All solutions",
-            ctaHref: "/solutions",
-          },
-          { layout: "bento", background: "default", spacing: "normal", container: "wide" },
-        )
-      : null,
-    bento.length > 0
-      ? section(
-          "PRODUCT_GRID",
-          {
-            overline: "",
-            heading: "Engineered for **precision**.",
-            items: ids(bento),
-            ctaLabel: "View all products",
-            ctaHref: "/products",
-          },
-          { layout: "bento", background: "default", spacing: "large", container: "wide" },
-        )
-      : null,
-    section(
-      "CTA",
-      {
-        overline: "",
-        heading: "Innovation, in service of **care**.",
-        body: "From imaging suites to intensive care, we help hospitals bring dependable technology into every clinical space.",
-        primaryLabel: "Discover our solutions",
-        primaryHref: "/solutions",
-        secondaryLabel: "",
-        secondaryHref: "",
-      },
-      { layout: "full", background: "default", spacing: "compact", container: "wide" },
-    ),
-    featured.length > 0
-      ? section(
-          "PRODUCT_GRID",
-          {
-            overline: "Featured",
-            heading: "Featured medical **technology**.",
-            items: ids(featured),
-            ctaLabel: "",
-            ctaHref: "",
-          },
-          { layout: "editorial", background: "default", spacing: "large", container: "wide" },
+          "LOGO_STRIP",
+          { heading: "Brands in our catalogue", items: ids(brands) },
+          { background: "default", spacing: "compact", layout: "standard", container: "wide" },
         )
       : null,
     categories.length > 0
@@ -279,14 +217,76 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
             ctaLabel: "All categories",
             ctaHref: "/categories",
           },
-          { layout: "standard", background: "default", spacing: "normal", container: "wide" },
+          { layout: "standard", background: "pearl", spacing: "large", container: "wide" },
         )
       : null,
-    brands.length > 0
+    figures.length >= 3
       ? section(
-          "LOGO_STRIP",
-          { heading: "Technology partners", items: ids(brands) },
-          { background: "default", spacing: "large", layout: "standard", container: "wide" },
+          "STATISTICS",
+          {
+            overline: `Why ${settings.companyName}`,
+            heading:
+              "Every department we equip gets the same promise: **dependable technology**, clear guidance and support that lasts beyond installation.",
+            intro: "",
+            note: "Figures are counted from the live catalogue.",
+            ctaLabel: "Talk to our team",
+            ctaHref: "/contact",
+            items: figures.slice(0, 3),
+          },
+          { layout: "bento", background: "default", spacing: "xl", container: "wide" },
+        )
+      : null,
+    bento.length > 0
+      ? section(
+          "PRODUCT_GRID",
+          {
+            overline: "",
+            heading: "Engineered for **precision**.",
+            items: ids(bento),
+            ctaLabel: "View all products",
+            ctaHref: "/products",
+          },
+          { layout: "bento", background: "grey", spacing: "large", container: "wide" },
+        )
+      : null,
+    section(
+      "CTA",
+      {
+        overline: "",
+        heading: "Innovation, in service of **care**.",
+        body: "From imaging suites to intensive care, we help hospitals bring dependable technology into every clinical space.",
+        primaryLabel: "Discover our solutions",
+        primaryHref: "/solutions",
+        secondaryLabel: "",
+        secondaryHref: "",
+      },
+      { layout: "full", background: "default", spacing: "large", container: "wide" },
+    ),
+    solutions.length > 0
+      ? section(
+          "SOLUTION_GRID",
+          {
+            overline: "Healthcare solutions",
+            heading: "Designed around **clinical needs**.",
+            intro: "",
+            items: ids(solutions),
+            ctaLabel: "All solutions",
+            ctaHref: "/solutions",
+          },
+          { layout: "bento", background: "default", spacing: "large", container: "wide" },
+        )
+      : null,
+    featured.length > 0
+      ? section(
+          "PRODUCT_GRID",
+          {
+            overline: "Featured",
+            heading: "Featured medical **technology**.",
+            items: ids(featured),
+            ctaLabel: "",
+            ctaHref: "",
+          },
+          { layout: "editorial", background: "default", spacing: "xl", container: "wide" },
         )
       : null,
     specialties.length > 0
@@ -300,7 +300,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
             ctaLabel: "All specialties",
             ctaHref: "/specialties",
           },
-          { columns: "4", background: "grey", spacing: "large", container: "wide" },
+          { columns: "4", background: "pearl", spacing: "large", container: "wide" },
         )
       : null,
     section(
@@ -330,7 +330,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
             ctaLabel: "All locations",
             ctaHref: "/locations",
           },
-          { background: "pearl", spacing: "large", container: "wide" },
+          { background: "grid", spacing: "large", container: "wide" },
         )
       : null,
     section(
@@ -342,7 +342,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
         ctaLabel: "All articles",
         ctaHref: "/blog",
       },
-      { layout: "editorial", spacing: "large", container: "wide" },
+      { layout: "editorial", background: "pearl", spacing: "large", container: "wide" },
     ),
     section(
       "CTA",

@@ -235,7 +235,7 @@ export default async function CityPage({ params }: RouteParams) {
 
       {city.coverage ? (
         <Section spacing="large" container="wide">
-          <div className="surface-gradient border-line grid gap-8 rounded-3xl border p-8 sm:p-12 lg:grid-cols-12 lg:gap-12">
+          <div className="border-ink/80 grid gap-8 border-t pt-10 lg:grid-cols-12 lg:gap-12">
             <div className="flex flex-col gap-4 lg:col-span-4">
               <span className="eyebrow">Local support</span>
               <h2 className="text-h2 text-ink">Serving {city.name}.</h2>
@@ -296,7 +296,7 @@ export default async function CityPage({ params }: RouteParams) {
               ))}
             </ul>
           </div>
-          <div className="border-line bg-surface rounded-3xl border p-6 shadow-[var(--shadow-card)] sm:p-10 lg:col-span-7">
+          <div className="bg-surface-panel rounded-xl p-6 sm:p-10 lg:col-span-7">
             <EnquiryForm action={submitEnquiryAction} cityId={city.id} submitLabel="Send enquiry" />
           </div>
         </div>

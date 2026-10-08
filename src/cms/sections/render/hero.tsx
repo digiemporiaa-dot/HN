@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 
 import { Container, SectionHeader } from "@/components/ui";
 import { SmartImage } from "@/components/site/media";
+import { ParallaxStage } from "@/components/site/parallax-stage";
 import { cn } from "@/lib/utils/cn";
 import { HERO_OBJECT, SCENES } from "@/lib/visuals";
 import {
@@ -79,7 +80,7 @@ export function CinematicHero({ content, media, first }: RendererProps) {
               className="intro text-overline inline-flex w-fit items-center gap-3 rounded-full border border-white/15 bg-white/[0.06] py-1.5 pr-4 pl-2 tracking-[0.14em] text-cyan-100 uppercase backdrop-blur-md"
               style={stagger(0)}
             >
-              <span className="live-dot size-2 rounded-full bg-cyan-400" />
+              <span className="size-1.5 rounded-full bg-cyan-400" />
               {overline}
             </p>
           ) : null}
@@ -256,13 +257,13 @@ export function ShowcaseHero({ content, media, mediaById }: RendererProps) {
 
   const stat = statValue ? (
     <div className="flex flex-col gap-1.5">
-      <p className="font-display text-[clamp(2.5rem,1.9rem+1.8vw,3.5rem)] leading-none font-medium tracking-[-0.04em] text-ink">
+      <p className="font-display text-ink text-[clamp(3rem,2.2rem+2.6vw,4.75rem)] leading-none font-light tracking-[-0.05em]">
         {figure}
         {unit ? <span className="text-steel-400 font-light">{unit}</span> : null}
       </p>
-      {statLabel ? <p className="text-caption text-ink-muted">{statLabel}</p> : null}
+      {statLabel ? <p className="text-ink-muted text-[0.75rem] tracking-[0.02em]">{statLabel}</p> : null}
       {statDetail ? (
-        <p className="text-body-sm text-ink-muted mt-3 max-w-[30ch]">{statDetail}</p>
+        <p className="text-ink-muted mt-3 max-w-[28ch] text-[0.8125rem] leading-relaxed">{statDetail}</p>
       ) : null}
     </div>
   ) : null;
@@ -310,51 +311,57 @@ export function ShowcaseHero({ content, media, mediaById }: RendererProps) {
         ) : null}
       </div>
 
-      {/* Stage. */}
-      <div className="relative mt-10 lg:mt-4 lg:aspect-[2.3/1]">
-        {/* The two grey panels (desktop); one rounded panel on small screens. */}
-        <div aria-hidden="true" className="bg-surface-panel absolute inset-x-0 top-0 bottom-0 rounded-2xl max-lg:hidden lg:top-[22%] lg:right-[38%] lg:bottom-[34%] lg:rounded-[1.25rem]" />
-        <div aria-hidden="true" className="bg-surface-panel absolute top-0 right-0 bottom-0 left-[22%] rounded-[1.25rem] max-lg:hidden" />
-
-        <div className="bg-surface-panel relative aspect-[4/3] overflow-visible rounded-2xl sm:aspect-[16/10] lg:absolute lg:inset-0 lg:aspect-auto lg:rounded-none lg:bg-transparent">
-          <div className="intro-scale absolute inset-x-[4%] top-[4%] bottom-[3%] lg:top-[-9%] lg:right-auto lg:bottom-[2%] lg:left-[19%] lg:w-[56%]" style={stagger(lines + 3)}>
-            <SmartImage
-              src={object.url}
-              alt={object.alt}
-              sizes="(min-width: 1024px) 60vw, 100vw"
-              fit="contain"
-              priority
-              quality={80}
-            />
+      {/* Stage: one soft environmental surface, the equipment breaking out
+          of it, a floor shadow, the figure in the white space and the cards
+          floating at the edge. Each layer drifts at its own depth with the
+          pointer on desktop. */}
+      <ParallaxStage className="mt-10 lg:mt-2 lg:aspect-[2.15/1]">
+        <div
+          aria-hidden="true"
+          className="parallax-layer stage-surface absolute inset-0 top-[12%] left-[15%] rounded-[1.75rem] [--depth:0.25] max-lg:hidden"
+        />
+        <div className="relative aspect-[5/4] sm:aspect-[16/11] lg:absolute lg:inset-0 lg:aspect-auto">
+          <div aria-hidden="true" className="stage-surface absolute inset-0 rounded-2xl lg:hidden" />
+          <div
+            aria-hidden="true"
+            className="parallax-layer absolute bottom-[6%] left-[18%] h-[9%] w-[64%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(11_13_15/0.16),transparent)] blur-md [--depth:0.5] lg:bottom-[3%] lg:left-[16%] lg:w-[54%]"
+          />
+          <div
+            className="parallax-layer absolute inset-x-[5%] top-[4%] bottom-[5%] [--depth:1] lg:top-[-10%] lg:right-auto lg:bottom-[2%] lg:left-[10%] lg:w-[64%]"
+          >
+            <div className="intro-scale relative h-full w-full" style={stagger(lines + 3)}>
+              <SmartImage
+                src={object.url}
+                alt={object.alt}
+                sizes="(min-width: 1024px) 64vw, 100vw"
+                fit="contain"
+                priority
+                quality={80}
+              />
+            </div>
           </div>
         </div>
 
         {stat ? (
-          <div className="intro mt-8 lg:absolute lg:bottom-[2%] lg:left-0 lg:mt-0 lg:w-[19%]" style={stagger(lines + 4)}>
+          <div className="intro mt-8 lg:absolute lg:bottom-0 lg:left-0 lg:mt-0 lg:w-[15%]" style={stagger(lines + 4)}>
             {stat}
           </div>
         ) : null}
 
         {cards.length > 0 ? (
-          <div className="relative mt-6 lg:absolute lg:top-[16%] lg:right-[3%] lg:mt-0 lg:w-[19%]">
-            <ul className="scrollbar-none -mx-[var(--gutter)] flex snap-x gap-3 overflow-x-auto px-[var(--gutter)] pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:flex lg:flex-col">
-              {cards.map((card, index) => (
-                <li
-                  key={card.title}
-                  className="intro w-[15.5rem] shrink-0 snap-start sm:w-auto"
-                  style={stagger(lines + 5 + index)}
-                >
-                  <FloatingCard {...card} active={index === Math.min(1, cards.length - 1)} />
-                </li>
-              ))}
-            </ul>
-            {/* A slim position marker beside the stack, as on a carousel. */}
-            <span aria-hidden="true" className="absolute top-1/2 -right-4 hidden h-16 w-1 -translate-y-1/2 rounded-full bg-steel-200 xl:block">
-              <span className="bg-ink absolute inset-x-0 top-1/3 h-1/3 rounded-full" />
-            </span>
-          </div>
+          <ul className="parallax-layer scrollbar-none -mx-[var(--gutter)] mt-6 flex snap-x gap-2.5 overflow-x-auto px-[var(--gutter)] pb-1 [--depth:-0.6] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:absolute lg:top-[20%] lg:right-[2.5%] lg:mt-0 lg:flex lg:w-[18.5%] lg:flex-col">
+            {cards.map((card, index) => (
+              <li
+                key={card.title}
+                className="intro w-[14rem] shrink-0 snap-start sm:w-auto"
+                style={stagger(lines + 5 + index)}
+              >
+                <FloatingCard {...card} />
+              </li>
+            ))}
+          </ul>
         ) : null}
-      </div>
+      </ParallaxStage>
     </div>
   );
 }
@@ -364,36 +371,30 @@ function FloatingCard({
   detail,
   href,
   image,
-  active,
 }: {
   title: string;
   detail: string;
   href: string;
   image: { url: string; alt: string } | null;
-  active: boolean;
 }) {
   const body = (
     <>
       {image ? (
-        <span className="relative size-14 shrink-0">
-          <SmartImage src={image.url} alt="" sizes="56px" fit="contain" />
+        <span className="relative size-11 shrink-0">
+          <SmartImage src={image.url} alt="" sizes="44px" fit="contain" />
         </span>
       ) : null}
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className={cn("text-body-sm font-semibold leading-tight", active ? "text-ink" : "text-ink-muted")}>
-          {title}
-        </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-ink truncate text-[0.8125rem] leading-tight font-semibold">{title}</span>
         {detail ? <span className="text-ink-subtle line-clamp-2 text-[0.75rem] leading-snug">{detail}</span> : null}
       </span>
+      {href ? (
+        <ArrowUpRight aria-hidden="true" className="text-ink-subtle group-hover:text-primary size-3.5 shrink-0 transition-colors" />
+      ) : null}
     </>
   );
-  const className = cn(
-    "flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 transition-[box-shadow,transform] duration-[var(--duration-base)]",
-    active
-      ? "shadow-[0_1px_2px_rgb(11_13_15/0.05),0_14px_30px_-16px_rgb(11_13_15/0.25)]"
-      : "shadow-[0_1px_2px_rgb(11_13_15/0.04)]",
-    href && "hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgb(11_13_15/0.05),0_14px_30px_-16px_rgb(11_13_15/0.25)]",
-  );
+  const className =
+    "group flex items-center gap-2.5 rounded-xl bg-white/90 p-2 pr-3 shadow-[0_1px_2px_rgb(11_13_15/0.05),0_10px_24px_-18px_rgb(11_13_15/0.35)] backdrop-blur-sm transition-transform duration-[var(--duration-base)] hover:-translate-y-0.5";
   return href ? (
     <Link href={href} className={className}>
       {body}

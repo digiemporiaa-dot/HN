@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
+import { ArrowRight, Search, X } from "lucide-react";
 
 import {
   buttonStyles,
@@ -10,11 +10,11 @@ import {
   Section,
 } from "@/components/ui";
 import { ProductCard } from "@/components/site/product-card";
-import { MetaChip, PageHero } from "@/components/site/page-hero";
+import { PageHero } from "@/components/site/page-hero";
 import { PageCta } from "@/components/site/page-cta";
 import { FilterSheet } from "@/components/site/filter-sheet";
 import { SmartImage } from "@/components/site/media";
-import { CATEGORY_VISUALS, HERO_OBJECT } from "@/lib/visuals";
+
 import { cn } from "@/lib/utils/cn";
 import {
   buildQueryHref,
@@ -135,43 +135,37 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
       <PageHero
         trail={[{ label: "Home", href: "/" }, { label: "Products" }]}
         eyebrow="Equipment catalogue"
-        title="Medical equipment for every department."
-        description="Explore monitoring, critical care, operation theatre, diagnostic, neonatal and emergency equipment — every product quoted to your requirement."
-        aside={<HeroMosaic />}
-        meta={
+        title={
           <>
-            <MetaChip>
-              <span className="size-1.5 rounded-full bg-cyan-500" />
-              {total} product{total === 1 ? "" : "s"}
-              {filtered ? " found" : ""}
-            </MetaChip>
-            <MetaChip>{facets.categories.length} categories</MetaChip>
-            <MetaChip>Quoted to requirement</MetaChip>
+            Medical technology for every <strong className="font-semibold">clinical environment.</strong>
           </>
         }
+        description="Monitoring, critical care, imaging, operation theatre, neonatal and emergency equipment — every product quoted to your requirement."
+        aside={<HeroMosaic />}
+        size="lg"
       >
         {/* A plain GET form: search works with JavaScript disabled, and the
             result is a shareable URL rather than hidden client state. */}
-        <form action="/products" role="search" className="intro mt-2 flex w-full max-w-[40rem] gap-2 [--i:3]">
+        <form action="/products" role="search" className="intro border-ink/80 mt-4 flex w-full max-w-[36rem] items-center gap-3 border-b pb-2 [--i:3] focus-within:border-primary">
           <label htmlFor="catalogue-search" className="sr-only">
             Search products
           </label>
-          <div className="relative flex-1">
-            <Search aria-hidden="true" className="text-ink-subtle pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2" />
-            <input
-              id="catalogue-search"
-              type="search"
-              name="q"
-              defaultValue={query ?? ""}
-              placeholder="Search equipment or model"
-              className="border-line-strong bg-surface text-ink text-body placeholder:text-ink-subtle focus:border-primary h-14 w-full rounded-xl border pr-4 pl-12 shadow-[var(--shadow-card)] transition-[border-color,box-shadow] focus:shadow-[0_0_0_4px_rgb(31_102_220/0.12)] focus-visible:outline-none"
-            />
-          </div>
+          <Search aria-hidden="true" className="text-ink-subtle size-5 shrink-0" />
+          <input
+            id="catalogue-search"
+            type="search"
+            name="q"
+            defaultValue={query ?? ""}
+            placeholder="Search equipment, category or model"
+            size={1}
+            className="text-ink placeholder:text-ink-subtle h-12 w-full min-w-0 flex-1 bg-transparent text-[1.0625rem] focus-visible:outline-none"
+          />
           {categorySlug ? <input type="hidden" name="category" value={categorySlug} /> : null}
           {brandSlug ? <input type="hidden" name="brand" value={brandSlug} /> : null}
           {specialtySlug ? <input type="hidden" name="specialty" value={specialtySlug} /> : null}
-          <button type="submit" className={cn(buttonStyles({ size: "lg" }), "h-14 px-6")}>
+          <button type="submit" className={cn(buttonStyles({ size: "sm" }), "group shrink-0")}>
             Search
+            <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
           </button>
         </form>
       </PageHero>
@@ -190,7 +184,7 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
       {/* Category shortcuts: the fastest way into the catalogue. */}
       <div className="border-line bg-surface sticky top-[var(--header-h)] z-30 border-b">
         <Container width="wide">
-          <nav aria-label="Categories" className="scrollbar-none -mx-[var(--gutter)] flex gap-2 overflow-x-auto px-[var(--gutter)] py-3">
+          <nav aria-label="Categories" className="scrollbar-none -mx-[var(--gutter)] flex gap-7 overflow-x-auto px-[var(--gutter)]">
             <CategoryPill href={buildQueryHref("/products", params, { category: null, page: null })} active={!categorySlug}>
               All equipment
             </CategoryPill>
@@ -231,7 +225,7 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
                   <li key={filter.key}>
                     <Link
                       href={buildQueryHref("/products", params, { [filter.key]: null, page: null })}
-                      className="bg-primary-subtle text-primary border-medical-200 hover:border-primary text-body-sm inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 font-medium transition-colors"
+                      className="bg-surface text-ink hover:text-primary inline-flex min-h-8 items-center gap-2 rounded-md px-3 text-[0.8125rem] font-medium transition-colors"
                     >
                       {filter.label}
                       <X aria-hidden="true" className="size-3.5" />
@@ -265,7 +259,7 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
                 }
               />
             ) : (
-              <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6 xl:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:gap-x-6 xl:grid-cols-3">
                 {products.map((product, index) => (
                   <ProductCard key={product.id} product={product} priority={index < 2} sizes="(min-width: 1280px) 22rem, (min-width: 640px) 45vw, 92vw" />
                 ))}
@@ -306,26 +300,25 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
   );
 }
 
-/** Three equipment renders, arranged as the hero's visual. */
+/** A group shot on the stage surface: equipment arranged like a campaign. */
 function HeroMosaic() {
-  const tiles = [CATEGORY_VISUALS.patientMonitoring, CATEGORY_VISUALS.criticalCare];
   return (
-    <div className="hidden grid-cols-[1.35fr_1fr] gap-3 lg:grid">
-      <div className="bg-surface-panel relative row-span-2 aspect-[4/5] overflow-hidden rounded-2xl">
-        <div className="absolute inset-[6%]">
-          <SmartImage src={HERO_OBJECT.url} alt={HERO_OBJECT.alt} sizes="25vw" fit="contain" priority />
-        </div>
+    <div className="stage-surface relative hidden aspect-[5/4] overflow-hidden rounded-[1.75rem] lg:block">
+      <span aria-hidden="true" className="absolute bottom-[7%] left-[12%] h-[8%] w-[76%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(11_13_15/0.14),transparent)] blur-md" />
+      <div className="absolute top-[10%] right-[6%] bottom-[8%] w-[36%]">
+        <SmartImage src={`${HOUSE}/products/icu-ventilator.webp`} alt="ICU ventilator" sizes="16vw" fit="contain" priority />
       </div>
-      {tiles.map((tile) => (
-        <div key={tile.url} className="bg-surface-panel relative overflow-hidden rounded-2xl">
-          <div className="absolute inset-[10%]">
-            <SmartImage src={tile.url} alt={tile.alt} sizes="15vw" fit="contain" />
-          </div>
-        </div>
-      ))}
+      <div className="absolute top-[22%] bottom-[8%] left-[30%] w-[30%]">
+        <SmartImage src={`${HOUSE}/products/ultrasound.webp`} alt="Ultrasound system" sizes="14vw" fit="contain" />
+      </div>
+      <div className="absolute bottom-[9%] left-[6%] h-[42%] w-[38%]">
+        <SmartImage src={`${HOUSE}/products/patient-monitor.webp`} alt="Patient monitor" sizes="16vw" fit="contain" />
+      </div>
     </div>
   );
 }
+
+const HOUSE = "/images/hn";
 
 function CategoryPill({
   href,
@@ -341,10 +334,11 @@ function CategoryPill({
       href={href}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "text-body-sm inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 font-medium whitespace-nowrap transition-colors",
+        "relative inline-flex h-12 shrink-0 items-center text-[0.875rem] whitespace-nowrap transition-colors",
+        "after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:transition-transform after:duration-[var(--duration-base)]",
         active
-          ? "bg-ink border-ink text-white"
-          : "border-line text-ink-muted hover:border-line-strong hover:text-ink bg-surface",
+          ? "text-ink font-medium after:scale-x-100 after:bg-ink"
+          : "text-ink-muted hover:text-ink after:scale-x-0 after:bg-ink",
       )}
     >
       {children}
@@ -374,14 +368,14 @@ function FacetGroup({
   if (options.length === 0) return null;
 
   return (
-    <details open className="group/facet border-line bg-surface rounded-2xl border">
-      <summary className="text-ink flex cursor-pointer list-none items-center justify-between px-5 py-4 text-[0.8125rem] font-semibold tracking-[0.12em] uppercase [&::-webkit-details-marker]:hidden">
+    <details open className="group/facet border-line border-t">
+      <summary className="text-ink flex cursor-pointer list-none items-center justify-between py-4 text-[0.75rem] font-semibold tracking-[0.1em] uppercase [&::-webkit-details-marker]:hidden">
         {title}
         <span aria-hidden="true" className="text-ink-subtle transition-transform group-open/facet:rotate-45">
           +
         </span>
       </summary>
-      <ul className="flex flex-col gap-0.5 px-3 pb-4">
+      <ul className="-mx-2.5 flex flex-col pb-4">
         {options.map((option) => {
           const selected = option.value === active;
           return (
@@ -395,11 +389,11 @@ function FacetGroup({
                 })}
                 aria-current={selected ? "true" : undefined}
                 className={cn(
-                  "text-body-sm flex min-h-10 items-center justify-between gap-3 rounded-lg px-2.5 transition-colors",
+                  "text-body-sm flex min-h-9 items-center justify-between gap-3 rounded-md px-2.5 transition-colors",
                   option.depth > 0 && "ml-3 text-[0.875rem]",
                   selected
-                    ? "bg-primary-subtle text-primary font-semibold"
-                    : "text-ink-muted hover:bg-surface-subtle hover:text-ink",
+                    ? "text-ink font-semibold"
+                    : "text-ink-muted hover:text-ink",
                 )}
               >
                 <span className="min-w-0">{option.label}</span>

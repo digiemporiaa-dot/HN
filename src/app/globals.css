@@ -144,6 +144,8 @@
     background-color: var(--color-pearl-100);
     --color-surface: #ffffff;
     --color-surface-subtle: var(--color-pearl-50);
+    /* On pearl, product panels turn white so they still read as panels. */
+    --color-surface-panel: #ffffff;
   }
 
   /* Soft gradient: white into off-white, with the faintest cyan light. */
@@ -255,15 +257,16 @@
     object-fit: cover;
   }
 
-  /* The image zoom every interactive card shares. */
+  /* The image zoom every interactive card shares. No permanent
+     will-change: a compositor layer per image costs memory on long
+     catalogue pages, and the transition promotes the layer when it runs. */
   .zoom-media img {
-    transition: transform var(--duration-slow) var(--ease-out-quart);
-    will-change: transform;
+    transition: transform 520ms var(--ease-out-quart);
   }
 
   .group:hover .zoom-media img,
   .group:focus-visible .zoom-media img {
-    transform: scale(1.035);
+    transform: scale(1.035) translate3d(0, -0.5%, 0);
   }
 
   /* Arrow that slides on hover — used on every card and text link. */
@@ -545,6 +548,31 @@
   }
 }
 
+/* An image uncovered from a slightly inset frame while it settles. */
+@keyframes hn-unveil {
+  from {
+    clip-path: inset(6% 4% 6% 4% round var(--radius-xl));
+    transform: scale(1.06);
+    opacity: 0.4;
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes hn-fade-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes hn-draw {
   from {
     transform: scaleX(0);
@@ -619,6 +647,23 @@
     animation: hn-fade 600ms var(--ease-out-quart) both;
   }
 
+  /*
+   * Pointer parallax: a layer moves by its own --depth times the pointer
+   * offset the stage writes into --px / --py. Transform only, so nothing
+   * reflows; the stage leaves the variables at 0 on touch screens and for
+   * anyone who prefers reduced motion.
+   */
+  .parallax-layer {
+    translate: calc(var(--px, 0) * var(--depth, 0) * 1px) calc(var(--py, 0) * var(--depth, 0) * 1px);
+    transition: translate 600ms var(--ease-out-quart);
+  }
+
+  /* The environmental surface equipment stands on: brighter where the
+     object sits, falling off to soft grey at the edges. */
+  .stage-surface {
+    background: radial-gradient(70% 80% at 50% 42%, #ffffff 0%, var(--color-pearl-200) 68%, var(--color-pearl-300) 100%);
+  }
+
   /* A rule that draws itself across as it scrolls into view. */
   .draw-line {
     transform-origin: left center;
@@ -663,6 +708,20 @@
       animation-timeline: view();
       animation-range: entry 10% cover 45%;
     }
+
+    /* Images: uncovered from an inset frame rather than lifted. */
+    .reveal-image {
+      animation: hn-unveil linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    /* Large visuals: a gentle fade and settle. */
+    .reveal-scale {
+      animation: hn-fade-scale linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
   }
 
   /* Keeps long words (URLs, model numbers) from forcing horizontal scroll. */
@@ -684,6 +743,8 @@
   .reveal-stagger > *,
   .intro,
   .intro-scale,
+  .reveal-image,
+  .reveal-scale,
   .draw-line {
     animation: none !important;
     opacity: 1 !important;
@@ -708,8 +769,11 @@
   .page-enter,
   .site-header,
   .draw-line,
+  .reveal-image,
+  .reveal-scale,
   .settle {
     animation: none !important;
+    clip-path: none !important;
     opacity: 1 !important;
     transform: none !important;
   }

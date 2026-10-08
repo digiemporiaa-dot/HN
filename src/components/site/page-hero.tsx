@@ -68,7 +68,7 @@ export function PageHero({
         <Container width="wide" className="pt-6">
           <Breadcrumb items={trail} />
         </Container>
-        <Container width="wide" className="grid gap-6 pt-8 pb-8 sm:pt-10 lg:grid-cols-12 lg:items-end lg:gap-10 lg:pb-10">
+        <Container width="wide" className="grid grid-cols-1 gap-6 pt-8 pb-8 sm:pt-10 lg:grid-cols-12 lg:items-end lg:gap-10 lg:pb-10">
           <div className="flex flex-col gap-4 lg:col-span-7">
             {eyebrow ? <span className="eyebrow intro">{eyebrow}</span> : null}
             {heading}
@@ -107,12 +107,12 @@ export function PageHero({
       <Container
         width="wide"
         className={cn(
-          "grid items-center gap-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:gap-16",
+          "grid grid-cols-1 items-center gap-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:gap-16",
           size === "lg" ? "lg:pb-20" : "lg:pb-16",
           visual ? "lg:grid-cols-[1.05fr_0.95fr]" : "",
         )}
       >
-        <div className="flex max-w-[52rem] flex-col gap-5">
+        <div className="flex min-w-0 max-w-[52rem] flex-col gap-5">
           {eyebrow ? <span className="eyebrow intro">{eyebrow}</span> : null}
           {heading}
           {description ? (

@@ -34,12 +34,12 @@ export function ProductCard({
   return (
     <Tag
       className={cn(
-        "group bg-surface-panel relative flex h-full w-full flex-col overflow-hidden rounded-2xl p-2",
-        "transition-[background-color] duration-[var(--duration-base)] ease-[var(--ease-out-quart)] hover:bg-steel-200/60",
-        "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-[var(--color-ring)]",
+        "group relative flex h-full w-full flex-col gap-4",
+        "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-[var(--color-ring)] rounded-xl",
       )}
     >
-      <div className="relative">
+      {/* The equipment takes most of the card; the words sit below it. */}
+      <div className="bg-surface-panel relative overflow-hidden rounded-xl transition-colors duration-[var(--duration-base)] group-hover:bg-steel-200/60">
         <RecordImage
           kind="product"
           name={`${product.name} ${product.categoryName}`}
@@ -47,30 +47,28 @@ export function ProductCard({
           sizes={sizes}
           priority={priority}
           fit="contain"
-          frameClassName="zoom-media aspect-[4/3] rounded-xl bg-transparent [&>img]:p-[7%]"
+          frameClassName="zoom-media aspect-square bg-transparent [&>img]:p-[11%]"
         />
-        <span className="text-ink-muted absolute top-3 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-md bg-white/90 px-2 py-1 text-[0.6875rem] font-medium tracking-[0.06em] uppercase">
-          {product.categoryName}
-        </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 px-3 pt-2 pb-3">
+      <div className="flex flex-1 flex-col gap-1 px-0.5">
+        <p className="eyebrow">{product.categoryName}</p>
         <h3 className="text-body text-ink text-safe leading-snug font-semibold">
           <Link
             href={productPath(product.slug)}
-            className="after:absolute after:inset-0 after:z-[1] after:rounded-[inherit] focus-visible:outline-none"
+            className="after:absolute after:inset-0 after:z-[1] after:rounded-xl focus-visible:outline-none"
           >
             {product.name}
           </Link>
         </h3>
-        {meta ? <p className="text-ink-subtle text-[0.75rem]">{meta}</p> : null}
         {product.shortDescription ? (
           <p className="text-ink-muted line-clamp-2 text-[0.8125rem] leading-relaxed">
             {product.shortDescription}
           </p>
         ) : null}
+        {meta ? <p className="text-ink-subtle text-[0.75rem]">{meta}</p> : null}
 
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-4">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-3">
           <span className="text-ink group-hover:text-primary inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold whitespace-nowrap transition-colors">
             View product
             <ArrowRight aria-hidden="true" className="arrow-nudge size-3.5" />
@@ -78,9 +76,9 @@ export function ProductCard({
           <AddToQuoteButton
             productId={product.id}
             productName={product.name}
-            size="sm"
+            variant="quiet"
             compact
-            className="relative z-[2] bg-white"
+            className="relative z-[2]"
           />
         </div>
       </div>
