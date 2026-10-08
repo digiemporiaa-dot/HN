@@ -48,7 +48,7 @@ export function BrandMark({
         .join("");
 
   return (
-    <span className={cn("flex items-center gap-3", className)}>
+    <span className={cn("flex min-w-0 items-center gap-3", className)}>
       <span
         aria-hidden="true"
         className={cn(
@@ -61,10 +61,10 @@ export function BrandMark({
         {initials || "HN"}
         <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-cyan-400" />
       </span>
-      <span className="flex flex-col leading-none">
+      <span className="flex min-w-0 flex-col leading-none">
         <span
           className={cn(
-            "font-display text-[1.0625rem] font-semibold tracking-[-0.02em]",
+            "font-display truncate text-[1.0625rem] font-semibold tracking-[-0.02em]",
             inverse ? "text-white" : "text-ink",
           )}
         >
@@ -78,7 +78,7 @@ export function BrandMark({
         </span>
         <span
           className={cn(
-            "mt-1 text-[0.625rem] font-semibold tracking-[0.2em] uppercase",
+            "mt-1 text-[0.625rem] font-semibold tracking-[0.2em] uppercase max-[399px]:hidden",
             inverse ? "text-cyan-300" : "text-ink-subtle",
           )}
         >

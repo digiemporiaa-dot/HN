@@ -77,10 +77,10 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
   return (
     <HeaderShell>
       <div className="relative">
-        <Container width="wide" className="flex h-[var(--header-h)] items-center justify-between gap-6">
+        <Container width="wide" className="flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6">
           <Link
             href="/"
-            className="flex shrink-0 items-center"
+            className="flex min-w-0 items-center"
             aria-label={`${settings.companyName} — home`}
           >
             <BrandMark name={settings.companyName} logoUrl={settings.logoUrl} />

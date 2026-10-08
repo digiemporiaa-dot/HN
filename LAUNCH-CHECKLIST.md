@@ -46,6 +46,10 @@ section of `DEPLOYMENT.md` that explains it.
 - [ ] Pages: homepage, About, Privacy policy, Terms — placeholders filled,
       published.
 - [ ] Catalogue: categories, products, brands published.
+- [ ] Demo content, if it was loaded: removed with
+      `node ops/seed-demo.mjs --remove`, or every "Partner …" brand, `demo-`
+      product and post, and the homepage's indicative figures replaced with
+      real, verified ones (the homepage statistics note says so until edited).
 - [ ] Blog (optional): publish articles, then add a "Blog" link (`/blog`) to
       the header or footer under Navigation.
 - [ ] SEO → Redirects: one per address on the old site.

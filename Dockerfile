@@ -27,8 +27,9 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     BUILD_WITHOUT_DATABASE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# public/ holds nothing the application ships yet, and git does not keep an
-# empty folder, so a fresh clone has none; the runtime stage copies it.
+# public/ holds the house imagery (public/images/hn) the site falls back to
+# and the demo seeder copies into the media library. Created here as well so
+# the runtime stage's copy never fails on a checkout without it.
 RUN mkdir -p public
 RUN npx prisma generate \
  && npx next build

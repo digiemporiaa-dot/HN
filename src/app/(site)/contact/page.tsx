@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
+  ArrowRight,
+  ArrowUpRight,
   Building2,
+  ClipboardList,
   Clock,
+  LayoutGrid,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
 } from "lucide-react";
 
-import { Breadcrumb, Container, Section } from "@/components/ui";
+import { Section } from "@/components/ui";
+import { PageHero } from "@/components/site/page-hero";
+import { SCENES } from "@/lib/visuals";
 import { EnquiryForm } from "@/components/site/enquiry-form";
 import { getSiteSettings } from "@/server/settings/service";
 import { submitEnquiryAction } from "@/server/leads/actions";
@@ -27,6 +34,12 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/contact" },
   });
 }
+
+const NEXT_STEPS = [
+  "A specialist for the equipment you asked about reviews your enquiry.",
+  "We confirm configuration, quantities and site requirements with you.",
+  "You receive a written quotation with delivery and installation terms.",
+];
 
 type Channel = {
   key: string;
@@ -115,66 +128,90 @@ export default async function ContactPage() {
     (channel): channel is Channel => channel !== null,
   );
 
+  const routes = [
+    {
+      icon: ClipboardList,
+      title: "Request a quotation",
+      body: "Build a list of equipment with quantities and send it as one request.",
+      href: "/rfq",
+      cta: "Start a quote",
+    },
+    {
+      icon: LayoutGrid,
+      title: "Browse the catalogue",
+      body: "Search products by category, specialty or manufacturer.",
+      href: "/products",
+      cta: "View products",
+    },
+    {
+      icon: MapPin,
+      title: "Supply in your city",
+      body: "See how supply, installation and support work where you are.",
+      href: "/locations",
+      cta: "Find a city",
+    },
+  ];
+
   return (
     <>
-      <JsonLd data={contactPageJsonLd(settings)} />
-      <Container className="pt-6">
-        <Breadcrumb
-          items={[{ label: "Home", href: "/" }, { label: "Contact" }]}
-        />
-      </Container>
+      <PageHero
+        trail={[{ label: "Home", href: "/" }, { label: "Contact" }]}
+        eyebrow={`Contact ${settings.companyName}`}
+        title="Talk to our healthcare equipment team."
+        description={DESCRIPTION}
+        image={SCENES.station}
+      />
 
-      <Section spacing="normal" container="standard">
-        <div className="flex max-w-[60ch] flex-col gap-4">
-          <p className="text-overline text-primary uppercase">
-            {settings.companyName}
-          </p>
-          <h1 className="text-h1 text-ink">Contact us</h1>
-          <p className="text-body-lg text-ink-muted">{DESCRIPTION}</p>
-        </div>
-
+      <Section spacing="large" container="wide">
         <div
           className={
             channels.length > 0
-              ? "mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16"
-              : "mt-10 max-w-[44rem]"
+              ? "grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-14"
+              : "mx-auto max-w-[48rem]"
           }
         >
-          <div className="border-line bg-surface rounded-lg border p-6 sm:p-8">
-            <h2 className="text-h4 text-ink mb-6">Send an enquiry</h2>
-            <EnquiryForm
-              action={submitEnquiryAction}
-              submitLabel="Send enquiry"
-            />
+          <div className="border-line bg-surface relative min-w-0 rounded-2xl border p-5 shadow-[var(--shadow-card)] sm:p-10 lg:col-span-7">
+            <div className="mb-8 flex flex-col gap-2">
+              <span className="eyebrow">Enquiry</span>
+              <h2 className="text-h2 text-ink">Send us your requirement.</h2>
+              <p className="text-body text-ink-muted max-w-[56ch]">
+                A product, a department or a whole project — a few details are
+                enough for the right specialist to reply.
+              </p>
+            </div>
+            <EnquiryForm action={submitEnquiryAction} submitLabel="Send enquiry" />
           </div>
 
           {channels.length > 0 ? (
-            <aside aria-labelledby="contact-details">
-              <h2 id="contact-details" className="text-h4 text-ink mb-6">
-                Other ways to reach us
-              </h2>
-              <dl className="flex flex-col gap-6">
+            <aside aria-labelledby="contact-details" className="flex min-w-0 flex-col gap-8 lg:col-span-5">
+              <div className="flex flex-col gap-2">
+                <span className="eyebrow">Direct</span>
+                <h2 id="contact-details" className="text-h3 text-ink">
+                  Other ways to reach us
+                </h2>
+              </div>
+              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 {channels.map((channel) => {
                   const Icon = channel.icon;
                   return (
-                    <div key={channel.key} className="flex gap-4">
-                      <span className="bg-surface-muted text-primary flex size-10 shrink-0 items-center justify-center rounded-md">
+                    <div
+                      key={channel.key}
+                      className="border-line bg-surface hover:border-line-strong relative flex gap-4 rounded-xl border p-5 transition-colors"
+                    >
+                      <span className="bg-medical-50 text-primary flex size-11 shrink-0 items-center justify-center rounded-lg">
                         <Icon aria-hidden="true" className="size-5" />
                       </span>
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <dt className="text-caption text-ink-subtle uppercase">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <dt className="text-caption text-ink-subtle font-semibold tracking-[0.12em] uppercase">
                           {channel.label}
                         </dt>
-                        <dd className="text-body text-ink break-words whitespace-pre-line">
+                        <dd className="text-body text-ink font-medium whitespace-pre-line [overflow-wrap:anywhere]">
                           {channel.href ? (
                             <a
                               href={channel.href}
                               className="hover:text-primary underline-offset-4 transition-colors hover:underline"
                               {...(channel.external
-                                ? {
-                                    target: "_blank",
-                                    rel: "noopener noreferrer",
-                                  }
+                                ? { target: "_blank", rel: "noopener noreferrer" }
                                 : {})}
                             >
                               {channel.value}
@@ -189,9 +226,10 @@ export default async function ContactPage() {
                               href={channel.extra.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-body-sm text-primary underline underline-offset-4"
+                              className="text-body-sm text-primary inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
                             >
                               {channel.extra.label}
+                              <ArrowUpRight aria-hidden="true" className="size-3.5" />
                             </a>
                           </dd>
                         ) : null}
@@ -200,10 +238,56 @@ export default async function ContactPage() {
                   );
                 })}
               </dl>
+
+              <div className="surface-pearl border-line rounded-xl border p-6">
+                <h3 className="text-h4 text-ink">What happens next</h3>
+                <ol className="mt-4 flex flex-col gap-4">
+                  {NEXT_STEPS.map((step, index) => (
+                    <li key={step} className="flex gap-3">
+                      <span className="border-line bg-surface text-caption text-primary flex size-7 shrink-0 items-center justify-center rounded-full border font-semibold">
+                        {index + 1}
+                      </span>
+                      <span className="text-body-sm text-ink-muted pt-0.5">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </aside>
           ) : null}
         </div>
       </Section>
+
+      <Section spacing="normal" container="wide" background="pearl">
+        <ul className="reveal-stagger grid gap-4 md:grid-cols-3 lg:gap-6">
+          {routes.map((route) => {
+            const Icon = route.icon;
+            return (
+              <li
+                key={route.href}
+                className="group border-line bg-surface relative flex flex-col gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-[box-shadow,transform] duration-[var(--duration-slow)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] sm:p-8"
+              >
+                <span className="text-primary">
+                  <Icon aria-hidden="true" className="size-6" />
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  <h2 className="text-h4 text-ink">
+                    <Link href={route.href} className="after:absolute after:inset-0 after:rounded-2xl">
+                      {route.title}
+                    </Link>
+                  </h2>
+                  <p className="text-body-sm text-ink-muted">{route.body}</p>
+                </div>
+                <span className="text-body-sm text-primary mt-auto inline-flex items-center gap-1.5 font-semibold">
+                  {route.cta}
+                  <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </Section>
+
+      <JsonLd data={contactPageJsonLd(settings)} />
     </>
   );
 }

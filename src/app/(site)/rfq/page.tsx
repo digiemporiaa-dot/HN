@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { Breadcrumb, Container, Section, SectionHeader } from "@/components/ui";
+import { Section } from "@/components/ui";
+import { MetaChip, PageHero } from "@/components/site/page-hero";
 import { RfqComposer } from "@/components/site/rfq-composer";
 import { withSeoOverride } from "@/server/seo/overrides";
 
@@ -20,6 +21,8 @@ const BASE_METADATA: Metadata = {
   robots: { index: false, follow: true },
 };
 
+const STEPS = ["Review quantities", "Add your details", "Receive a quotation"];
+
 /** The page's own metadata, with any override the SEO team has set for it. */
 export async function generateMetadata(): Promise<Metadata> {
   return withSeoOverride("/rfq", BASE_METADATA);
@@ -28,24 +31,25 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RfqPage() {
   return (
     <>
-      <Container className="pt-6">
-        <Breadcrumb
-          items={[{ label: "Home", href: "/" }, { label: "Quotation list" }]}
-        />
-      </Container>
+      <PageHero
+        trail={[{ label: "Home", href: "/" }, { label: "Quotation list" }]}
+        eyebrow="Request for quotation"
+        title="Request a quotation."
+        description="A tender covers a list, not a machine. Set a quantity for each product, add anything that affects the price, and send the whole list as one request."
+        meta={
+          <>
+            {STEPS.map((step, index) => (
+              <MetaChip key={step}>
+                <span className="text-primary font-semibold">{index + 1}</span>
+                {step}
+              </MetaChip>
+            ))}
+          </>
+        }
+      />
 
-      <Section spacing="normal" container="standard">
-        <SectionHeader
-          as="h1"
-          title="Request a quotation"
-          description="A tender covers a list, not a machine. Set a quantity for each product, add anything that affects the price, and send the whole list as one request."
-        />
-
-        {/* Narrower than the section: a form and a short list read better in a
-            column than across a wide screen. */}
-        <div className="mt-8 max-w-[58rem]">
-          <RfqComposer />
-        </div>
+      <Section spacing="normal" container="wide">
+        <RfqComposer />
       </Section>
     </>
   );

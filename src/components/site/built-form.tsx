@@ -55,11 +55,13 @@ export function BuiltForm({
 
   if (state.done) {
     return (
-      <div className="border-success-100 bg-success-50 text-success-700 text-body-sm flex items-start gap-2.5 rounded-md border p-4">
-        <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-        <span>
-          {state.message ?? "Thank you — we have received your submission."}
+      <div role="status" className="flex flex-col items-start gap-4">
+        <span className="bg-success-50 text-success-700 ring-success-100 flex size-12 items-center justify-center rounded-full ring-8">
+          <CheckCircle2 aria-hidden="true" className="size-6" />
         </span>
+        <p className="text-h4 text-ink max-w-[52ch]">
+          {state.message ?? "Thank you — we have received your submission."}
+        </p>
       </div>
     );
   }
@@ -101,7 +103,7 @@ export function BuiltForm({
       {state.error ? (
         <div
           role="alert"
-          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm rounded-md border p-3.5"
+          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm rounded-lg border p-4"
         >
           {state.error}
         </div>
@@ -120,7 +122,7 @@ export function BuiltForm({
       </div>
 
       <div>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} className="w-full sm:w-auto">
           <Send aria-hidden="true" className="size-4" />
           {form.submitLabel || "Send"}
         </Button>

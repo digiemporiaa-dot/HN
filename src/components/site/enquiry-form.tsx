@@ -97,31 +97,35 @@ export function EnquiryForm({
 
   if (done) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="border-success-100 bg-success-50 text-success-700 text-body-sm flex items-start gap-2.5 rounded-md border p-4">
-          <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-          <span>
-            Thank you — your enquiry has reached our sales team
-            {state.reference ? (
-              <>
-                {" "}
-                as <span className="font-medium">{state.reference}</span>
-              </>
-            ) : null}
-            . We normally reply within one working day.
+      <div role="status" className="flex flex-col gap-6">
+        <div className="flex flex-col items-start gap-4">
+          <span className="bg-success-50 text-success-700 ring-success-100 flex size-12 items-center justify-center rounded-full ring-8">
+            <CheckCircle2 aria-hidden="true" className="size-6" />
           </span>
+          <div className="flex flex-col gap-2">
+            <p className="text-h4 text-ink">Thank you — your enquiry is with our team.</p>
+            <p className="text-body text-ink-muted max-w-[52ch]">
+              We normally reply within one working day. Keep the reference
+              below if you need to follow up.
+            </p>
+          </div>
+          {state.reference ? (
+            <span className="border-line bg-surface-pearl text-body-sm text-ink inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5">
+              <span className="text-ink-subtle">Reference</span>
+              <span className="font-mono font-semibold tracking-wide">{state.reference}</span>
+            </span>
+          ) : null}
         </div>
 
         {state.downloadUrl ? (
           <a
             href={state.downloadUrl}
-            className="border-line bg-surface hover:border-line-strong flex items-center gap-3 rounded-md border p-4 transition-colors"
+            className="border-line bg-surface hover:border-primary/40 group flex items-center gap-3 rounded-xl border p-4 shadow-[var(--shadow-card)] transition-colors"
           >
-            <Download
-              aria-hidden="true"
-              className="text-primary size-5 shrink-0"
-            />
-            <span className="text-body-sm text-ink font-medium">
+            <span className="bg-medical-50 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+              <Download aria-hidden="true" className="size-5" />
+            </span>
+            <span className="text-body-sm text-ink group-hover:text-primary font-semibold transition-colors">
               Download your document
             </span>
           </a>
@@ -167,7 +171,7 @@ export function EnquiryForm({
       {state.error ? (
         <div
           role="alert"
-          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm rounded-md border p-3.5"
+          className="border-danger-100 bg-danger-50 text-danger-700 text-body-sm rounded-lg border p-4"
         >
           {state.error}
         </div>
@@ -297,7 +301,7 @@ export function EnquiryForm({
       </div>
 
       <div>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} className="w-full sm:w-auto">
           <Mail aria-hidden="true" className="size-4" />
           {submitLabel}
         </Button>

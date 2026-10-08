@@ -226,13 +226,19 @@ account,
 the second only adds what is missing.
 
 To see the whole site populated before the real catalogue and copy are
-ready, load demo content: categories, products (with placeholder images and
-FAQs), brands, specialties, solutions, applications, About / Privacy / Terms
-pages, blog posts, and header and footer menus if those are empty — all
-published, so the site looks complete. Every name starts "Demo –", every
-image says DEMO, and there are no prices, ratings, clients or
-certifications. Loading it also switches on **"Ask search engines not to
-index this site"**, so none of it is indexed.
+ready, load demo content: ten equipment categories with sub-ranges, 26
+products (studio images, specifications, features, brochures and FAQs),
+placeholder partner brands, specialties, solutions, clinical applications,
+ten city pages, six blog posts, About / Privacy / Terms pages, a complete
+homepage, and a header menu if that is empty — all published, so the site
+looks complete. Demo records are identifiable: every catalogue, post and
+media slug starts `demo-`, brands are called "Partner Alpha", "Partner Beta"
+and so on, the homepage figures are labelled as indicative, and there are no
+prices, ratings, clients or certifications. Company details are only filled
+in where the setting is still blank, and the previous values are restored on
+removal. Loading it also switches on **"Ask search engines not to index this
+site"**, so none of it is indexed. Nothing is seeded automatically: the
+command has to be run by hand.
 
 ```bash
 node ops/seed-demo.mjs            # add and publish the demo content

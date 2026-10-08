@@ -45,7 +45,7 @@ export function Modal({
         // The dialog is drawn in the top layer but still inherits its
         // ancestors' custom properties, so it resets them: a modal opened from
         // a dark section is the same modal as one opened from the page.
-        "surface-reset bg-surface text-ink m-auto w-[calc(100vw-2rem)] rounded-xl p-0 shadow-xl",
+        "surface-reset bg-surface text-ink m-auto w-[calc(100vw-2rem)] rounded-2xl p-0 shadow-[var(--shadow-float)]",
         "backdrop:bg-navy-950/60 backdrop:backdrop-blur-[2px]",
         sizeClass[size],
       )}
@@ -71,7 +71,7 @@ export function Modal({
         </button>
       </div>
 
-      <div className="max-h-[min(60vh,32rem)] overflow-y-auto p-6">
+      <div className="max-h-[min(70vh,40rem)] overflow-y-auto p-6">
         {children}
       </div>
 

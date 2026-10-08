@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
-import { Button, Container } from "@/components/ui";
+import { Button, buttonStyles, Container } from "@/components/ui";
 
 /**
  * Route-level error boundary. The raw error is never rendered — production users
@@ -24,29 +25,28 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <Container
-      width="narrow"
-      as="main"
-      className="flex min-h-dvh flex-col items-center justify-center gap-6 py-24 text-center"
-    >
-      <span className="text-overline text-primary uppercase">
-        Unexpected error
-      </span>
-      <h1 className="text-h1 text-ink">Something went wrong</h1>
-      <p className="text-body-lg text-ink-muted max-w-[52ch]">
-        We were unable to complete that request. Please try again — if the
-        problem continues, contact our team.
-      </p>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button size="lg" onClick={reset}>
-          Try again
-        </Button>
-      </div>
-      {error.digest ? (
-        <p className="text-caption text-ink-subtle">
-          Reference: {error.digest}
+    <main className="surface-grid flex min-h-dvh items-center">
+      <Container width="narrow" className="flex flex-col items-start gap-6 py-24">
+        <span className="eyebrow">Unexpected error</span>
+        <h1 className="text-section text-ink">Something went wrong.</h1>
+        <p className="text-lead text-ink-muted max-w-[52ch]">
+          We were unable to complete that request. Please try again — if the
+          problem continues, contact our team.
         </p>
-      ) : null}
-    </Container>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="lg" onClick={reset}>
+            Try again
+          </Button>
+          <Link href="/" className={buttonStyles({ variant: "outline", size: "lg" })}>
+            Return to homepage
+          </Link>
+        </div>
+        {error.digest ? (
+          <p className="border-line bg-surface text-caption text-ink-subtle rounded-full border px-3 py-1.5">
+            Reference: <span className="font-mono">{error.digest}</span>
+          </p>
+        ) : null}
+      </Container>
+    </main>
   );
 }
