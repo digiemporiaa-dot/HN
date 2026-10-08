@@ -70,7 +70,16 @@ export async function publicProduct(slug: string) {
         },
       },
       applications: {
-        select: { application: { select: { name: true, slug: true } } },
+        select: {
+          application: {
+            select: {
+              name: true,
+              slug: true,
+              description: true,
+              image: PUBLIC_IMAGE,
+            },
+          },
+        },
       },
       points: {
         orderBy: [{ kind: "asc" }, { order: "asc" }],
@@ -157,7 +166,12 @@ export async function publicProduct(slug: string) {
     solutions: product.solutions
       .map((row) => row.solution)
       .filter((row) => row.status === "PUBLISHED"),
-    applications: product.applications.map((row) => row.application),
+    applications: product.applications.map((row) => ({
+      name: row.application.name,
+      slug: row.application.slug,
+      description: row.application.description,
+      image: toImage(row.application.image, row.application.name),
+    })),
     // Split here rather than on the page: the page should not have to know
     // that two lists which look nothing alike share a table.
     highlights: product.points

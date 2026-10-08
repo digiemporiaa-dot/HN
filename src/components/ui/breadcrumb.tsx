@@ -32,7 +32,7 @@ export function Breadcrumb({
   return (
     <nav aria-label="Breadcrumb" className={cn("w-full", className)}>
       {structuredData ? <JsonLd data={breadcrumbJsonLd(items)} /> : null}
-      <ol className="text-caption text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1">
+      <ol className="text-caption text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1 tracking-[0.01em]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 
@@ -44,14 +44,16 @@ export function Breadcrumb({
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="hover:text-ink transition-colors"
+                  className="hover:text-ink underline-offset-4 transition-colors hover:underline"
                 >
                   {item.label}
                 </Link>
               ) : (
                 <span
                   aria-current={isLast ? "page" : undefined}
-                  className={cn(isLast && "text-ink font-medium")}
+                  className={cn(
+                    isLast && "text-ink line-clamp-1 font-medium",
+                  )}
                 >
                   {item.label}
                 </span>

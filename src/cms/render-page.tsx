@@ -10,17 +10,25 @@ import {
   SECTION_BACKGROUND,
   SECTION_COLUMNS,
   SECTION_CONTAINER,
+  SECTION_LAYOUT,
   SECTION_SPACING,
   type SectionDesign,
 } from "@/lib/design/section-options";
 import { contentSchemaFor, getSectionDefinition } from "./sections/definitions";
 import {
   entityKey,
+  latestPosts,
   resolveEntities,
   type EntityRequest,
   type ResolvedEntity,
 } from "./sections/entities";
-import { SECTION_RENDERERS } from "./sections/renderers";
+import {
+  rendersOwnSection,
+  SECTION_RENDERERS,
+  type LocationGroup,
+  type RendererProps,
+} from "./sections/renderers";
+import { locationsIndex } from "@/server/locations/public";
 import { publicForm, type PublicForm } from "@/server/forms/service";
 
 export type StoredSection = {
@@ -82,6 +90,7 @@ function normaliseDesign(raw: unknown, anchorId: string | null): SectionDesign {
       IMAGE_POSITION,
       DEFAULT_SECTION_DESIGN.imagePosition!,
     ),
+    layout: pick(source.layout, SECTION_LAYOUT, DEFAULT_SECTION_DESIGN.layout!),
     anchorId: anchorId && isValidAnchorId(anchorId) ? anchorId : undefined,
   };
 }
@@ -209,15 +218,27 @@ export async function RenderedSections({
     .filter((section) => section.enabled)
     .sort((a, b) => a.order - b.order);
 
-  const [mediaByIdMap, entityById, formsByKey] = await Promise.all([
+  const wantsLocations = enabled.some((section) => section.type === "RELATED_LOCATIONS");
+  const wantsLatest = enabled.some(
+    (section) =>
+      section.type === "POST_GRID" &&
+      !(Array.isArray((section.content as Record<string, unknown> | null)?.items) &&
+        ((section.content as Record<string, unknown[]>).items).length > 0),
+  );
+
+  const [mediaByIdMap, entityById, formsByKey, locations, latest] = await Promise.all([
     resolveMedia(enabled),
     resolveEntities(entityRequests(enabled)),
     resolveForms(enabled),
+    wantsLocations
+      ? locationsIndex().catch((): LocationGroup[] => [])
+      : Promise.resolve<LocationGroup[]>([]),
+    wantsLatest ? latestPosts(4) : Promise.resolve<ResolvedEntity[]>([]),
   ]);
 
   return (
     <>
-      {enabled.map((section) => {
+      {enabled.map((section, index) => {
         const definition = getSectionDefinition(section.type);
         const Renderer = SECTION_RENDERERS[section.type];
         const schema = contentSchemaFor(section.type);
@@ -272,6 +293,11 @@ export async function RenderedSections({
             : [];
         }
 
+        // An article grid left empty shows the newest articles.
+        if (section.type === "POST_GRID" && (entities.items ?? []).length === 0) {
+          entities.items = latest;
+        }
+
         // A built form that has since been unpublished or deleted resolves to
         // nothing, and the section falls back to the enquiry form rather than
         // rendering a gap where a form used to be.
@@ -285,6 +311,21 @@ export async function RenderedSections({
               : null;
         }
 
+        const props: RendererProps = {
+          forms,
+          content,
+          design,
+          media,
+          mediaById,
+          entities,
+          locations,
+          first: index === 0,
+        };
+
+        if (rendersOwnSection(section.type, props)) {
+          return <Renderer key={section.id} {...props} />;
+        }
+
         return (
           <Section
             key={section.id}
@@ -293,14 +334,7 @@ export async function RenderedSections({
             background={design.background}
             anchorId={design.anchorId}
           >
-            <Renderer
-              forms={forms}
-              content={content}
-              design={design}
-              media={media}
-              mediaById={mediaById}
-              entities={entities}
-            />
+            <Renderer {...props} />
           </Section>
         );
       })}

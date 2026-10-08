@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight, MapPin } from "lucide-react";
 
-import {
-  Breadcrumb,
-  Container,
-  EmptyState,
-  Section,
-  SectionHeader,
-} from "@/components/ui";
+import { buttonStyles, EmptyState, Section, SectionHeader } from "@/components/ui";
+import { MetaChip, PageHero } from "@/components/site/page-hero";
+import { PageCta } from "@/components/site/page-cta";
+import { groupByRegion, REGIONS } from "@/lib/regions";
+import { SCENES } from "@/lib/visuals";
 import { locationsIndex } from "@/server/locations/public";
 import { withSeoOverride } from "@/server/seo/overrides";
 
@@ -26,70 +25,130 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Every published city, grouped by state.
+ * Every published city, grouped by region and state.
  *
- * A list of names rather than a map: a map of India with a handful of pins is
- * a picture of how much is missing, and the visitor who opens this page wants
- * to find one city, which a list in alphabetical order does better.
+ * Lists rather than a map: a map of India with a handful of pins is a picture
+ * of how much is missing, and the visitor who opens this page wants to find
+ * one city, which an organised list does better.
  */
 export default async function LocationsPage() {
   const states = await locationsIndex();
   const total = states.reduce((sum, state) => sum + state.cities.length, 0);
+  const regions = groupByRegion(
+    states.map((state) => ({ name: state.name, cities: [state] })),
+  );
 
   return (
     <>
-      <Container className="pt-6">
-        <Breadcrumb
-          items={[{ label: "Home", href: "/" }, { label: "Locations" }]}
-        />
-      </Container>
+      <PageHero
+        variant="image"
+        image={SCENES.corridor}
+        trail={[{ label: "Home", href: "/" }, { label: "Locations" }]}
+        eyebrow="Pan-India coverage"
+        title="Supplying healthcare institutions across India."
+        description="Equipment supply, installation and support for hospitals, clinics and diagnostic centres — with local pages for the cities we serve most often."
+        meta={
+          total > 0 ? (
+            <>
+              <MetaChip dark>
+                <span className="size-1.5 rounded-full bg-cyan-500" />
+                {total} cit{total === 1 ? "y" : "ies"}
+              </MetaChip>
+              <MetaChip dark>{states.length} state{states.length === 1 ? "" : "s"}</MetaChip>
+              <MetaChip dark>{regions.length} region{regions.length === 1 ? "" : "s"}</MetaChip>
+            </>
+          ) : undefined
+        }
+      />
 
-      <Section spacing="normal" container="standard">
-        <SectionHeader
-          title="Locations"
-          description={DESCRIPTION}
-          align="left"
-        />
-
+      <Section spacing="large" container="wide" background="grid">
         {total === 0 ? (
-          <div className="mt-8">
+          <div className="flex flex-col gap-10">
             <EmptyState
-              title="No locations yet"
-              description="City pages are being prepared. In the meantime, every product page takes an enquiry from anywhere in India."
+              icon={<MapPin aria-hidden="true" className="size-6" />}
+              title="City pages are being prepared"
+              description="We supply institutions across India. Every product page takes an enquiry from anywhere in the country."
+              action={
+                <Link href="/contact" className={buttonStyles({})}>
+                  Contact our team
+                </Link>
+              }
             />
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {REGIONS.map(([region]) => (
+                <li key={region} className="border-line bg-surface text-body-sm text-ink flex items-center gap-3 rounded-2xl border p-5 font-medium">
+                  <MapPin aria-hidden="true" className="text-primary size-4" />
+                  {region}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : (
-          <div className="mt-10 grid grid-cols-1 gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {states.map((state) => (
-              <section key={state.id} aria-labelledby={`state-${state.id}`}>
-                <h2
-                  id={`state-${state.id}`}
-                  className="text-overline text-ink-subtle border-line border-b pb-2 uppercase"
-                >
-                  {state.name}
-                </h2>
-                <ul className="mt-3 flex flex-col">
-                  {state.cities.map((city) => (
-                    <li key={city.id}>
-                      <Link
-                        href={city.href}
-                        className="text-body text-ink hover:text-primary group flex flex-col gap-0.5 rounded-md py-2 transition-colors"
-                      >
-                        <span className="font-medium">{city.name}</span>
-                        {city.headline ? (
-                          <span className="text-body-sm text-ink-muted group-hover:text-ink-muted line-clamp-1">
-                            {city.headline}
-                          </span>
-                        ) : null}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+          <div className="flex flex-col gap-14">
+            <SectionHeader
+              overline="Browse by region"
+              title="Find your city."
+              description="Each city page lists the equipment hospitals there most often ask about, and how supply and installation work locally."
+            />
+            <div className="flex flex-col gap-12">
+              {regions.map(([region, stateGroups]) => (
+                <section key={region} aria-labelledby={`region-${region}`} className="reveal grid gap-6 lg:grid-cols-12 lg:gap-10">
+                  <div className="lg:col-span-3">
+                    <h2 id={`region-${region}`} className="text-h3 text-ink">{region}</h2>
+                    <p className="text-caption text-ink-subtle mt-1">
+                      {stateGroups.reduce((sum, state) => sum + state.cities.length, 0)} cities
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:col-span-9 xl:grid-cols-3">
+                    {stateGroups.map((state) => (
+                      <div key={state.id} className="border-line bg-surface flex flex-col gap-3 rounded-2xl border p-5 shadow-[var(--shadow-card)]">
+                        <h3 className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">
+                          {state.name}
+                        </h3>
+                        <ul className="flex flex-col">
+                          {state.cities.map((city) => (
+                            <li key={city.id} className="border-line border-t first:border-t-0">
+                              <Link
+                                href={city.href}
+                                className="group flex items-center justify-between gap-3 py-3"
+                              >
+                                <span className="flex min-w-0 flex-col">
+                                  <span className="text-body text-ink group-hover:text-primary font-semibold transition-colors">
+                                    {city.name}
+                                  </span>
+                                  {city.headline ? (
+                                    <span className="text-caption text-ink-muted line-clamp-1">{city.headline}</span>
+                                  ) : null}
+                                </span>
+                                <ArrowRight aria-hidden="true" className="arrow-nudge text-ink-subtle size-4 shrink-0" />
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         )}
       </Section>
+
+      <PageCta
+        title="Equipping a facility outside these cities?"
+        body="We work with institutions across India. Tell us about the project and our team will coordinate supply and installation."
+        actions={
+          <>
+            <Link href="/rfq" className={buttonStyles({ size: "lg" })}>
+              Request a quote
+            </Link>
+            <Link href="/contact" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Contact our team
+            </Link>
+          </>
+        }
+      />
     </>
   );
 }

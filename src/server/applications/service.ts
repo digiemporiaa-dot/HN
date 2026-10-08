@@ -26,6 +26,7 @@ export async function findApplication(id: string) {
       slug: true,
       name: true,
       description: true,
+      imageId: true,
       updatedAt: true,
       _count: { select: { products: true } },
     },

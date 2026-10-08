@@ -135,6 +135,9 @@ enum SectionType {
   PROCESS_STEPS
   TABS
   ACCORDION
+  SOLUTION_GRID
+  APPLICATION_GRID
+  POST_GRID
 }
 
 // ---------------------------------------------------------------------------
@@ -450,6 +453,7 @@ model MediaAsset {
   cityHeroImages       City[]            @relation("CityHeroImage")
   seoOverrideImages    SeoOverride[]     @relation("SeoOverrideImage")
   blogPostCovers       BlogPost[]        @relation("BlogPostCover")
+  applicationImages    Application[]     @relation("ApplicationImage")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -1329,12 +1333,18 @@ model Application {
   description String?
   order       Int     @default(0)
 
+  /// The clinical environment pictured on the application's card and page.
+  /// Optional: without one the site shows a matching house image.
+  imageId String?
+  image   MediaAsset? @relation("ApplicationImage", fields: [imageId], references: [id], onDelete: SetNull)
+
   products ProductApplication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([order])
+  @@index([imageId])
 }
 
 model ProductApplication {

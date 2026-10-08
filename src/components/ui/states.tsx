@@ -25,14 +25,18 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "border-line flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed px-6 py-16 text-center",
+        "border-line bg-surface relative flex flex-col items-center justify-center gap-5 overflow-hidden rounded-2xl border px-6 py-16 text-center",
         className,
       )}
     >
-      <span className="text-ink-subtle bg-surface-muted rounded-full p-3">
+      <span
+        aria-hidden="true"
+        className="surface-grid pointer-events-none absolute inset-x-0 top-0 h-32 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
+      <span className="text-primary border-line bg-surface relative flex size-14 items-center justify-center rounded-2xl border shadow-[var(--shadow-card)]">
         {icon ?? <Inbox aria-hidden="true" className="size-6" />}
       </span>
-      <div className="flex flex-col gap-1.5">
+      <div className="relative flex flex-col gap-1.5">
         <p className="text-h4 text-ink">{title}</p>
         {description ? (
           <p className="text-body-sm text-ink-muted mx-auto max-w-[46ch]">
@@ -83,7 +87,7 @@ export function Skeleton({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "bg-surface-muted block animate-pulse rounded-md",
+        "bg-surface-muted block animate-pulse rounded-lg",
         className,
       )}
     />

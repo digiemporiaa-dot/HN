@@ -7,6 +7,7 @@ import { applicationPath } from "./service";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
+import { clearUsage, recordUsage } from "@/server/media/service";
 import { recordAuditEvent } from "@/server/audit/log";
 import { requirePermission } from "@/server/permissions";
 import { fieldErrorsFrom } from "@/lib/validation/field-errors";
@@ -34,7 +35,36 @@ function readForm(formData: FormData) {
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description") ?? "",
+    imageId: formData.get("imageId") ?? "",
   };
+}
+
+/** A picked asset only counts if it still exists in the library. */
+async function liveAssetId(assetId: string): Promise<string | null> {
+  if (!assetId) return null;
+  const asset = await prisma.mediaAsset.findFirst({
+    where: { id: assetId, deletedAt: null },
+    select: { id: true },
+  });
+  return asset?.id ?? null;
+}
+
+async function syncImageUsage(
+  applicationId: string,
+  assetId: string | null,
+): Promise<void> {
+  await clearUsage({
+    entityType: "Application",
+    entityId: applicationId,
+    field: "image",
+  });
+  if (!assetId) return;
+  await recordUsage({
+    assetId,
+    entityType: "Application",
+    entityId: applicationId,
+    field: "image",
+  });
 }
 
 export async function createApplicationAction(
@@ -59,15 +89,18 @@ export async function createApplicationAction(
     select: { order: true },
   });
 
+  const imageId = await liveAssetId(parsed.data.imageId);
   const application = await prisma.application.create({
     data: {
       name: parsed.data.name,
       slug: parsed.data.slug,
       description: parsed.data.description || null,
+      imageId,
       order: (last?.order ?? -1) + 1,
     },
     select: { id: true, name: true },
   });
+  await syncImageUsage(application.id, imageId);
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -119,14 +152,17 @@ export async function updateApplicationAction(
     return { fieldErrors: { slug: "An application already uses that slug." } };
   }
 
+  const imageId = await liveAssetId(parsed.data.imageId);
   await prisma.application.update({
     where: { id: application.id },
     data: {
       name: parsed.data.name,
       slug: parsed.data.slug,
       description: parsed.data.description || null,
+      imageId,
     },
   });
+  await syncImageUsage(application.id, imageId);
 
   if (application._count.products > 0) {
     await syncPublicPath({
@@ -170,6 +206,7 @@ export async function deleteApplicationAction(
   // off the products carrying it and loses nothing else, so this is a hard
   // delete with the count shown first rather than a guard.
   await prisma.application.delete({ where: { id: application.id } });
+  await syncImageUsage(application.id, null);
 
   await recordAuditEvent({
     actorId: actor.id,

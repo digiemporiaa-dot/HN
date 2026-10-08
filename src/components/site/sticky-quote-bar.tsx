@@ -52,12 +52,12 @@ export function StickyQuoteBar({
       aria-hidden={!shown}
       inert={!shown}
       className={cn(
-        "border-line bg-surface/95 fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur",
+        "border-line fixed inset-x-0 bottom-0 z-40 border-t bg-white/90 shadow-[0_-12px_32px_-20px_rgb(10_22_38/0.35)] backdrop-blur-md",
         "transition-transform duration-[var(--duration-base)] ease-[var(--ease-out-quart)]",
         shown ? "translate-y-0" : "translate-y-full",
       )}
     >
-      <Container className="flex items-center justify-between gap-4 py-3">
+      <Container width="wide" className="flex items-center justify-between gap-4 py-3">
         {children}
       </Container>
     </div>

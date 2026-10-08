@@ -25,7 +25,15 @@ const LIMIT = 500;
  * simply not live.
  */
 export const catalogueChoices = cache(async (): Promise<CatalogueChoices> => {
-  const [products, categories, brands, specialties] = await Promise.all([
+  const [
+    products,
+    categories,
+    brands,
+    specialties,
+    solutions,
+    applications,
+    posts,
+  ] = await Promise.all([
     prisma.product.findMany({
       where: { deletedAt: null },
       orderBy: { name: "asc" },
@@ -59,6 +67,22 @@ export const catalogueChoices = cache(async (): Promise<CatalogueChoices> => {
       orderBy: { name: "asc" },
       take: LIMIT,
       select: { id: true, name: true, status: true },
+    }),
+    prisma.solution.findMany({
+      orderBy: { name: "asc" },
+      take: LIMIT,
+      select: { id: true, name: true, status: true },
+    }),
+    prisma.application.findMany({
+      orderBy: { name: "asc" },
+      take: LIMIT,
+      select: { id: true, name: true },
+    }),
+    prisma.blogPost.findMany({
+      where: { deletedAt: null },
+      orderBy: { publishedAt: "desc" },
+      take: LIMIT,
+      select: { id: true, title: true, status: true },
     }),
   ]);
 
@@ -94,6 +118,25 @@ export const catalogueChoices = cache(async (): Promise<CatalogueChoices> => {
     specialty: specialties.map((row) => ({
       id: row.id,
       name: row.name,
+      group: "",
+      status: row.status,
+    })),
+    solution: solutions.map((row) => ({
+      id: row.id,
+      name: row.name,
+      group: "",
+      status: row.status,
+    })),
+    // Applications have no draft state: one that exists is public.
+    application: applications.map((row) => ({
+      id: row.id,
+      name: row.name,
+      group: "",
+      status: "PUBLISHED",
+    })),
+    post: posts.map((row) => ({
+      id: row.id,
+      name: row.title,
       group: "",
       status: row.status,
     })),

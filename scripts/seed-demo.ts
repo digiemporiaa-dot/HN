@@ -10,265 +10,279 @@ import {
   buildStorageKey,
   resolveStoragePath,
 } from "../src/server/storage/paths";
+import { SETTINGS_BY_KEY } from "../src/server/settings/registry";
+import { starterHomeSections } from "../src/server/cms/homepage";
+import {
+  APPLICATIONS,
+  BRANDS,
+  CATALOGUE,
+  CATEGORY_FAQS,
+  PRODUCT_FAQS,
+  SOLUTIONS,
+  SPECIALTIES,
+  type DemoProduct,
+} from "./demo/catalogue";
+import { ABOUT, CITIES, CITY_FAQS, POLICY, POSTS } from "./demo/editorial";
 
 /**
- * Demo content for the whole site, to see it populated before the real
- * catalogue and copy are ready.
+ * Demo content for the whole public site, to present it fully populated
+ * before the real catalogue and copy are ready.
  *
  *   node ops/seed-demo.mjs            # add and publish the demo content
  *   node ops/seed-demo.mjs --remove   # take all of it out again
  *
- * What it adds: categories and subcategories, products (with images and
- * FAQs), brands, specialties, solutions, applications, About / Privacy /
- * Terms pages, blog posts, and header and footer menus if those are empty.
- * The homepage builds itself from the published catalogue.
+ * (In development: npm run db:seed:demo [-- --remove].)
  *
- * How it stays honest on a live domain:
- *   - every name starts "Demo –", every image says DEMO, every address of a
- *     catalogue record or post starts "demo-";
- *   - no prices, ratings, reviews, clients, certifications, addresses or
- *     model numbers — those are claims only the business can make;
- *   - "Ask search engines not to index this site" is switched on, so none of
- *     it is indexed while it is up. Switch it off in Settings → SEO once the
- *     real content is in and the demo is removed.
+ * Nothing runs automatically: the script only ever acts when someone runs it.
  *
- * After adding or removing, restart the application in Coolify so cached
- * pages are rebuilt from the database.
+ * What it adds: ten equipment categories with subcategories, twenty-six
+ * products (renders, gallery, highlights, features, grouped specifications, a
+ * brochure PDF and FAQs), placeholder partner brands, specialties, solutions,
+ * applications, six articles, ten city pages, About / Privacy / Terms pages, a
+ * published homepage and a header menu if the header is empty. Imagery comes
+ * from public/images/hn and is copied into the media library so editors can
+ * swap it like any upload.
+ *
+ * How it stays identifiable and removable:
+ *   - every catalogue record, article and media file starts "demo-";
+ *   - pages, cities, menu items and settings it creates or fills are listed in
+ *     a manifest (setting "demo.manifest"), and --remove restores exactly
+ *     those — a page, city or setting that already existed is never touched;
+ *   - brands are named "Partner Alpha…Omega" with generic marks, specification
+ *     values are typical ranges, figures on the homepage are labelled
+ *     indicative; no prices, ratings, clients or certifications;
+ *   - "Ask search engines not to index this site" is switched on while the
+ *     demo is up. Switch it off in Settings → SEO once real content is in.
+ *
+ * After adding or removing, restart the application (or wait for the cached
+ * pages to refresh) so prerendered pages are rebuilt from the database.
  */
 
 const PREFIX = "demo-";
-const DEMO = "Demo – ";
-const NAME = (name: string) => `${DEMO}${name}`;
-const slug = (name: string) =>
-  PREFIX +
+const MANIFEST_KEY = "demo.manifest";
+/** The earlier seeder's naming, still recognised by --remove. */
+const LEGACY_TITLE = "Demo – ";
+
+const slugify = (name: string) =>
   name
     .toLowerCase()
+    .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+const slug = (name: string) => PREFIX + slugify(name);
 
-const SAMPLE_NOTE =
-  "This is sample content. Replace it with your own, or remove all demo content with `node ops/seed-demo.mjs --remove`.";
+type Manifest = {
+  pages: string[];
+  cities: string[];
+  states: string[];
+  menuItems: string[];
+  /** Settings this script filled, with the value they had before. */
+  settings: Record<string, string | null>;
+};
 
-/* ------------------------------------------------------------- the data -- */
+const EMPTY_MANIFEST: Manifest = {
+  pages: [],
+  cities: [],
+  states: [],
+  menuItems: [],
+  settings: {},
+};
 
-type DemoProduct = { name: string; short: string; body: string };
-type DemoSub = { name: string; short: string; products: DemoProduct[] };
-type DemoCategory = { name: string; short: string; subs: DemoSub[] };
-
-const CATALOGUE: DemoCategory[] = [
-  {
-    name: "Critical Care",
-    short: "Equipment for intensive care and high-dependency units.",
-    subs: [
-      {
-        name: "Patient Monitors",
-        short: "Bedside and central monitoring of vital signs.",
-        products: [
-          {
-            name: "Multi-parameter Patient Monitor",
-            short: "Bedside monitoring of ECG, SpO2, NIBP, temperature and respiration.",
-            body: "A bedside monitor for continuous observation of vital signs. Typical parameters include **ECG**, **SpO2**, **non-invasive blood pressure**, temperature and respiration, with alarms and trend review.",
-          },
-          {
-            name: "Central Monitoring Station",
-            short: "Several bedside monitors on one screen at the nurses' station.",
-            body: "A central station that gathers readings from networked bedside monitors so a ward can be watched from one place.",
-          },
-        ],
-      },
-      {
-        name: "Ventilators",
-        short: "Invasive and non-invasive ventilation.",
-        products: [
-          {
-            name: "ICU Ventilator",
-            short: "Invasive and non-invasive ventilation for adult and paediatric patients.",
-            body: "An intensive care ventilator offering volume and pressure modes for invasive and non-invasive ventilation.",
-          },
-          {
-            name: "Transport Ventilator",
-            short: "Compact ventilation during transfers.",
-            body: "A portable ventilator for moving ventilated patients between departments or facilities.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: "Operation Theatre",
-    short: "Lights, tables and equipment for surgical suites.",
-    subs: [
-      {
-        name: "OT Lights",
-        short: "Illumination for the operating field.",
-        products: [
-          {
-            name: "LED Surgical Light",
-            short: "Even, shadow-reduced LED illumination over the operating table.",
-            body: "A ceiling-mounted LED light giving even, shadow-reduced illumination over the operating field.",
-          },
-        ],
-      },
-      {
-        name: "OT Tables",
-        short: "Operating tables for general and speciality surgery.",
-        products: [
-          {
-            name: "Electro-hydraulic Operating Table",
-            short: "Powered height, tilt and section adjustment.",
-            body: "An operating table with powered height, tilt and section adjustment for common surgical positions.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: "Hospital Furniture",
-    short: "Beds, trolleys and furniture for wards and departments.",
-    subs: [
-      {
-        name: "Hospital Beds",
-        short: "Beds for wards and intensive care.",
-        products: [
-          {
-            name: "ICU Bed",
-            short: "Motorised bed with height, backrest and knee-rest adjustment.",
-            body: "A motorised intensive care bed with side rails and adjustable sections for patient positioning.",
-          },
-        ],
-      },
-      {
-        name: "Trolleys",
-        short: "Carts and trolleys for wards and emergency.",
-        products: [
-          {
-            name: "Emergency Crash Cart",
-            short: "Drawers for resuscitation equipment and medicines.",
-            body: "A mobile cart that keeps resuscitation equipment and medicines organised and ready in an emergency.",
-          },
-        ],
-      },
-    ],
-  },
-];
-
-const BRANDS = [
-  { name: "Brand A", categories: ["Critical Care"], products: ["Multi-parameter Patient Monitor", "Central Monitoring Station", "ICU Ventilator", "Transport Ventilator"] },
-  { name: "Brand B", categories: ["Operation Theatre", "Hospital Furniture"], products: ["LED Surgical Light", "Electro-hydraulic Operating Table", "ICU Bed", "Emergency Crash Cart"] },
-];
-
-const SPECIALTIES = [
-  { name: "Intensive Care", categories: ["Critical Care", "Hospital Furniture"], products: ["Multi-parameter Patient Monitor", "Central Monitoring Station", "ICU Ventilator", "ICU Bed"] },
-  { name: "Surgery", categories: ["Operation Theatre"], products: ["LED Surgical Light", "Electro-hydraulic Operating Table"] },
-  { name: "Emergency", categories: ["Hospital Furniture"], products: ["Transport Ventilator", "Emergency Crash Cart"] },
-];
-
-const SOLUTIONS = [
-  { name: "ICU Setup", short: "Equipping a new intensive care unit.", categories: ["Critical Care", "Hospital Furniture"], products: ["Multi-parameter Patient Monitor", "ICU Ventilator", "ICU Bed"] },
-  { name: "Operation Theatre Setup", short: "Equipping a new operating theatre.", categories: ["Operation Theatre"], products: ["LED Surgical Light", "Electro-hydraulic Operating Table"] },
-];
-
-const APPLICATIONS = [
-  { name: "Adult Care", products: ["Multi-parameter Patient Monitor", "ICU Ventilator", "ICU Bed"] },
-  { name: "Patient Transfer", products: ["Transport Ventilator", "Emergency Crash Cart"] },
-];
-
-const FEATURED_PRODUCTS = new Set([
-  "Multi-parameter Patient Monitor",
-  "ICU Ventilator",
-  "LED Surgical Light",
-  "ICU Bed",
-]);
-
-const PRODUCT_FAQS = [
-  {
-    question: "How do I get a quotation?",
-    answer:
-      "Add the product to your quotation list and send the request, or use the enquiry form on this page. Every quotation is prepared for your requirement.",
-  },
-  {
-    question: "Can I ask about several products at once?",
-    answer:
-      "Yes. Add each product to the quotation list and send them together in one request.",
-  },
-];
-
-const POSTS = [
-  {
-    title: "What to consider when choosing a patient monitor",
-    excerpt: "The questions worth settling before comparing patient monitors.",
-    body: "This is a sample article showing how a blog post looks on the site.\n\nA post is written in sections, like a page: text, images, a video, an FAQ or related products.\n\nReplace this article with your own writing, or remove all demo content.",
-  },
-  {
-    title: "Planning equipment for a new ICU",
-    excerpt: "A sample article on planning the equipment list for an intensive care unit.",
-    body: "This is a sample article.\n\nUse the blog for guidance that helps hospital teams plan and buy: checklists, explanations of equipment types, and answers to common questions.\n\nReplace this article with your own writing, or remove all demo content.",
-  },
-  {
-    title: "Preparing a quotation request",
-    excerpt: "A sample article on what to include when asking for a quotation.",
-    body: "This is a sample article.\n\nA clear request — quantities, the department, any configuration or timeline — helps a supplier quote accurately.\n\nReplace this article with your own writing, or remove all demo content.",
-  },
-];
-
-/* --------------------------------------------------------------- images -- */
-
-const escapeXml = (text: string) =>
-  text.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** A placeholder picture: clearly a sample, never mistaken for a photo. */
-function demoSvg(label: string, hue: number): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="hsl(${hue},45%,92%)"/><stop offset="1" stop-color="hsl(${hue},40%,80%)"/>
-  </linearGradient></defs>
-  <rect width="1200" height="900" fill="url(#g)"/>
-  <rect x="470" y="250" width="260" height="190" rx="24" fill="none" stroke="hsl(${hue},35%,45%)" stroke-width="14"/>
-  <circle cx="600" cy="345" r="48" fill="none" stroke="hsl(${hue},35%,45%)" stroke-width="14"/>
-  <text x="600" y="560" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700" fill="hsl(${hue},35%,28%)">DEMO IMAGE</text>
-  <text x="600" y="625" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" fill="hsl(${hue},30%,32%)">${escapeXml(label)}</text>
-</svg>`;
+async function readManifest(): Promise<Manifest> {
+  const row = await prisma.setting.findUnique({
+    where: { key: MANIFEST_KEY },
+    select: { jsonValue: true },
+  });
+  return { ...EMPTY_MANIFEST, ...((row?.jsonValue ?? {}) as Partial<Manifest>) };
 }
 
-let hue = 200;
-async function demoImage(label: string, folder: StorageFolder): Promise<string> {
-  const originalName = `${slug(label)}.svg`;
+async function writeManifest(manifest: Manifest): Promise<void> {
+  await prisma.setting.upsert({
+    where: { key: MANIFEST_KEY },
+    update: { jsonValue: manifest as unknown as Prisma.InputJsonValue },
+    create: {
+      key: MANIFEST_KEY,
+      group: "system",
+      type: "JSON",
+      label: "Demo content manifest",
+      description: "Written by the demo seeder so --remove can undo exactly what it added.",
+      jsonValue: manifest as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+/* ---------------------------------------------------------------- media -- */
+
+const IMAGES = path.resolve(process.cwd(), "public/images/hn");
+
+const DIMENSIONS: Record<string, [number, number]> = {
+  products: [1600, 1200],
+  categories: [1600, 1200],
+  scenes: [2000, 1250],
+  brands: [240, 60],
+};
+
+async function storeFile(params: {
+  originalName: string;
+  bytes: Buffer;
+  folder: StorageFolder;
+  extension: string;
+  mimeType: string;
+  kind: "IMAGE" | "VECTOR" | "DOCUMENT";
+  title: string;
+  altText?: string;
+  width?: number;
+  height?: number;
+}): Promise<string> {
   const existing = await prisma.mediaAsset.findFirst({
-    where: { originalName, deletedAt: null },
+    where: { originalName: params.originalName, deletedAt: null },
     select: { id: true },
   });
   if (existing) return existing.id;
 
-  hue = (hue + 37) % 360;
-  const bytes = Buffer.from(demoSvg(label, hue), "utf8");
-  const storageKey = buildStorageKey({ folder, extension: "svg" });
+  const storageKey = buildStorageKey({ folder: params.folder, extension: params.extension });
   const file = resolveStoragePath(storageKey);
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, bytes, { mode: 0o640 });
+  await fs.writeFile(file, params.bytes, { mode: 0o640 });
 
   const asset = await prisma.mediaAsset.create({
     data: {
       storageKey,
-      originalName,
-      mimeType: "image/svg+xml",
-      kind: "VECTOR",
-      sizeBytes: bytes.length,
-      width: 1200,
-      height: 900,
-      title: NAME(label),
-      altText: `Demo image: ${label}`,
+      originalName: params.originalName,
+      mimeType: params.mimeType,
+      kind: params.kind,
+      sizeBytes: params.bytes.length,
+      width: params.width,
+      height: params.height,
+      title: params.title,
+      altText: params.altText,
     },
     select: { id: true },
   });
   return asset.id;
 }
 
+/** A house image from public/images/hn, as a media library asset. */
+async function image(
+  rel: string,
+  folder: StorageFolder,
+  alt: string,
+): Promise<string> {
+  const [group, file] = rel.split("/");
+  const extension = path.extname(file).slice(1);
+  const bytes = await fs.readFile(path.join(IMAGES, rel));
+  const [width, height] =
+    rel.includes("hero-") ? [2560, 1280] : (DIMENSIONS[group] ?? [1600, 1200]);
+  return storeFile({
+    originalName: `${PREFIX}${group}-${file}`,
+    bytes,
+    folder,
+    extension,
+    mimeType: extension === "svg" ? "image/svg+xml" : "image/webp",
+    kind: extension === "svg" ? "VECTOR" : "IMAGE",
+    title: alt,
+    altText: alt,
+    width,
+    height,
+  });
+}
+
+const scene = (key: string, alt: string) => image(`scenes/${key}.webp`, "general", alt);
+
+/* ------------------------------------------------------------ brochure -- */
+
+/** A one-page product overview PDF, drawn directly so no library is needed. */
+function brochurePdf(product: DemoProduct, category: string): Buffer {
+  const ascii = (text: string) =>
+    text
+      .replace(/₂/g, "2")
+      .replace(/[–—]/g, "-")
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/×/g, "x")
+      .replace(/±/g, "+/-")
+      .replace(/≥/g, ">=")
+      .replace(/°/g, " deg")
+      .replace(/\*\*/g, "")
+      .replace(/[^\x20-\x7e]/g, "")
+      .replace(/([\\()])/g, "\\$1");
+
+  const wrap = (text: string, width: number) => {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    for (const word of words) {
+      if ((line + " " + word).trim().length > width) {
+        lines.push(line.trim());
+        line = word;
+      } else line += " " + word;
+    }
+    if (line.trim()) lines.push(line.trim());
+    return lines;
+  };
+
+  const ops: string[] = [];
+  ops.push("0.039 0.086 0.149 rg 0 742 595 100 re f");
+  ops.push("0.18 0.74 0.84 rg 48 768 4 40 re f");
+  ops.push(`BT /F1 9 Tf 1 1 1 rg 62 798 Td (${ascii("HN MEDICAL  |  PRODUCT OVERVIEW")}) Tj ET`);
+  ops.push(`BT /F1 20 Tf 1 1 1 rg 62 772 Td (${ascii(product.name)}) Tj ET`);
+  let y = 712;
+  ops.push(`BT /F1 9 Tf 0.12 0.4 0.86 rg 48 ${y} Td (${ascii(category.toUpperCase())}) Tj ET`);
+  y -= 22;
+  for (const line of wrap(ascii(product.short), 88)) {
+    ops.push(`BT /F2 11 Tf 0.04 0.09 0.15 rg 48 ${y} Td (${line}) Tj ET`);
+    y -= 16;
+  }
+  y -= 8;
+  ops.push(`BT /F1 12 Tf 0.04 0.09 0.15 rg 48 ${y} Td (Highlights) Tj ET`);
+  y -= 18;
+  for (const point of product.highlights) {
+    ops.push(`0.18 0.74 0.84 rg 50 ${y + 2} 4 4 re f`);
+    ops.push(`BT /F2 10 Tf 0.25 0.32 0.39 rg 62 ${y} Td (${ascii(point)}) Tj ET`);
+    y -= 15;
+  }
+  for (const group of product.specs) {
+    y -= 12;
+    ops.push(`BT /F1 12 Tf 0.04 0.09 0.15 rg 48 ${y} Td (${ascii(group.label)}) Tj ET`);
+    y -= 6;
+    for (const [label, value, unit] of group.items) {
+      y -= 16;
+      ops.push(`0.86 0.89 0.93 RG 0.5 w 48 ${y - 5} m 547 ${y - 5} l S`);
+      ops.push(`BT /F2 10 Tf 0.33 0.4 0.49 rg 48 ${y} Td (${ascii(label)}) Tj ET`);
+      ops.push(`BT /F2 10 Tf 0.04 0.09 0.15 rg 250 ${y} Td (${ascii(unit ? `${value} ${unit}` : value)}) Tj ET`);
+    }
+  }
+  ops.push(`BT /F2 8 Tf 0.43 0.5 0.6 rg 48 48 Td (${ascii("Demonstration document. Specifications are typical values for illustration; confirm the configuration with your quotation.")}) Tj ET`);
+
+  const stream = ops.join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>",
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  objects.forEach((body, index) => {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(pdf, "latin1");
+}
+
 /* ------------------------------------------------------------- sections -- */
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
-const sectionRows = (
-  rows: Array<{ type: string; content: object; design?: object }>,
-) =>
+
+type SectionInput = { type: string; content: object; design?: object };
+
+const sectionRows = (rows: SectionInput[]) =>
   rows.map((row, order) => ({
     type: row.type as never,
     order,
@@ -277,140 +291,172 @@ const sectionRows = (
     design: json({ ...DEFAULT_SECTION_DESIGN, ...row.design }),
   }));
 
-const ABOUT_SECTIONS = sectionRows([
-  {
-    type: "HEADING_TEXT",
-    content: {
-      overline: "Demo page",
-      heading: "About us",
-      body: "This is a sample About page. Replace it with the company's own story: when it started, where it works and what it supplies.",
-    },
-  },
-  {
-    type: "ICON_CARDS",
-    content: {
-      heading: "What we do",
-      intro: "Sample cards. Replace them with what the company actually does.",
-      items: [
-        { title: "Supply", body: "Equipment for hospitals, clinics and diagnostic centres.", linkLabel: "", linkHref: "" },
-        { title: "Installation", body: "Setting up equipment where it will be used.", linkLabel: "", linkHref: "" },
-        { title: "Service", body: "Support after installation.", linkLabel: "", linkHref: "" },
-      ],
-    },
-    design: { background: "light", columns: "3" },
-  },
-  {
-    type: "PROCESS_STEPS",
-    content: {
-      heading: "How a quotation works",
-      intro: "",
-      items: [
-        { title: "Build a list", body: "Add products to the quotation list from the catalogue." },
-        { title: "Send the request", body: "Tell us the quantities and anything about your requirement." },
-        { title: "Receive a quotation", body: "We prepare a quotation for your requirement." },
-      ],
-    },
-  },
-  {
-    type: "CTA",
-    content: {
-      heading: "Planning a new department or an upgrade?",
-      body: "Build a list from the catalogue and send it in one request.",
-      primaryLabel: "Browse the catalogue",
-      primaryHref: "/products",
-      secondaryLabel: "Contact us",
-      secondaryHref: "/contact",
-    },
-    design: { background: "dark", align: "center" },
-  },
-]);
-
-const policySections = (title: string) =>
-  sectionRows([
-    {
-      type: "RICH_TEXT",
-      content: {
-        heading: title,
-        body: `**Sample text — not a real ${title.toLowerCase()}.** Replace this page with your own policy, reviewed by your legal adviser, before relying on it.\n\nThis page shows how a policy page looks on the site: headings, paragraphs, **bold** text and [links](/contact).\n\n${SAMPLE_NOTE}`,
-      },
-      design: { container: "narrow" },
-    },
-  ]);
-
-const PAGES = [
-  { slug: "about", title: "About us", sections: ABOUT_SECTIONS },
-  { slug: "privacy", title: "Privacy policy", sections: policySections("Privacy policy") },
-  { slug: "terms", title: "Terms of use", sections: policySections("Terms of use") },
-];
-
-const HEADER_MENU = [
-  { label: "Products", href: "/products" },
-  { label: "Categories", href: "/categories" },
-  { label: "Specialties", href: "/specialties" },
-  { label: "Solutions", href: "/solutions" },
-  { label: "Blog", href: "/blog" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
-];
-
-const FOOTER_MENU = [
-  {
-    label: "Catalogue",
-    children: [
-      { label: "Products", href: "/products" },
-      { label: "Categories", href: "/categories" },
-      { label: "Brands", href: "/brands" },
-      { label: "Specialties", href: "/specialties" },
-    ],
-  },
-  {
-    label: "Company",
-    children: [
-      { label: "About", href: "/about" },
-      { label: "Blog", href: "/blog" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-];
-
 /* ------------------------------------------------------------------ add -- */
+
+async function fillSetting(manifest: Manifest, key: string, value: string) {
+  const definition = SETTINGS_BY_KEY.get(key);
+  if (!definition) return;
+  const row = await prisma.setting.findUnique({ where: { key }, select: { value: true } });
+  // Only fill what an administrator has not set.
+  if (row?.value && !(key in manifest.settings)) return;
+  if (!(key in manifest.settings)) manifest.settings[key] = row?.value ?? null;
+  await prisma.setting.upsert({
+    where: { key },
+    update: { value },
+    create: {
+      key,
+      group: definition.group,
+      type: definition.type,
+      label: definition.label,
+      description: definition.description,
+      value,
+      isSecret: definition.isSecret ?? false,
+    },
+  });
+}
 
 async function add(): Promise<void> {
   const now = new Date();
   const live = { status: "PUBLISHED" as const, publishedAt: now };
-  const counts = { created: 0 };
-  const bump = <T>(value: T) => {
-    counts.created += 1;
-    return value;
-  };
+  const manifest = await readManifest();
+  let created = 0;
 
+  // ---- brands
+  const brandIds = new Map<string, string>();
+  for (const [order, brand] of BRANDS.entries()) {
+    const brandSlug = slug(brand.name);
+    const existing = await prisma.brand.findUnique({ where: { slug: brandSlug }, select: { id: true } });
+    const row =
+      existing ??
+      (await prisma.brand.create({
+        data: {
+          slug: brandSlug,
+          name: brand.name,
+          shortDescription:
+            "Placeholder manufacturer partner for demonstration. Replace with the brands you represent.",
+          description:
+            "This brand is a neutral placeholder used to demonstrate how manufacturer pages, logo strips and filters appear on the site.",
+          logoId: await image(`brands/${brand.key}.svg`, "brands", `${brand.name} logo`),
+          featured: true,
+          order,
+          ...live,
+        },
+        select: { id: true },
+      }));
+    if (!existing) created++;
+    brandIds.set(brand.key.replace(/^./, (c) => c.toUpperCase()), row.id);
+  }
+
+  // ---- specialties, solutions, applications (linked to products below)
+  const specialtyIds = new Map<string, string>();
+  for (const [order, specialty] of SPECIALTIES.entries()) {
+    const s = slug(specialty.name);
+    const existing = await prisma.specialty.findUnique({ where: { slug: s }, select: { id: true } });
+    const row =
+      existing ??
+      (await prisma.specialty.create({
+        data: {
+          slug: s,
+          name: specialty.name,
+          shortDescription: specialty.short,
+          description: `${specialty.short}\n\nWe work with ${specialty.name.toLowerCase()} teams to plan equipment for new departments and upgrades, matching configurations to case mix, bed count and existing infrastructure. Browse the related categories and products below, or send us your requirement for a consolidated quotation.`,
+          imageId: await scene(specialty.image, `${specialty.name} clinical environment`),
+          bannerId: await scene(specialty.image, `${specialty.name} clinical environment`),
+          featured: true,
+          order,
+          ...live,
+        },
+        select: { id: true },
+      }));
+    if (!existing) created++;
+    specialtyIds.set(specialty.name, row.id);
+  }
+
+  const solutionIds = new Map<string, string>();
+  for (const [order, solution] of SOLUTIONS.entries()) {
+    const s = slug(solution.name);
+    const existing = await prisma.solution.findUnique({ where: { slug: s }, select: { id: true } });
+    const row =
+      existing ??
+      (await prisma.solution.create({
+        data: {
+          slug: s,
+          name: solution.name,
+          shortDescription: solution.short,
+          description: `${solution.short}\n\nOur team helps define the scope — rooms, quantities and configurations — and coordinates supply, installation and user orientation as one project. Each package is quoted to the institution's requirement.`,
+          imageId: await scene(solution.image, `${solution.name}`),
+          bannerId: await scene(solution.image, `${solution.name}`),
+          featured: order < 4,
+          order,
+          ...live,
+        },
+        select: { id: true },
+      }));
+    if (!existing) created++;
+    solutionIds.set(solution.name, row.id);
+  }
+
+  const applicationIds = new Map<string, string>();
+  for (const [order, application] of APPLICATIONS.entries()) {
+    const s = slug(application.name);
+    const existing = await prisma.application.findUnique({ where: { slug: s }, select: { id: true } });
+    const row =
+      existing ??
+      (await prisma.application.create({
+        data: {
+          slug: s,
+          name: application.name,
+          description: application.description,
+          imageId: await scene(application.image, application.name),
+          order,
+        },
+        select: { id: true },
+      }));
+    if (!existing) created++;
+    applicationIds.set(application.name, row.id);
+  }
+
+  // ---- catalogue
   const categoryIds = new Map<string, string>();
   const productIds = new Map<string, string>();
+  const productsByCategory = new Map<string, string[]>();
 
   for (const [order, category] of CATALOGUE.entries()) {
     const parentSlug = slug(category.name);
-    const parent =
-      (await prisma.category.findFirst({
-        where: { slug: parentSlug, parentId: null },
+    let parent = await prisma.category.findFirst({
+      where: { slug: parentSlug, parentId: null },
+      select: { id: true },
+    });
+    if (!parent) {
+      const imageId = await image(`categories/${category.image}.webp`, "categories", `${category.name} equipment`);
+      parent = await prisma.category.create({
+        data: {
+          slug: parentSlug,
+          name: category.name,
+          shortDescription: category.short,
+          description: category.description,
+          procurementInfo: category.procurement,
+          imageId,
+          depth: 0,
+          order,
+          featured: category.featured ?? false,
+          ...live,
+        },
         select: { id: true },
-      })) ??
-      bump(
-        await prisma.category.create({
-          data: {
-            slug: parentSlug,
-            name: NAME(category.name),
-            shortDescription: category.short,
-            description: `${category.short}\n\n${SAMPLE_NOTE}`,
-            imageId: await demoImage(category.name, "categories"),
-            depth: 0,
-            order,
-            featured: true,
-            ...live,
-          },
-          select: { id: true },
-        }),
-      );
+      });
+      created++;
+      await prisma.faq.createMany({
+        data: CATEGORY_FAQS.map((faq, faqOrder) => ({
+          entityType: "Category",
+          entityId: parent!.id,
+          question: faq.question,
+          answer: faq.answer,
+          order: faqOrder,
+        })),
+      });
+    }
     categoryIds.set(category.name, parent.id);
+    const inCategory: string[] = [];
 
     for (const [subOrder, sub] of category.subs.entries()) {
       const subSlug = slug(sub.name);
@@ -419,49 +465,109 @@ async function add(): Promise<void> {
           where: { slug: subSlug, parentId: parent.id },
           select: { id: true },
         })) ??
-        bump(
-          await prisma.category.create({
-            data: {
-              slug: subSlug,
-              name: NAME(sub.name),
-              shortDescription: sub.short,
-              imageId: await demoImage(sub.name, "categories"),
-              parentId: parent.id,
-              depth: 1,
-              order: subOrder,
-              ...live,
-            },
-            select: { id: true },
-          }),
-        );
+        (await prisma.category.create({
+          data: {
+            slug: subSlug,
+            name: sub.name,
+            shortDescription: sub.short,
+            imageId: await image(`products/${sub.products[0].image}.webp`, "categories", sub.name),
+            parentId: parent.id,
+            depth: 1,
+            order: subOrder,
+            ...live,
+          },
+          select: { id: true },
+        }));
 
       for (const [productOrder, product] of sub.products.entries()) {
         const productSlug = slug(product.name);
-        const existing = await prisma.product.findUnique({
-          where: { slug: productSlug },
-          select: { id: true },
-        });
+        const existing = await prisma.product.findUnique({ where: { slug: productSlug }, select: { id: true } });
         if (existing) {
           productIds.set(product.name, existing.id);
+          inCategory.push(existing.id);
           continue;
         }
-        const row = bump(
-          await prisma.product.create({
-            data: {
-              slug: productSlug,
-              name: NAME(product.name),
-              shortDescription: product.short,
-              description: `${product.body}\n\n${SAMPLE_NOTE}`,
-              categoryId: child.id,
-              primaryImageId: await demoImage(product.name, "products"),
-              featured: FEATURED_PRODUCTS.has(product.name),
-              order: productOrder,
-              ...live,
-            },
-            select: { id: true },
-          }),
-        );
+
+        const primaryImageId = await image(`products/${product.image}.webp`, "products", product.name);
+        const row = await prisma.product.create({
+          data: {
+            slug: productSlug,
+            name: product.name,
+            shortDescription: product.short,
+            description: product.body,
+            categoryId: child.id,
+            brandId: brandIds.get(product.brand) ?? null,
+            primaryImageId,
+            featured: product.featured ?? false,
+            order: productOrder,
+            ...live,
+          },
+          select: { id: true },
+        });
+        created++;
         productIds.set(product.name, row.id);
+        inCategory.push(row.id);
+
+        if (product.alt) {
+          const altId = await image(`products/${product.image}-alt.webp`, "products", `${product.name}, alternate view`);
+          await prisma.productImage.create({ data: { productId: row.id, mediaId: altId, order: 0 } });
+        }
+
+        await prisma.productPoint.createMany({
+          data: [
+            ...product.highlights.map((title, index) => ({
+              productId: row.id,
+              kind: "HIGHLIGHT" as const,
+              title,
+              order: index,
+            })),
+            ...product.features.map(([title, body], index) => ({
+              productId: row.id,
+              kind: "FEATURE" as const,
+              title,
+              body,
+              order: index,
+            })),
+          ],
+        });
+
+        for (const [groupOrder, group] of product.specs.entries()) {
+          await prisma.productSpecGroup.create({
+            data: {
+              productId: row.id,
+              label: group.label,
+              order: groupOrder,
+              items: {
+                create: group.items.map(([label, value, unit], itemOrder) => ({
+                  label,
+                  value,
+                  unit: unit ?? null,
+                  order: itemOrder,
+                })),
+              },
+            },
+          });
+        }
+
+        const pdfId = await storeFile({
+          originalName: `${productSlug}-brochure.pdf`,
+          bytes: brochurePdf(product, category.name),
+          folder: "brochures",
+          extension: "pdf",
+          mimeType: "application/pdf",
+          kind: "DOCUMENT",
+          title: `${product.name} — product overview`,
+        });
+        await prisma.productDocument.create({
+          data: {
+            productId: row.id,
+            mediaId: pdfId,
+            title: `${product.name} — product overview`,
+            kind: "BROCHURE",
+            gated: false,
+          },
+        });
+
         await prisma.faq.createMany({
           data: PRODUCT_FAQS.map((faq, faqOrder) => ({
             entityType: "Product",
@@ -471,226 +577,284 @@ async function add(): Promise<void> {
             order: faqOrder,
           })),
         });
+
+        const pick = (names: string[], from: Map<string, string>) =>
+          names.map((name) => from.get(name)).filter((id): id is string => Boolean(id));
+        await prisma.productSpecialty.createMany({
+          data: pick(product.specialties, specialtyIds).map((specialtyId) => ({ productId: row.id, specialtyId })),
+          skipDuplicates: true,
+        });
+        await prisma.productSolution.createMany({
+          data: pick(product.solutions, solutionIds).map((solutionId) => ({ productId: row.id, solutionId })),
+          skipDuplicates: true,
+        });
+        await prisma.productApplication.createMany({
+          data: pick(product.applications, applicationIds).map((applicationId) => ({ productId: row.id, applicationId })),
+          skipDuplicates: true,
+        });
       }
     }
+    productsByCategory.set(category.name, inCategory);
   }
 
-  const ids = (names: string[], from: Map<string, string>) =>
-    names.map((name) => from.get(name)).filter((id): id is string => !!id);
-
-  for (const [order, brand] of BRANDS.entries()) {
-    const brandSlug = slug(brand.name);
-    let row = await prisma.brand.findUnique({
-      where: { slug: brandSlug },
-      select: { id: true },
-    });
-    if (!row) {
-      row = bump(
-        await prisma.brand.create({
-          data: {
-            slug: brandSlug,
-            name: NAME(brand.name),
-            shortDescription: "A sample brand. Replace with the manufacturers you actually supply.",
-            logoId: await demoImage(brand.name, "brands"),
-            order,
-            featured: true,
-            ...live,
-          },
-          select: { id: true },
-        }),
-      );
-      await prisma.brandCategory.createMany({
-        data: ids(brand.categories, categoryIds).map((categoryId) => ({
-          brandId: row!.id,
-          categoryId,
-        })),
+  // Related products: others in the same category, then the neighbouring one.
+  const categoryNames = CATALOGUE.map((category) => category.name);
+  for (const [index, name] of categoryNames.entries()) {
+    const own = productsByCategory.get(name) ?? [];
+    const next = productsByCategory.get(categoryNames[(index + 1) % categoryNames.length]) ?? [];
+    for (const productId of own) {
+      const related = [...own.filter((id) => id !== productId), ...next].slice(0, 3);
+      await prisma.productRelated.createMany({
+        data: related.map((relatedId, order) => ({ productId, relatedId, order })),
         skipDuplicates: true,
       });
     }
-    await prisma.product.updateMany({
-      where: { id: { in: ids(brand.products, productIds) } },
-      data: { brandId: row.id },
-    });
   }
 
-  for (const [order, specialty] of SPECIALTIES.entries()) {
-    const specialtySlug = slug(specialty.name);
-    const row =
-      (await prisma.specialty.findUnique({
-        where: { slug: specialtySlug },
-        select: { id: true },
-      })) ??
-      bump(
-        await prisma.specialty.create({
-          data: {
-            slug: specialtySlug,
-            name: NAME(specialty.name),
-            shortDescription: `Sample specialty: equipment for ${specialty.name.toLowerCase()}.`,
-            imageId: await demoImage(specialty.name, "general"),
-            order,
-            featured: true,
-            ...live,
-          },
-          select: { id: true },
-        }),
-      );
-    await prisma.productSpecialty.createMany({
-      data: ids(specialty.products, productIds).map((productId) => ({
-        productId,
-        specialtyId: row.id,
-      })),
-      skipDuplicates: true,
-    });
+  // Taxonomy ↔ category links.
+  for (const specialty of SPECIALTIES) {
+    const specialtyId = specialtyIds.get(specialty.name)!;
     await prisma.categorySpecialty.createMany({
-      data: ids(specialty.categories, categoryIds).map((categoryId) => ({
-        categoryId,
-        specialtyId: row.id,
-      })),
+      data: specialty.categories
+        .map((name) => categoryIds.get(name))
+        .filter((id): id is string => Boolean(id))
+        .map((categoryId) => ({ categoryId, specialtyId })),
       skipDuplicates: true,
     });
   }
-
-  for (const [order, solution] of SOLUTIONS.entries()) {
-    const solutionSlug = slug(solution.name);
-    const row =
-      (await prisma.solution.findUnique({
-        where: { slug: solutionSlug },
-        select: { id: true },
-      })) ??
-      bump(
-        await prisma.solution.create({
-          data: {
-            slug: solutionSlug,
-            name: NAME(solution.name),
-            shortDescription: solution.short,
-            description: `${solution.short}\n\n${SAMPLE_NOTE}`,
-            imageId: await demoImage(solution.name, "general"),
-            order,
-            ...live,
-          },
-          select: { id: true },
-        }),
-      );
-    await prisma.productSolution.createMany({
-      data: ids(solution.products, productIds).map((productId) => ({
-        productId,
-        solutionId: row.id,
-      })),
-      skipDuplicates: true,
-    });
+  for (const solution of SOLUTIONS) {
+    const solutionId = solutionIds.get(solution.name)!;
     await prisma.solutionCategory.createMany({
-      data: ids(solution.categories, categoryIds).map((categoryId) => ({
-        solutionId: row.id,
-        categoryId,
-      })),
+      data: solution.categories
+        .map((name) => categoryIds.get(name))
+        .filter((id): id is string => Boolean(id))
+        .map((categoryId) => ({ categoryId, solutionId })),
       skipDuplicates: true,
     });
   }
-
-  for (const application of APPLICATIONS) {
-    const applicationSlug = slug(application.name);
-    const row =
-      (await prisma.application.findUnique({
-        where: { slug: applicationSlug },
-        select: { id: true },
-      })) ??
-      bump(
-        await prisma.application.create({
-          data: { slug: applicationSlug, name: NAME(application.name) },
-          select: { id: true },
-        }),
-      );
-    await prisma.productApplication.createMany({
-      data: ids(application.products, productIds).map((productId) => ({
-        productId,
-        applicationId: row.id,
-      })),
-      skipDuplicates: true,
-    });
-  }
-
-  // Pages keep their real addresses (/about, /privacy, /terms), so they are
-  // recognised as demo by their title. A page that already exists at one of
-  // these addresses is left alone.
-  for (const page of PAGES) {
-    if (await prisma.page.findUnique({ where: { slug: page.slug } })) continue;
-    bump(
-      await prisma.page.create({
-        data: {
-          slug: page.slug,
-          title: NAME(page.title),
-          ...live,
-          sections: { create: page.sections },
-        },
-      }),
+  for (const brand of BRANDS) {
+    const brandId = brandIds.get(brand.key.replace(/^./, (c) => c.toUpperCase()))!;
+    const categories = CATALOGUE.filter((category) =>
+      category.subs.some((sub) => sub.products.some((product) => product.brand.toLowerCase() === brand.key)),
     );
+    await prisma.brandCategory.createMany({
+      data: categories.map((category) => ({ brandId, categoryId: categoryIds.get(category.name)! })),
+      skipDuplicates: true,
+    });
   }
 
-  for (const [index, post] of POSTS.entries()) {
+  // ---- articles
+  for (const post of POSTS) {
     const postSlug = slug(post.title);
     if (await prisma.blogPost.findUnique({ where: { slug: postSlug } })) continue;
-    bump(
-      await prisma.blogPost.create({
-        data: {
-          slug: postSlug,
-          title: NAME(post.title),
-          excerpt: post.excerpt,
-          authorName: "Demo author",
-          coverId: await demoImage(post.title, "blogs"),
-          featured: index === 0,
-          status: "PUBLISHED",
-          // A day apart, so the index has an order to show.
-          publishedAt: new Date(now.getTime() - index * 86_400_000),
-          sections: {
-            create: sectionRows([
-              { type: "RICH_TEXT", content: { body: post.body }, design: { container: "narrow" } },
-            ]),
-          },
-        },
-      }),
-    );
+    const blocks = post.body.map((block) => {
+      const headed = /^## (.+)\n([\s\S]+)$/.exec(block);
+      return headed
+        ? { type: "RICH_TEXT", content: { heading: headed[1], body: headed[2] }, design: { container: "narrow", spacing: "compact" } }
+        : { type: "RICH_TEXT", content: { heading: "", body: block }, design: { container: "narrow", spacing: "compact" } };
+    });
+    const sections: SectionInput[] = [
+      ...blocks,
+      ...(post.faqs
+        ? [{
+            type: "FAQ",
+            content: { overline: "", heading: "Frequently asked questions", intro: "", items: post.faqs.map(([question, answer]) => ({ question, answer })) },
+            design: { container: "narrow" },
+          }]
+        : []),
+    ];
+    await prisma.blogPost.create({
+      data: {
+        slug: postSlug,
+        title: post.title,
+        excerpt: post.excerpt,
+        authorName: post.author,
+        coverId: await scene(post.image, post.title),
+        featured: post.featured ?? false,
+        status: "PUBLISHED",
+        publishedAt: new Date(now.getTime() - post.daysAgo * 86_400_000),
+        sections: { create: sectionRows(sections) },
+      },
+    });
+    created++;
   }
 
-  // Menus: only filled when empty, so a menu someone has set up is kept.
-  for (const menu of [
-    { key: "HEADER", name: "Main navigation", location: "HEADER" as const },
-    { key: "FOOTER", name: "Footer columns", location: "FOOTER" as const },
-  ]) {
-    const row = await prisma.navigationMenu.upsert({
-      where: { key: menu.key },
-      update: {},
-      create: { ...menu, isSystem: true },
-      select: { id: true, _count: { select: { items: true } } },
-    });
-    if (row._count.items > 0) continue;
-    if (menu.key === "HEADER") {
-      await prisma.navigationItem.createMany({
-        data: HEADER_MENU.map((item, order) => ({
-          menuId: row.id,
-          label: item.label,
-          href: item.href,
-          order,
-        })),
-      });
-    } else {
-      for (const [order, column] of FOOTER_MENU.entries()) {
-        const parent = await prisma.navigationItem.create({
-          data: { menuId: row.id, label: column.label, order },
-          select: { id: true },
-        });
-        await prisma.navigationItem.createMany({
-          data: column.children.map((item, childOrder) => ({
-            menuId: row.id,
-            parentId: parent.id,
-            label: item.label,
-            href: item.href,
-            order: childOrder,
-            depth: 1,
-          })),
-        });
-      }
+  // ---- cities
+  for (const city of CITIES) {
+    if (await prisma.city.findUnique({ where: { slug: city.slug } })) continue;
+    const stateSlug = slugify(city.state);
+    let state = await prisma.state.findUnique({ where: { slug: stateSlug }, select: { id: true } });
+    if (!state) {
+      state = await prisma.state.create({ data: { name: city.state, slug: stateSlug }, select: { id: true } });
+      manifest.states.push(state.id);
     }
-    counts.created += 1;
+    const featuredCategories = ["Critical Care", "Patient Monitoring", "Operation Theatre", "Diagnostic Equipment"];
+    const featuredProducts = ["Multi-Parameter Patient Monitor", "ICU Ventilator", "LED Operation Theatre Light", "Motorised ICU Bed"];
+    const row = await prisma.city.create({
+      data: {
+        name: city.name,
+        slug: city.slug,
+        stateId: state.id,
+        headline: `Medical equipment supply in ${city.name}`,
+        intro: `Equipment and healthcare infrastructure solutions for hospitals, clinics and diagnostic centres in ${city.name} and across ${city.state}.`,
+        heroImageId: await scene(city.image, `Clinical environment — ${city.name}`),
+        content: `HN Medical supports healthcare institutions in ${city.name} with medical equipment across critical care, operation theatres, patient monitoring, diagnostics, neonatal care and hospital furniture.\n\nWhether you are equipping a new hospital, expanding an ICU or upgrading a single department, our team can help define the equipment list, prepare quotations and coordinate delivery and installation.`,
+        coverage: `**Supply and installation.** Delivery, installation and commissioning are coordinated with your project and biomedical teams in ${city.name}.\n\n**Procurement support.** Equipment lists, specifications and consolidated quotations for departments and tenders.\n\n**After-sales coordination.** Service coordination and documentation after handover.`,
+        ctaHeading: `Equipping a facility in ${city.name}?`,
+        ctaBody: "Tell us the department, the equipment and the timeline. Everything is quoted to your requirement.",
+        status: "PUBLISHED",
+        publishedAt: now,
+        indexable: false,
+        categories: {
+          create: featuredCategories
+            .map((name) => categoryIds.get(name))
+            .filter((id): id is string => Boolean(id))
+            .map((categoryId, order) => ({ categoryId, order })),
+        },
+        products: {
+          create: featuredProducts
+            .map((name) => productIds.get(name))
+            .filter((id): id is string => Boolean(id))
+            .map((productId, order) => ({ productId, order })),
+        },
+        specialties: {
+          create: ["Critical Care", "General Surgery", "Emergency Medicine"]
+            .map((name) => specialtyIds.get(name))
+            .filter((id): id is string => Boolean(id))
+            .map((specialtyId, order) => ({ specialtyId, order })),
+        },
+      },
+      select: { id: true },
+    });
+    await prisma.faq.createMany({
+      data: CITY_FAQS.map(([question, answer], order) => ({
+        entityType: "City",
+        entityId: row.id,
+        question: question.replaceAll("{city}", city.name),
+        answer: answer.replaceAll("{city}", city.name),
+        order,
+      })),
+    });
+    manifest.cities.push(row.id);
+    created++;
+  }
+
+  // ---- settings the demo needs, only where nobody has set them
+  await fillSetting(manifest, "company.name", "HN Medical");
+  await fillSetting(manifest, "company.description", "HN Medical provides advanced medical equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.");
+  await fillSetting(manifest, "contact.email", "enquiries@hnmedical.example");
+  await fillSetting(manifest, "contact.address", "Corporate Office\nNew Delhi, India");
+  await fillSetting(manifest, "contact.hours", "Monday to Saturday, 9:30 am – 6:30 pm IST");
+  await fillSetting(manifest, "seo.defaultTitle", "HN Medical — Medical Equipment & Healthcare Infrastructure");
+  await fillSetting(manifest, "seo.titleTemplate", "%s | HN Medical");
+
+  // ---- pages
+  const aboutHero = await scene("corridor", "Hospital corridor");
+  const aboutImage = await scene("station", "Nurses' station with central monitoring");
+  const pages = [
+    {
+      slug: "about",
+      title: "About us",
+      sections: [
+        { type: "HERO", content: { ...ABOUT.hero, primaryLabel: "Explore equipment", primaryHref: "/products", secondaryLabel: "Contact our team", secondaryHref: "/contact", image: aboutHero, note: "", points: [] }, design: { layout: "full", background: "dark", spacing: "xl" } },
+        { type: "IMAGE_TEXT", content: { image: aboutImage, overline: ABOUT.story.overline, heading: ABOUT.story.heading, body: ABOUT.story.body, points: ABOUT.story.points.map((title) => ({ title })), ctaLabel: "Our solutions", ctaHref: "/solutions" }, design: { layout: "editorial", imagePosition: "left", spacing: "large" } },
+        { type: "ICON_CARDS", content: { overline: "What we do", heading: "From specification to support.", intro: "Services that sit around the equipment itself.", image: "", ctaLabel: "", ctaHref: "", items: [
+          { title: "Equipment planning", body: "Room-by-room equipment lists for new facilities and department upgrades.", icon: "consultation", linkLabel: "", linkHref: "" },
+          { title: "Procurement support", body: "Specifications, comparisons and consolidated quotations for tenders.", icon: "procurement", linkLabel: "", linkHref: "" },
+          { title: "Supply & logistics", body: "Coordinated delivery for single items and complete projects.", icon: "delivery", linkLabel: "", linkHref: "" },
+          { title: "Installation", body: "Installation, commissioning and user orientation with your teams.", icon: "installation", linkLabel: "", linkHref: "" },
+          { title: "Documentation", body: "Brochures, datasheets and handover documentation.", icon: "documents", linkLabel: "", linkHref: "" },
+          { title: "After-sales coordination", body: "Service coordination and support after handover.", icon: "support", linkLabel: "", linkHref: "" },
+        ] }, design: { background: "pearl", columns: "3", cardStyle: "standard", spacing: "large" } },
+        { type: "PROCESS_STEPS", content: { overline: "How we work", heading: "A clear path from requirement to installation.", intro: "", items: [
+          { title: "Discover", body: "Share the department, clinical need and timeline." },
+          { title: "Consult", body: "We review configurations and options with your team." },
+          { title: "Select", body: "Finalise the equipment list and specifications." },
+          { title: "Quote", body: "Receive a detailed quotation for your requirement." },
+          { title: "Deliver", body: "Coordinated delivery, installation and commissioning." },
+          { title: "Support", body: "Ongoing service coordination after handover." },
+        ] }, design: { spacing: "large" } },
+        { type: "RELATED_LOCATIONS", content: { overline: "Coverage", heading: "Working with institutions across India.", intro: "City pages for the places we serve most often.", highlight: "", ctaLabel: "All locations", ctaHref: "/locations" }, design: { background: "grid", spacing: "large" } },
+        { type: "CTA", content: { overline: "Start a conversation", heading: "Planning a new department or an upgrade?", body: "Talk to our medical equipment team about your requirement.", primaryLabel: "Request a quote", primaryHref: "/rfq", secondaryLabel: "Contact us", secondaryHref: "/contact", image: "" }, design: { background: "default", align: "left", spacing: "large" } },
+      ],
+    },
+    { slug: "privacy", title: "Privacy policy", sections: [{ type: "RICH_TEXT", content: { heading: "Privacy policy", body: POLICY("Privacy policy") }, design: { container: "narrow", spacing: "large" } }] },
+    { slug: "terms", title: "Terms of use", sections: [{ type: "RICH_TEXT", content: { heading: "Terms of use", body: POLICY("Terms of use").replace("handles information in connection with", "sets out the terms for using") }, design: { container: "narrow", spacing: "large" } }] },
+  ];
+  for (const page of pages) {
+    if (await prisma.page.findUnique({ where: { slug: page.slug } })) continue;
+    const row = await prisma.page.create({
+      data: { slug: page.slug, title: page.title, ...live, sections: { create: sectionRows(page.sections) } },
+      select: { id: true },
+    });
+    manifest.pages.push(row.id);
+    created++;
+  }
+
+  // ---- homepage: the starter, built from what now exists, with imagery and
+  // clearly labelled demonstration figures. Never replaces an existing one.
+  if (!(await prisma.page.findUnique({ where: { slug: "home" } }))) {
+    const heroImage = await scene("hero-ot", "Modern operating theatre with LED surgical lights and anaesthesia workstation");
+    const whyImage = await scene("icu", "Equipped intensive care bay");
+    const ctaImage = await scene("ot-b", "Operation theatre");
+    const starter = await starterHomeSections();
+    const sections = starter.map((row) => {
+      const content = { ...row.content } as Record<string, unknown>;
+      const design = { ...row.design } as Record<string, unknown>;
+      if (row.type === "HERO") {
+        content.image = heroImage;
+        content.overline = "Medical equipment & healthcare infrastructure";
+      }
+      if (row.type === "ICON_CARDS") content.image = whyImage;
+      if (row.type === "STATISTICS") {
+        content.items = [
+          { value: "50+", label: "Equipment categories", detail: "Across critical care, surgery and diagnostics" },
+          { value: "500+", label: "Products & solutions", detail: "Configured to each requirement" },
+          { value: "Pan-India", label: "Service coverage", detail: "Metros and regional centres" },
+          { value: "Dedicated", label: "B2B procurement assistance", detail: "From specification to handover" },
+        ];
+        content.heading = "Scale, reach and dedicated support.";
+        content.note = "Indicative figures for demonstration — replace with verified figures in the CMS before launch.";
+        design.columns = "4";
+      }
+      if (row.type === "CTA") {
+        content.image = ctaImage;
+      }
+      return { type: row.type, content, design };
+    });
+    const home = await prisma.page.create({
+      data: { slug: "home", title: "Homepage", ...live, sections: { create: sectionRows(sections) } },
+      select: { id: true },
+    });
+    manifest.pages.push(home.id);
+    created++;
+  }
+
+  // ---- header menu, only when empty
+  const header = await prisma.navigationMenu.upsert({
+    where: { key: "HEADER" },
+    update: {},
+    create: { key: "HEADER", name: "Main navigation", location: "HEADER", isSystem: true },
+    select: { id: true, _count: { select: { items: true } } },
+  });
+  if (header._count.items === 0) {
+    const items = [
+      ["Products", "/products"],
+      ["Specialties", "/specialties"],
+      ["Solutions", "/solutions"],
+      ["Applications", "/applications"],
+      ["Locations", "/locations"],
+      ["Insights", "/blog"],
+      ["About", "/about"],
+      ["Contact", "/contact"],
+    ];
+    for (const [order, [label, href]] of items.entries()) {
+      const row = await prisma.navigationItem.create({
+        data: { menuId: header.id, label, href, order },
+        select: { id: true },
+      });
+      manifest.menuItems.push(row.id);
+    }
   }
 
   // Demo content must not end up in search results.
@@ -706,68 +870,75 @@ async function add(): Promise<void> {
     },
   });
 
-  console.log(`Demo content ready: ${counts.created} items added and published.`);
-  console.log(
-    "Search engines are asked not to index the site while demo content is up (Settings → SEO).",
-  );
-  console.log(
-    "Restart the application in Coolify so cached pages are rebuilt. Remove later with: node ops/seed-demo.mjs --remove",
-  );
+  await writeManifest(manifest);
+
+  console.log(`Demo content ready: ${created} records added and published.`);
+  console.log("Search engines are asked not to index the site while demo content is up (Settings → SEO).");
+  console.log("Restart the application so cached pages are rebuilt. Remove later with: node ops/seed-demo.mjs --remove");
 }
 
 /* --------------------------------------------------------------- remove -- */
 
 async function remove(): Promise<void> {
   const demo = { startsWith: PREFIX };
+  const manifest = await readManifest();
 
-  const demoProducts = await prisma.product.findMany({
-    where: { slug: demo },
-    select: { id: true },
-  });
+  const products = await prisma.product.findMany({ where: { slug: demo }, select: { id: true } });
+  const categories = await prisma.category.findMany({ where: { slug: demo }, select: { id: true } });
   await prisma.faq.deleteMany({
-    where: { entityType: "Product", entityId: { in: demoProducts.map((p) => p.id) } },
+    where: {
+      OR: [
+        { entityType: "Product", entityId: { in: products.map((p) => p.id) } },
+        { entityType: "Category", entityId: { in: categories.map((c) => c.id) } },
+        { entityType: "City", entityId: { in: manifest.cities } },
+      ],
+    },
   });
-  // Products first: categories refuse to go while products are filed under
-  // them, and subcategories before the categories that contain them.
-  const products = await prisma.product.deleteMany({ where: { slug: demo } });
-  const subcategories = await prisma.category.deleteMany({
-    where: { slug: demo, depth: 1 },
-  });
-  const categories = await prisma.category.deleteMany({
-    where: { slug: demo, depth: 0 },
-  });
+
+  // Cities first (they link to catalogue rows), then products before the
+  // categories that hold them, subcategories before their parents.
+  const cities = await prisma.city.deleteMany({ where: { id: { in: manifest.cities } } });
+  await prisma.state.deleteMany({ where: { id: { in: manifest.states }, cities: { none: {} } } });
+  const removedProducts = await prisma.product.deleteMany({ where: { slug: demo } });
+  const subcategories = await prisma.category.deleteMany({ where: { slug: demo, depth: 1 } });
+  const parents = await prisma.category.deleteMany({ where: { slug: demo, depth: 0 } });
   const brands = await prisma.brand.deleteMany({ where: { slug: demo } });
   const specialties = await prisma.specialty.deleteMany({ where: { slug: demo } });
   const solutions = await prisma.solution.deleteMany({ where: { slug: demo } });
   const applications = await prisma.application.deleteMany({ where: { slug: demo } });
   const posts = await prisma.blogPost.deleteMany({ where: { slug: demo } });
   const pages = await prisma.page.deleteMany({
-    where: { title: { startsWith: DEMO }, slug: { in: PAGES.map((p) => p.slug) } },
+    where: {
+      OR: [
+        { id: { in: manifest.pages } },
+        // The earlier seeder's pages, recognised by their title.
+        { title: { startsWith: LEGACY_TITLE }, slug: { in: ["about", "privacy", "terms"] } },
+      ],
+    },
   });
+  await prisma.navigationItem.deleteMany({ where: { id: { in: manifest.menuItems } } });
 
-  // Menu links to pages that no longer exist would lead nowhere.
-  if (pages.count > 0) {
-    await prisma.navigationItem.deleteMany({
-      where: { href: { in: ["/about"] }, label: "About" },
-    });
+  // Settings go back to what they were — unless someone has changed them since.
+  for (const [key, previous] of Object.entries(manifest.settings)) {
+    await prisma.setting.updateMany({ where: { key }, data: { value: previous } });
   }
 
   const assets = await prisma.mediaAsset.findMany({
     where: { originalName: demo },
     select: { id: true, storageKey: true },
   });
+  await prisma.mediaUsage.deleteMany({ where: { assetId: { in: assets.map((a) => a.id) } } });
   for (const asset of assets) {
     await fs.rm(resolveStoragePath(asset.storageKey), { force: true }).catch(() => {});
   }
-  await prisma.mediaAsset.deleteMany({
-    where: { id: { in: assets.map((a) => a.id) } },
-  });
+  await prisma.mediaAsset.deleteMany({ where: { id: { in: assets.map((a) => a.id) } } });
+  await prisma.setting.deleteMany({ where: { key: MANIFEST_KEY } });
 
   console.log(
-    `Demo content removed: ${products.count} products, ${categories.count + subcategories.count} categories, ${brands.count} brands, ${specialties.count} specialties, ${solutions.count} solutions, ${applications.count} applications, ${posts.count} posts, ${pages.count} pages, ${assets.length} images.`,
+    `Demo content removed: ${removedProducts.count} products, ${parents.count + subcategories.count} categories, ${brands.count} brands, ${specialties.count} specialties, ${solutions.count} solutions, ${applications.count} applications, ${posts.count} articles, ${cities.count} cities, ${pages.count} pages, ${assets.length} files.`,
   );
   console.log(
-    "Menus were kept. When the real content is in, switch off \"Ask search engines not to index this site\" in Settings → SEO, then restart the application in Coolify.",
+    'When the real content is in, switch off "Ask search engines not to index this site" in Settings → SEO, then restart the application.',
   );
 }
 

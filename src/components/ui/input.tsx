@@ -12,7 +12,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const controlBase =
-  "w-full rounded-md border border-line-strong bg-surface text-ink text-body-sm transition-[border-color,box-shadow] duration-[var(--duration-fast)] placeholder:text-ink-subtle disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 aria-[invalid=true]:border-danger-600";
+  "w-full min-w-0 rounded-lg border border-line-strong bg-surface text-ink text-body-sm transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)] placeholder:text-ink-subtle hover:border-steel-400 focus:border-primary focus:shadow-[0_0_0_4px_rgb(31_102_220/0.12)] focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 aria-[invalid=true]:border-danger-600 aria-[invalid=true]:focus:shadow-[0_0_0_4px_rgb(195_53_43/0.12)]";
 
 export function Input({
   className,
@@ -22,7 +22,7 @@ export function Input({
   return (
     <input
       type={type}
-      className={cn(controlBase, "h-11 px-3.5", className)}
+      className={cn(controlBase, "h-12 px-4", className)}
       {...props}
     />
   );
@@ -36,7 +36,7 @@ export function Textarea({
   return (
     <textarea
       rows={rows}
-      className={cn(controlBase, "resize-y px-3.5 py-2.5", className)}
+      className={cn(controlBase, "resize-y px-4 py-3", className)}
       {...props}
     />
   );
@@ -81,7 +81,7 @@ export function Select({
       <select
         ref={ref}
         value={value}
-        className={cn(controlBase, "h-11 appearance-none pr-10 pl-3.5", className)}
+        className={cn(controlBase, "h-12 appearance-none pr-10 pl-4", className)}
         {...props}
       >
         {children}

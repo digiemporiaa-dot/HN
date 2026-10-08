@@ -5,16 +5,17 @@ import { variants } from "@/lib/utils/variants";
 import type { CardStyle } from "@/lib/design/section-options";
 
 const cardStyles = variants({
-  base: "relative flex flex-col rounded-lg",
+  base: "relative flex flex-col rounded-xl",
   variants: {
     appearance: {
       standard: "border border-line bg-surface",
       bordered: "border border-line-strong bg-surface",
-      elevated: "border border-line bg-surface shadow-md",
+      elevated: "border border-line bg-surface shadow-[var(--shadow-card)]",
       minimal: "bg-transparent",
+      overlay: "overflow-hidden bg-navy-950 text-white",
     },
     interactive: {
-      yes: "transition-[border-color,box-shadow] duration-[var(--duration-base)] ease-[var(--ease-out-quart)] hover:border-line-strong hover:shadow-sm",
+      yes: "transition-[border-color,box-shadow,transform] duration-[var(--duration-slow)] ease-[var(--ease-out-quart)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-card-hover)] focus-within:border-line-strong",
       no: "",
     },
   },

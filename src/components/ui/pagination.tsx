@@ -32,7 +32,7 @@ function buildPageList(current: number, total: number): (number | "gap")[] {
 }
 
 const itemClass =
-  "inline-flex h-10 min-w-10 items-center justify-center rounded-md px-3 text-body-sm transition-colors";
+  "inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-3 text-body-sm font-medium tabular-nums transition-colors";
 
 export function Pagination({
   currentPage,
@@ -90,8 +90,8 @@ export function Pagination({
             className={cn(
               itemClass,
               page === currentPage
-                ? "bg-navy-950 text-white"
-                : "text-ink hover:bg-surface-muted",
+                ? "bg-navy-950 text-white shadow-[var(--shadow-card)]"
+                : "text-ink border-line bg-surface hover:border-line-strong border",
             )}
           >
             {page}

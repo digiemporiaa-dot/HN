@@ -53,28 +53,40 @@ export function Accordion({
                 aria-expanded={open}
                 aria-controls={panelId}
                 onClick={() => toggle(item.id)}
-                className="group text-ink flex w-full items-start justify-between gap-6 py-5 text-left"
+                className="group text-ink flex w-full items-start justify-between gap-6 py-6 text-left"
               >
-                <span className="text-h4 group-hover:text-primary transition-colors">
+                <span className="text-h4 group-hover:text-primary text-safe transition-colors">
                   {item.question}
                 </span>
-                <Plus
+                <span
                   aria-hidden="true"
                   className={cn(
-                    "text-ink-muted mt-1 size-5 shrink-0 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out-quart)]",
-                    open && "rotate-45",
+                    "border-line-strong text-ink-muted group-hover:border-primary group-hover:text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border transition-[transform,border-color,color,background-color] duration-[var(--duration-base)] ease-[var(--ease-out-quart)]",
+                    open && "bg-primary border-primary rotate-45 text-white group-hover:text-white",
                   )}
-                />
+                >
+                  <Plus className="size-4" />
+                </span>
               </button>
             </h3>
+            {/* Collapsed with a grid-row transition rather than `hidden`, so
+                it animates; `inert` keeps a closed panel out of the tab order
+                and the accessibility tree all the same. */}
             <div
               id={panelId}
               role="region"
               aria-labelledby={triggerId}
-              hidden={!open}
-              className="pb-6"
+              inert={!open}
+              className={cn(
+                "grid transition-[grid-template-rows,opacity] duration-[var(--duration-slow)] ease-[var(--ease-out-quart)]",
+                open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+              )}
             >
-              <div className="prose-hn max-w-[70ch]">{item.answer}</div>
+              <div className="overflow-hidden">
+                <div className="prose-hn max-w-[70ch] pr-12 pb-7">
+                  {item.answer}
+                </div>
+              </div>
             </div>
           </div>
         );

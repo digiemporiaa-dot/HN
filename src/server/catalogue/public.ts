@@ -179,7 +179,7 @@ export async function publicApplication(
 ): Promise<TaxonomyRecord | null> {
   const row = await prisma.application.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true, description: true },
+    select: { id: true, name: true, slug: true, description: true, image: IMAGE },
   });
   if (!row) return null;
 
@@ -187,9 +187,9 @@ export async function publicApplication(
     id: row.id,
     name: row.name,
     slug: row.slug,
-    shortDescription: null,
-    description: row.description,
-    image: null,
+    shortDescription: row.description,
+    description: null,
+    image: toImage(row.image, row.name),
     banner: null,
     status: "PUBLISHED",
     categories: [],
@@ -536,6 +536,7 @@ export async function applicationIndex(): Promise<TaxonomyCard[]> {
       name: true,
       slug: true,
       description: true,
+      image: IMAGE,
       _count: {
         select: {
           products: {
@@ -554,7 +555,7 @@ export async function applicationIndex(): Promise<TaxonomyCard[]> {
       slug: row.slug,
       href: `/applications/${row.slug}`,
       summary: row.description,
-      image: null,
+      image: toImage(row.image, row.name),
       productCount: row._count.products,
     }));
 }

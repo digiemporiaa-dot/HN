@@ -41,6 +41,7 @@ import {
   CARD_STYLE,
   DEFAULT_SECTION_DESIGN as D,
   IMAGE_POSITION,
+  SECTION_LAYOUT,
   SECTION_ALIGN,
   SECTION_BACKGROUND,
   SECTION_COLUMNS,
@@ -583,6 +584,7 @@ export async function updateSectionAction(
       IMAGE_POSITION,
       D.imagePosition!,
     ),
+    layout: pick("design.layout", SECTION_LAYOUT, D.layout!),
   };
 
   const content = parsed.data as Record<string, unknown>;

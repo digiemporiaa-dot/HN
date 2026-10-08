@@ -44,7 +44,7 @@ export function Field({
   const describedBy = [helpId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
       <label
         htmlFor={id}
         className={cn(
@@ -77,9 +77,9 @@ export function Field({
         <p
           id={errorId}
           role="alert"
-          className="text-caption text-danger-600 flex items-center gap-1.5"
+          className="text-caption text-danger-600 flex items-start gap-1.5"
         >
-          <AlertCircle aria-hidden="true" className="size-3.5 shrink-0" />
+          <AlertCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
           {error}
         </p>
       ) : null}

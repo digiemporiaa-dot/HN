@@ -20,6 +20,7 @@ import {
   deleteApplicationAction,
   updateApplicationAction,
 } from "@/server/applications/actions";
+import { pickableMedia } from "@/server/media/pickable";
 import { ApplicationForm } from "../application-form";
 
 export const metadata: Metadata = {
@@ -36,7 +37,10 @@ export default async function EditApplicationPage({
   const { can } = await currentPermissions();
 
   const { id } = await params;
-  const application = await findApplication(id);
+  const [application, mediaOptions] = await Promise.all([
+    findApplication(id),
+    pickableMedia(),
+  ]);
   if (!application) notFound();
 
   const linked = application._count.products;
@@ -84,11 +88,13 @@ export default async function EditApplicationPage({
             version={application.updatedAt.toISOString()}
             action={updateApplicationAction}
             readOnly={!can("APPLICATIONS", "EDIT")}
+            mediaOptions={mediaOptions}
             values={{
               id: application.id,
               name: application.name,
               slug: application.slug,
               description: application.description ?? "",
+              imageId: application.imageId ?? "",
             }}
           />
         </CardContent>

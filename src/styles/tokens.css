@@ -72,6 +72,38 @@
   --color-steel-950: #131b24;
 
   /* ---------------------------------------------------------------------
+   * Palette — Pearl
+   * The premium light surface: a cool, faintly blue white that separates
+   * sections without the greyness of a neutral panel.
+   * ------------------------------------------------------------------- */
+  --color-pearl-50: #fafbfd;
+  --color-pearl-100: #f4f7fa;
+  --color-pearl-200: #ebf0f5;
+  --color-pearl-300: #dfe6ee;
+
+  /* ---------------------------------------------------------------------
+   * Palette — Clinical Cyan
+   * A precise, technical accent: indicator lights, data highlights and thin
+   * rules. Never used for body text on white (it does not hold 4.5:1).
+   * ------------------------------------------------------------------- */
+  --color-cyan-50: #ecfbfd;
+  --color-cyan-100: #cff4f9;
+  --color-cyan-200: #a3e8f2;
+  --color-cyan-300: #67d6e8;
+  --color-cyan-400: #2fbdd6;
+  --color-cyan-500: #129fbb;
+  --color-cyan-600: #0e7f98;
+  --color-cyan-700: #11667b;
+
+  /* Teal — the rarest accent, for a positive signal (availability, support). */
+  --color-teal-400: #2cc3a9;
+  --color-teal-500: #13a58e;
+  --color-teal-600: #0c8574;
+
+  /* The deepest navy, for the hero and footer base. */
+  --color-navy-975: #050d18;
+
+  /* ---------------------------------------------------------------------
    * Palette — Status
    * Used sparingly, and never decoratively.
    * ------------------------------------------------------------------- */
@@ -126,6 +158,10 @@
 
   --color-ring: var(--color-medical-600);
 
+  --color-accent: var(--color-cyan-500);
+  --color-accent-soft: var(--color-cyan-50);
+  --color-surface-pearl: var(--color-pearl-100);
+
   /* ---------------------------------------------------------------------
    * Typography
    * `--font-display` is reserved for headings, `--font-sans` for everything
@@ -139,6 +175,21 @@
     "Liberation Mono", monospace;
 
   /* Fluid type scale. Every size is a token — no arbitrary font sizes in components. */
+  /* Hero: a large desktop presence that still fits a 320px screen. */
+  --text-hero: clamp(2.375rem, 1.35rem + 4.6vw, 5.25rem);
+  --text-hero--line-height: 1.02;
+  --text-hero--letter-spacing: -0.03em;
+  --text-hero--font-weight: 600;
+
+  /* Section titles: ~42–60px on desktop, proportional on phones. */
+  --text-section: clamp(1.875rem, 1.3rem + 2.3vw, 3.625rem);
+  --text-section--line-height: 1.06;
+  --text-section--letter-spacing: -0.028em;
+  --text-section--font-weight: 600;
+
+  --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.3125rem);
+  --text-lead--line-height: 1.6;
+
   --text-display-1: clamp(2.75rem, 1.9rem + 3.4vw, 4.5rem);
   --text-display-1--line-height: 1.04;
   --text-display-1--letter-spacing: -0.03em;
@@ -195,18 +246,19 @@
    * Four widths, matching the CMS `container` design option exactly.
    * ------------------------------------------------------------------- */
   --container-narrow: 45rem;
-  --container-standard: 75rem;
-  --container-wide: 87.5rem;
+  --container-standard: 80rem;
+  --container-wide: 92rem;
 
   /* ---------------------------------------------------------------------
    * Radii — restrained. Enterprise medical, not consumer app.
    * ------------------------------------------------------------------- */
   --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  --radius-xl: 10px;
-  --radius-2xl: 14px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 22px;
 
   /* ---------------------------------------------------------------------
    * Shadows — low-spread, navy-tinted. No coloured glows.
@@ -216,15 +268,21 @@
   --shadow-md: 0 4px 12px rgb(10 22 38 / 0.08);
   --shadow-lg: 0 12px 32px rgb(10 22 38 / 0.1);
   --shadow-xl: 0 24px 56px rgb(10 22 38 / 0.12);
+  /* Cards: a hairline and a long, faint drop — depth without a halo. */
+  --shadow-card: 0 1px 2px rgb(10 22 38 / 0.04), 0 8px 24px -12px rgb(10 22 38 / 0.1);
+  --shadow-card-hover: 0 2px 4px rgb(10 22 38 / 0.04), 0 22px 44px -18px rgb(10 22 38 / 0.22);
+  --shadow-float: 0 30px 80px -30px rgb(5 13 24 / 0.45);
 
   /* ---------------------------------------------------------------------
    * Motion — subtle by policy. See `prefers-reduced-motion` in globals.css.
    * ------------------------------------------------------------------- */
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --duration-slow: 280ms;
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 380ms;
+  --duration-reveal: 640ms;
 }
 
 /*
@@ -238,7 +296,21 @@
   --section-space-large: clamp(4rem, 2.9rem + 4.4vw, 7rem);
   --section-space-xl: clamp(5rem, 3.4rem + 6.4vw, 9rem);
 
-  --gutter: 1.25rem;
+  --gutter: 1rem;
+  /* Height of the public header, for heroes that sit beneath it. */
+  --header-h: 4.25rem;
+}
+
+@media (min-width: 480px) {
+  :root {
+    --gutter: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 5rem;
+  }
 }
 
 @media (min-width: 768px) {

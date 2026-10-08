@@ -19,11 +19,13 @@ import type { FieldSpec } from "@/cms/sections/fields";
 import {
   CARD_STYLE,
   DEFAULT_SECTION_DESIGN,
+  DESIGN_CHOICE_LABELS,
   IMAGE_POSITION,
   SECTION_ALIGN,
   SECTION_BACKGROUND,
   SECTION_COLUMNS,
   SECTION_CONTAINER,
+  SECTION_LAYOUT,
   SECTION_SPACING,
   type SectionDesign,
 } from "@/lib/design/section-options";
@@ -72,6 +74,7 @@ const DESIGN_LABELS: Record<string, string> = {
   columns: "Columns",
   cardStyle: "Card style",
   imagePosition: "Image position",
+  layout: "Layout",
 };
 
 const DESIGN_CHOICES: Record<string, readonly string[]> = {
@@ -82,6 +85,7 @@ const DESIGN_CHOICES: Record<string, readonly string[]> = {
   columns: SECTION_COLUMNS,
   cardStyle: CARD_STYLE,
   imagePosition: IMAGE_POSITION,
+  layout: SECTION_LAYOUT,
 };
 
 const titleCase = (value: string) =>
@@ -424,7 +428,8 @@ export function SectionEditor({
                         >
                           {choices.map((choice) => (
                             <option key={choice} value={choice}>
-                              {titleCase(choice)}
+                              {DESIGN_CHOICE_LABELS[choice] ??
+                                titleCase(choice)}
                             </option>
                           ))}
                         </Select>

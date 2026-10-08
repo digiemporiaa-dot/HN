@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CheckCircle2 } from "lucide-react";
+
 import {
   Accordion,
-  Breadcrumb,
   buttonStyles,
   Container,
   Section,
   SectionHeader,
 } from "@/components/ui";
 import { ProductCard } from "@/components/site/product-card";
-import { EnquiryDialog } from "@/components/site/enquiry-form";
+import { EnquiryDialog, EnquiryForm } from "@/components/site/enquiry-form";
+import { MetaChip, PageHero } from "@/components/site/page-hero";
+import { PageCta } from "@/components/site/page-cta";
+import {
+  ArrowLink,
+  CategoryCard,
+  fitColumns,
+  SceneCard,
+} from "@/components/site/cards";
+import { sceneVisual } from "@/lib/visuals";
 import { RichText } from "@/cms/rich-text";
 import { RenderedSections } from "@/cms/render-page";
 import {
@@ -28,9 +38,6 @@ import { missingPage } from "@/server/seo/missing";
 import { canPreview } from "@/server/preview";
 
 type RouteParams = { params: Promise<{ slug: string }> };
-
-/* eslint-disable @next/next/no-img-element -- media is served from our own
-   route at its stored size. */
 
 export async function generateStaticParams() {
   const slugs = await publishedCitySlugs();
@@ -94,18 +101,21 @@ export default async function CityPage({ params }: RouteParams) {
   }
 
   const faqs = await entityFaqs("City", city.id);
+  const image = city.heroImage ?? sceneVisual(`${city.name} hospital`);
 
-  // Alternating backgrounds are worked out from what is actually on the page,
-  // so two light bands never sit next to each other when a section is empty.
-  const blocks = [
-    city.content ? "content" : null,
-    city.categories.length > 0 ? "categories" : null,
-    city.products.length > 0 ? "products" : null,
-    city.specialties.length > 0 ? "specialties" : null,
-    city.coverage ? "coverage" : null,
-  ].filter((block): block is string => block !== null);
-  const background = (block: string) =>
-    blocks.indexOf(block) % 2 === 1 ? ("light" as const) : ("default" as const);
+  const enquiry = (label: string, variant: "primary" | "inverse" = "primary") => (
+    // The city travels with the enquiry, so the lead records which city page
+    // produced it — the number a city page is judged by.
+    <EnquiryDialog
+      action={submitEnquiryAction}
+      cityId={city.id}
+      triggerLabel={label}
+      triggerClassName={buttonStyles({ variant, size: "lg" })}
+      title={`Request a quotation — ${city.name}`}
+      description="Tell us the department, the equipment and the timeline. We reply within one working day."
+      submitLabel="Send enquiry"
+    />
+  );
 
   return (
     <>
@@ -126,63 +136,64 @@ export default async function CityPage({ params }: RouteParams) {
         </div>
       )}
 
+      <PageHero
+        variant="image"
+        image={image}
+        trail={[
+          { label: "Home", href: "/" },
+          { label: "Locations", href: "/locations" },
+          { label: city.name },
+        ]}
+        eyebrow={`${city.name}, ${city.state.name}`}
+        title={cityHeadline(city)}
+        description={city.intro}
+        meta={
+          <>
+            {city.categories.length > 0 ? <MetaChip dark>{city.categories.length} equipment categories</MetaChip> : null}
+            <MetaChip dark>Supply, installation & support</MetaChip>
+          </>
+        }
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {enquiry(city.ctaLabel?.trim() || "Request a quotation")}
+            <Link href="#enquire" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Send an enquiry
+            </Link>
+          </div>
+        }
+      />
+
       {published ? <JsonLd data={faqPageJsonLd(faqs)} /> : null}
 
-      <CityHero city={city} />
-
       {city.content ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background={background("content")}
-        >
-          <div className="prose-hn max-w-[70ch]">
-            <RichText value={city.content} />
+        <Section spacing="large" container="wide">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">Overview</span>
+              <h2 className="text-h1 text-ink">Medical equipment for {city.name}.</h2>
+            </div>
+            <div className="lg:col-span-7 lg:col-start-6">
+              <RichText value={city.content} className="prose-hn max-w-[68ch]" />
+            </div>
           </div>
         </Section>
       ) : null}
 
       {city.categories.length > 0 ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background={background("categories")}
-        >
+        <Section spacing="large" container="wide" background="pearl">
           <SectionHeader
-            title={`Equipment we supply in ${city.name}`}
-            description="The ranges hospitals here most often ask us about."
-            align="left"
+            overline="Equipment categories"
+            title={`What hospitals in ${city.name} ask us for.`}
+            action={<ArrowLink href="/categories">All categories</ArrowLink>}
           />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className={`reveal-stagger mt-12 grid grid-cols-2 gap-3 sm:gap-5 lg:gap-6 ${fitColumns(city.categories.length).replace("sm:grid-cols-2 ", "")}`}>
             {city.categories.map((category) => (
               <li key={category.id}>
-                <Link
-                  href={category.href}
-                  className="border-line bg-surface hover:border-line-strong group flex h-full gap-4 rounded-lg border p-5 transition-colors"
-                >
-                  {category.image ? (
-                    <img
-                      src={category.image.url}
-                      alt={category.image.alt}
-                      loading="lazy"
-                      className="bg-surface-muted size-16 shrink-0 rounded-md object-contain p-1.5"
-                    />
-                  ) : null}
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
-                      {category.name}
-                    </span>
-                    {category.summary ? (
-                      <span className="text-body-sm text-ink-muted line-clamp-2">
-                        {category.summary}
-                      </span>
-                    ) : null}
-                    <span className="text-caption text-ink-subtle">
-                      {category.productCount} product
-                      {category.productCount === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                </Link>
+                <CategoryCard
+                  size="compact"
+                  data={{ name: category.name, href: category.href, summary: category.summary, image: category.image, count: category.productCount }}
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                />
               </li>
             ))}
           </ul>
@@ -190,17 +201,13 @@ export default async function CityPage({ params }: RouteParams) {
       ) : null}
 
       {city.products.length > 0 ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background={background("products")}
-        >
+        <Section spacing="large" container="wide">
           <SectionHeader
-            title="Featured equipment"
-            description={`Products we are regularly asked to quote for in ${city.name}.`}
-            align="left"
+            overline="Featured equipment"
+            title={`Regularly quoted in ${city.name}.`}
+            action={<ArrowLink href="/products">All products</ArrowLink>}
           />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <ul className={`reveal-stagger mt-12 grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(city.products.length)}`}>
             {city.products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -209,42 +216,17 @@ export default async function CityPage({ params }: RouteParams) {
       ) : null}
 
       {city.specialties.length > 0 ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background={background("specialties")}
-        >
-          <SectionHeader
-            title="Departments we equip"
-            description={`Specialties we supply to in and around ${city.name}.`}
-            align="left"
-          />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Section spacing="large" container="wide" background="pearl">
+          <SectionHeader overline="Specialties" title={`Departments we equip in and around ${city.name}.`} />
+          <ul className={`reveal-stagger mt-12 grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(city.specialties.length, 3)}`}>
             {city.specialties.map((specialty) => (
               <li key={specialty.id}>
-                <Link
-                  href={specialty.href}
-                  className="border-line bg-surface hover:border-line-strong group flex h-full gap-4 rounded-lg border p-5 transition-colors"
-                >
-                  {specialty.image ? (
-                    <img
-                      src={specialty.image.url}
-                      alt={specialty.image.alt}
-                      loading="lazy"
-                      className="bg-surface-muted size-14 shrink-0 rounded-md object-contain p-1.5"
-                    />
-                  ) : null}
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
-                      {specialty.name}
-                    </span>
-                    {specialty.summary ? (
-                      <span className="text-body-sm text-ink-muted line-clamp-2">
-                        {specialty.summary}
-                      </span>
-                    ) : null}
-                  </span>
-                </Link>
+                <SceneCard
+                  kind="specialty"
+                  data={{ name: specialty.name, href: specialty.href, summary: specialty.summary, image: specialty.image }}
+                  aspect="landscape"
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                />
               </li>
             ))}
           </ul>
@@ -252,18 +234,16 @@ export default async function CityPage({ params }: RouteParams) {
       ) : null}
 
       {city.coverage ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background={background("coverage")}
-        >
-          <SectionHeader
-            title={`Serving ${city.name}`}
-            description="What supply, installation and service here involves."
-            align="left"
-          />
-          <div className="prose-hn mt-6 max-w-[70ch]">
-            <RichText value={city.coverage} />
+        <Section spacing="large" container="wide">
+          <div className="surface-gradient border-line grid gap-8 rounded-3xl border p-8 sm:p-12 lg:grid-cols-12 lg:gap-12">
+            <div className="flex flex-col gap-4 lg:col-span-4">
+              <span className="eyebrow">Local support</span>
+              <h2 className="text-h2 text-ink">Serving {city.name}.</h2>
+              <p className="text-body-sm text-ink-muted">What supply, installation and service here involves.</p>
+            </div>
+            <div className="lg:col-span-8">
+              <RichText value={city.coverage} className="prose-hn" />
+            </div>
           </div>
         </Section>
       ) : null}
@@ -273,112 +253,69 @@ export default async function CityPage({ params }: RouteParams) {
       <RenderedSections sections={city.sections} />
 
       {faqs.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="Common questions" align="left" />
-          <div className="mt-6 max-w-[70ch]">
-            <Accordion
-              items={faqs.map((faq) => ({
-                id: faq.id,
-                question: faq.question,
-                answer: <RichText value={faq.answer} />,
-              }))}
-            />
+        <Section spacing="large" container="wide" background="pearl">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">FAQ</span>
+              <h2 className="text-h1 text-ink">Common questions.</h2>
+            </div>
+            <div className="lg:col-span-8">
+              <Accordion
+                items={faqs.map((faq) => ({
+                  id: faq.id,
+                  question: faq.question,
+                  answer: <RichText value={faq.answer} />,
+                }))}
+              />
+            </div>
           </div>
         </Section>
       ) : null}
 
-      <Section spacing="large" container="standard" background="dark">
-        <div className="flex flex-col items-start gap-6">
-          <SectionHeader
-            title={
-              city.ctaHeading?.trim() || `Equipping a facility in ${city.name}?`
-            }
-            description={
-              city.ctaBody?.trim() ||
-              "Tell us the department, the equipment and the timeline. Everything is quoted to requirement, and we reply within one working day."
-            }
-            align="left"
-          />
-          {/* The city travels with the enquiry, so the lead records which
-              city page produced it — the number a city page is judged by. */}
-          <EnquiryDialog
-            action={submitEnquiryAction}
-            cityId={city.id}
-            triggerLabel={city.ctaLabel?.trim() || "Request a quotation"}
-            triggerClassName={buttonStyles({ size: "lg" })}
-            title={`Request a quotation — ${city.name}`}
-            description="We reply within one working day."
-            submitLabel="Send enquiry"
-          />
+      <Section spacing="large" container="wide" anchorId="enquire">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="flex flex-col gap-6 lg:col-span-5">
+            <span className="eyebrow">Enquire</span>
+            <h2 className="text-section text-ink">
+              {city.ctaHeading?.trim() || `Equipping a facility in ${city.name}?`}
+            </h2>
+            <p className="text-lead text-ink-muted">
+              {city.ctaBody?.trim() ||
+                "Tell us the department, the equipment and the timeline. Everything is quoted to requirement, and we reply within one working day."}
+            </p>
+            <ul className="flex flex-col gap-3">
+              {[
+                "Single products or complete department packages",
+                "Delivery and installation coordinated locally",
+                "One consolidated quotation for your list",
+              ].map((line) => (
+                <li key={line} className="text-body-sm text-ink flex items-start gap-3">
+                  <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-teal-500" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="border-line bg-surface rounded-3xl border p-6 shadow-[var(--shadow-card)] sm:p-10 lg:col-span-7">
+            <EnquiryForm action={submitEnquiryAction} cityId={city.id} submitLabel="Send enquiry" />
+          </div>
         </div>
       </Section>
+
+      <PageCta
+        background="pearl"
+        title={`Talk to our team about ${city.name}.`}
+        body="From a single device to a complete hospital, we prepare quotations to your requirement."
+        image={image}
+        actions={
+          <>
+            {enquiry(city.ctaLabel?.trim() || "Request a quotation")}
+            <Link href="/locations" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Other locations
+            </Link>
+          </>
+        }
+      />
     </>
   );
 }
-
-/**
- * The top of a city page: a photograph behind the heading where one has been
- * chosen, a typographic hero where not. Same treatment as category banners,
- * for the same reasons.
- */
-function CityHero({ city }: { city: PublicCity }) {
-  const trail = [
-    { label: "Home", href: "/" },
-    { label: "Locations", href: "/locations" },
-    { label: city.name },
-  ];
-
-  const heading = (
-    <div className="flex max-w-[60ch] flex-col gap-4">
-      <p className="text-overline text-primary uppercase">
-        {city.name}, {city.state.name}
-      </p>
-      <h1 className="text-h1 text-ink">{cityHeadline(city)}</h1>
-      {city.intro ? (
-        <p className="text-body-lg text-ink-muted">{city.intro}</p>
-      ) : null}
-    </div>
-  );
-
-  if (!city.heroImage) {
-    return (
-      <>
-        <Container className="pt-6">
-          <Breadcrumb items={trail} />
-        </Container>
-        <Section spacing="normal" container="standard">
-          {heading}
-        </Section>
-      </>
-    );
-  }
-
-  return (
-    <div className="relative isolate">
-      <img
-        src={city.heroImage.url}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 size-full object-cover"
-      />
-      <div
-        aria-hidden="true"
-        className="from-navy-950/95 via-navy-950/80 to-navy-950/55 absolute inset-0 -z-10 bg-gradient-to-r"
-      />
-      <div className="surface-dark bg-transparent [--color-primary:var(--color-medical-300)]">
-        <Container className="pt-6">
-          <Breadcrumb items={trail} />
-        </Container>
-        <Section
-          spacing="large"
-          container="standard"
-          className="bg-transparent"
-        >
-          {heading}
-        </Section>
-      </div>
-    </div>
-  );
-}
-
-/* eslint-enable @next/next/no-img-element */

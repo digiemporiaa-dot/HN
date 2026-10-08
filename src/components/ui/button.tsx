@@ -5,11 +5,11 @@ import { variants } from "@/lib/utils/variants";
 import { Spinner } from "./spinner";
 
 export const buttonStyles = variants({
-  base: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-[background-color,border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55",
+  base: "group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium tracking-[-0.005em] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] active:translate-y-px disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55",
   variants: {
     variant: {
       primary:
-        "bg-primary text-primary-ink hover:bg-primary-hover active:bg-primary-active",
+        "bg-primary text-primary-ink shadow-[0_1px_0_rgb(255_255_255/0.18)_inset,0_8px_20px_-10px_rgb(31_102_220/0.7)] hover:bg-primary-hover active:bg-primary-active",
       secondary:
         "bg-secondary text-secondary-ink hover:bg-secondary-hover active:bg-navy-950",
       outline:
@@ -17,11 +17,17 @@ export const buttonStyles = variants({
       ghost: "bg-transparent text-ink hover:bg-surface-muted",
       danger: "bg-danger-600 text-white hover:bg-danger-700",
       link: "bg-transparent p-0 text-primary underline underline-offset-4 hover:text-primary-hover",
+      /** White on a dark or photographic background. */
+      inverse: "bg-white text-navy-950 hover:bg-pearl-200",
+      /** Hairline outline on a dark or photographic background. */
+      "outline-inverse":
+        "border border-white/30 bg-white/5 text-white backdrop-blur-sm hover:border-white/60 hover:bg-white/10",
     },
     size: {
       sm: "h-9 px-3.5 text-body-sm",
       md: "h-11 px-5 text-body-sm",
-      lg: "h-12 px-7 text-body",
+      lg: "h-12 px-6 text-body",
+      xl: "h-14 px-8 text-body",
       icon: "h-11 w-11 p-0",
     },
   },
@@ -29,8 +35,16 @@ export const buttonStyles = variants({
 });
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "link";
-  size?: "sm" | "md" | "lg" | "icon";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "ghost"
+    | "danger"
+    | "link"
+    | "inverse"
+    | "outline-inverse";
+  size?: "sm" | "md" | "lg" | "xl" | "icon";
   block?: boolean;
   loading?: boolean;
   leadingIcon?: ReactNode;

@@ -7,6 +7,7 @@ import {
   DEFAULT_SECTION_DESIGN,
   type SectionDesign,
 } from "@/lib/design/section-options";
+import { FEATURE_ICON_OPTIONS } from "@/lib/design/icon-options";
 
 export type SectionDefinition = {
   type: SectionType;
@@ -40,12 +41,14 @@ function catalogueGrid(options: {
   fieldLabel: string;
   help: string;
   max?: number;
+  design?: Partial<SectionDesign>;
 }): SectionDefinition {
   return {
     type: options.type,
     label: options.label,
     description: options.description,
-    designOptions: [...BASE_DESIGN, "columns", "cardStyle"],
+    design: options.design,
+    designOptions: [...BASE_DESIGN, "layout", "columns", "cardStyle"],
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
@@ -81,9 +84,10 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
     type: "HERO",
     label: "Hero",
-    description: "Large opening statement with an optional image and actions.",
-    designOptions: [...BASE_DESIGN, "align"],
-    design: { spacing: "xl", background: "light" },
+    description:
+      "Large opening statement with an optional image and actions. With an image and the Full width layout it becomes a cinematic full-bleed hero.",
+    designOptions: [...BASE_DESIGN, "align", "layout"],
+    design: { spacing: "xl", background: "dark", layout: "full" },
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       {
@@ -115,13 +119,38 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       },
       { kind: "url", name: "secondaryHref", label: "Secondary button link" },
       { kind: "media", name: "image", label: "Image" },
+      {
+        kind: "text",
+        name: "note",
+        label: "Trust line",
+        maxLength: 140,
+        help: "A short line under the buttons, e.g. who you serve. Avoid claims you cannot evidence.",
+      },
+      {
+        kind: "repeater",
+        name: "points",
+        label: "Highlights",
+        itemLabel: "Highlight",
+        help: "Optional. Up to four short points shown along the bottom of a full-width hero.",
+        max: 4,
+        fields: [
+          {
+            kind: "text",
+            name: "title",
+            label: "Title",
+            required: true,
+            maxLength: 60,
+          },
+          { kind: "text", name: "detail", label: "Detail", maxLength: 90 },
+        ],
+      },
     ],
   },
   {
     type: "HEADING_TEXT",
     label: "Heading and text",
     description: "A section heading with supporting copy.",
-    designOptions: [...BASE_DESIGN, "align"],
+    designOptions: [...BASE_DESIGN, "align", "layout"],
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       {
@@ -162,7 +191,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     type: "IMAGE_TEXT",
     label: "Image and text",
     description: "An image beside a block of copy.",
-    designOptions: [...BASE_DESIGN, "imagePosition"],
+    designOptions: [...BASE_DESIGN, "imagePosition", "layout"],
     fields: [
       { kind: "media", name: "image", label: "Image", required: true },
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
@@ -174,6 +203,23 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         maxLength: 160,
       },
       { kind: "richtext", name: "body", label: "Body", maxLength: 3000 },
+      {
+        kind: "repeater",
+        name: "points",
+        label: "Key points",
+        itemLabel: "Point",
+        help: "Optional checklist shown under the copy.",
+        max: 6,
+        fields: [
+          {
+            kind: "text",
+            name: "title",
+            label: "Point",
+            required: true,
+            maxLength: 120,
+          },
+        ],
+      },
       { kind: "text", name: "ctaLabel", label: "Button label", maxLength: 40 },
       { kind: "url", name: "ctaHref", label: "Button link" },
     ],
@@ -182,10 +228,19 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     type: "STATISTICS",
     label: "Statistics",
     description: "A row of figures. Only use numbers the company can evidence.",
-    designOptions: [...BASE_DESIGN, "columns"],
-    design: { background: "brand" },
+    designOptions: [...BASE_DESIGN, "columns", "layout"],
+    design: { background: "dark", columns: "4" },
     fields: [
+      { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      { kind: "textarea", name: "intro", label: "Intro", maxLength: 400, rows: 2 },
+      {
+        kind: "text",
+        name: "note",
+        label: "Footnote",
+        maxLength: 200,
+        help: "Shown in small print under the figures, e.g. how they are counted.",
+      },
       {
         kind: "repeater",
         name: "items",
@@ -208,6 +263,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
             required: true,
             maxLength: 60,
           },
+          { kind: "text", name: "detail", label: "Detail", maxLength: 120 },
         ],
       },
     ],
@@ -215,8 +271,9 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
     type: "ICON_CARDS",
     label: "Feature cards",
-    description: "A grid of short value propositions.",
-    designOptions: [...BASE_DESIGN, "columns", "cardStyle"],
+    description:
+      "Short value propositions. The Split and Editorial layouts set them beside an image as a numbered list.",
+    designOptions: [...BASE_DESIGN, "layout", "columns", "cardStyle", "imagePosition"],
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
@@ -227,6 +284,14 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         maxLength: 400,
         rows: 3,
       },
+      {
+        kind: "media",
+        name: "image",
+        label: "Image",
+        help: "Used by the Split and Editorial layouts.",
+      },
+      { kind: "text", name: "ctaLabel", label: "Button label", maxLength: 40 },
+      { kind: "url", name: "ctaHref", label: "Button link" },
       {
         kind: "repeater",
         name: "items",
@@ -250,6 +315,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
             rows: 2,
           },
           {
+            kind: "select",
+            name: "icon",
+            label: "Icon",
+            options: [...FEATURE_ICON_OPTIONS],
+          },
+          {
             kind: "text",
             name: "linkLabel",
             label: "Link label",
@@ -264,10 +335,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     type: "FAQ",
     label: "FAQ",
     description: "Questions and answers in an accordion.",
-    designOptions: [...BASE_DESIGN],
+    designOptions: [...BASE_DESIGN, "layout"],
     design: { container: "narrow" },
     fields: [
+      { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      { kind: "textarea", name: "intro", label: "Intro", maxLength: 400, rows: 2 },
       {
         kind: "repeater",
         name: "items",
@@ -297,10 +370,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
     type: "CTA",
     label: "Call to action",
-    description: "A closing prompt to request a quote or get in touch.",
-    designOptions: [...BASE_DESIGN, "align"],
+    description:
+      "A closing prompt to request a quote or get in touch. On a dark background it spans the page; on a light one it is a framed panel.",
+    designOptions: [...BASE_DESIGN, "align", "layout"],
     design: { background: "dark", align: "center" },
     fields: [
+      { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       {
         kind: "text",
         name: "heading",
@@ -329,6 +404,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         maxLength: 40,
       },
       { kind: "url", name: "secondaryHref", label: "Secondary button link" },
+      {
+        kind: "media",
+        name: "image",
+        label: "Background image",
+        help: "Optional. Shown beneath a navy wash so the text stays readable.",
+      },
     ],
   },
   catalogueGrid({
@@ -371,12 +452,63 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     fieldLabel: "Specialties",
     help: "Only published specialties appear on the public page.",
   }),
+  catalogueGrid({
+    type: "SOLUTION_GRID",
+    label: "Solution grid",
+    description: "Packaged healthcare solutions, shown as image cards.",
+    entity: "solution",
+    fieldLabel: "Solutions",
+    help: "Only published solutions appear on the public page.",
+    max: 12,
+    design: { background: "dark", layout: "editorial" },
+  }),
+  catalogueGrid({
+    type: "APPLICATION_GRID",
+    label: "Application grid",
+    description: "Clinical environments and procedures, shown as large image cards.",
+    entity: "application",
+    fieldLabel: "Applications",
+    help: "Applications without a published product are hidden.",
+    max: 12,
+  }),
+  catalogueGrid({
+    type: "POST_GRID",
+    label: "Article grid",
+    description: "Blog articles — the first as a featured story, the rest beside it.",
+    entity: "post",
+    fieldLabel: "Articles",
+    help: "Only published articles appear on the public page. Leave empty to show the latest.",
+    max: 6,
+    design: { layout: "editorial" },
+  }),
+  {
+    type: "RELATED_LOCATIONS",
+    label: "Locations coverage",
+    description:
+      "Where the company works: every published city, grouped by region, with links to the city pages.",
+    designOptions: [...BASE_DESIGN],
+    design: { background: "grid", spacing: "large" },
+    fields: [
+      { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
+      { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      { kind: "textarea", name: "intro", label: "Intro", maxLength: 400, rows: 3 },
+      {
+        kind: "text",
+        name: "highlight",
+        label: "Headline figure",
+        maxLength: 24,
+        help: "Optional large label, e.g. “Pan-India”. Leave blank to show the number of cities.",
+      },
+      { kind: "text", name: "ctaLabel", label: "Link label", maxLength: 40 },
+      { kind: "url", name: "ctaHref", label: "Link" },
+    ],
+  },
   {
     type: "LOGO_STRIP",
     label: "Logo strip",
     description:
-      "A row of manufacturer logos. Only include brands the company actually represents.",
-    designOptions: [...BASE_DESIGN],
+      "A row of manufacturer logos. Only include brands the company actually represents. The Full width layout scrolls them slowly.",
+    designOptions: [...BASE_DESIGN, "layout"],
     design: { background: "light", spacing: "normal" },
     fields: [
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
@@ -649,7 +781,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     label: "Process steps",
     description:
       "A numbered sequence — how an order, an installation or a service call works.",
-    designOptions: [...BASE_DESIGN, "columns"],
+    designOptions: [...BASE_DESIGN, "columns", "layout"],
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
@@ -760,9 +892,10 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     label: "Form",
     description:
       "The enquiry form, or one you have built. Enquiries arrive in Leads; a built form's submissions arrive under the form itself.",
-    designOptions: [...BASE_DESIGN],
+    designOptions: [...BASE_DESIGN, "layout"],
     design: { container: "narrow" },
     fields: [
+      { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
       {
         kind: "formKey",

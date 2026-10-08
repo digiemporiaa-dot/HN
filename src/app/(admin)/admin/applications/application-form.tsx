@@ -7,12 +7,17 @@ import { FormFeedback } from "@/components/admin/form-feedback";
 import { useSyncedState } from "@/lib/hooks/use-synced-state";
 import { slugify } from "@/lib/utils/slug";
 import type { ApplicationActionState } from "@/server/applications/actions";
+import {
+  MediaPicker,
+  type MediaOption,
+} from "@/components/admin/sections/field-inputs";
 
 export type ApplicationFormValues = {
   id?: string;
   name: string;
   slug: string;
   description: string;
+  imageId: string;
 };
 
 type ApplicationAction = (
@@ -26,8 +31,9 @@ const INITIAL: ApplicationActionState = {};
  * An application record.
  *
  * Deliberately small: an application is a label a product carries, not a page
- * with its own banner and publishing lifecycle, so it has no status, no images
- * and no category links. If that changes, it grows then rather than now.
+ * with its own publishing lifecycle, so it has no status and no category
+ * links. It has one optional picture — the clinical environment shown on its
+ * card — and without one the site uses a matching house image.
  */
 export function ApplicationForm({
   mode,
@@ -35,12 +41,14 @@ export function ApplicationForm({
   version,
   action,
   readOnly,
+  mediaOptions,
 }: {
   mode: "create" | "edit";
   values: ApplicationFormValues;
   version: string;
   action: ApplicationAction;
   readOnly: boolean;
+  mediaOptions: MediaOption[];
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const [form, setForm] = useSyncedState(values, version);
@@ -111,6 +119,25 @@ export function ApplicationForm({
               onChange={(event) => set("description", event.target.value)}
               {...control}
             />
+          )}
+        </Field>
+
+        <Field
+          label="Image"
+          help="Optional. Shown on the application's card and page; without one a matching default is used."
+          className="md:col-span-2"
+        >
+          {(control) => (
+            <>
+              <input type="hidden" name="imageId" value={form.imageId} />
+              <MediaPicker
+                value={form.imageId}
+                options={mediaOptions}
+                onChange={(next) => set("imageId", next)}
+                disabled={readOnly}
+                control={control}
+              />
+            </>
           )}
         </Field>
       </div>

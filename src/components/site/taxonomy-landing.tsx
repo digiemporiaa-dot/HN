@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import {
-  Breadcrumb,
   buttonStyles,
   Container,
   EmptyState,
@@ -15,11 +14,43 @@ import { ProductCard } from "@/components/site/product-card";
 import { RichText } from "@/cms/rich-text";
 import { categoryPath } from "@/server/categories/service";
 import { buildQueryHref } from "@/lib/utils/query";
+import { sceneVisual, type VisualKind } from "@/lib/visuals";
 import type { ProductCardData, PublicImage } from "@/server/products/public";
 import type { TaxonomyRecord } from "@/server/catalogue/public";
+import {
+  ArrowLink,
+  BrandCard,
+  CategoryCard,
+  fitColumns,
+  SceneCard,
+} from "./cards";
+import { MetaChip, PageHero } from "./page-hero";
+import { PageCta } from "./page-cta";
+import { SmartImage } from "./media";
 
-/* eslint-disable @next/next/no-img-element -- catalogue images are served from
-   our own media route at their stored size. */
+/* Words that change between the four landing types. */
+const COPY: Record<string, { eyebrow: string; overview: string; products: string }> = {
+  specialty: {
+    eyebrow: "Clinical specialty",
+    overview: "Equipment for the department",
+    products: "Equipment for this specialty",
+  },
+  solution: {
+    eyebrow: "Healthcare solution",
+    overview: "What the solution covers",
+    products: "Equipment in this solution",
+  },
+  application: {
+    eyebrow: "Clinical environment",
+    overview: "About this environment",
+    products: "Equipment used here",
+  },
+  brand: {
+    eyebrow: "Manufacturer",
+    overview: "About the manufacturer",
+    products: "Products from this brand",
+  },
+};
 
 /**
  * The page a brand, specialty, solution or application gets.
@@ -28,8 +59,13 @@ import type { TaxonomyRecord } from "@/server/catalogue/public";
  * application is the same page with fewer of them filled in, so all four share
  * this rather than four files differing only in nouns. A category does not:
  * it nests, it owns its products outright, and its URL has two levels.
+ *
+ * Clinical records open on their environment photograph; a brand opens on its
+ * mark, because a manufacturer's logo stretched behind a headline is no one's
+ * idea of a hero.
  */
 export function TaxonomyLanding({
+  kind,
   record,
   trail,
   products,
@@ -41,6 +77,7 @@ export function TaxonomyLanding({
   emptyMessage,
   preview,
 }: {
+  kind: string;
   record: TaxonomyRecord;
   trail: BreadcrumbItem[];
   products: ProductCardData[];
@@ -52,6 +89,17 @@ export function TaxonomyLanding({
   emptyMessage: string;
   preview?: { href: string; label: string } | null;
 }) {
+  const copy = COPY[kind] ?? COPY.specialty;
+  const brand = kind === "brand";
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const heroImage = brand ? null : (record.banner ?? record.image ?? sceneVisual(record.name));
+
+  const enquire = (
+    <Link href="/rfq" className={buttonStyles({ size: "lg" })}>
+      Request a quote
+    </Link>
+  );
+
   return (
     <>
       {preview ? (
@@ -68,116 +116,171 @@ export function TaxonomyLanding({
         </div>
       ) : null}
 
-      {record.banner ? (
-        <div className="bg-surface-muted">
-          <img
-            src={record.banner.url}
-            alt={record.banner.alt}
-            className="h-48 w-full object-cover sm:h-64"
-          />
-        </div>
-      ) : null}
-
-      <Container className="pt-6">
-        <Breadcrumb items={trail} />
-      </Container>
-
-      <Section spacing="normal" container="standard">
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-wrap items-center gap-5">
-            {record.image ? (
-              <img
-                src={record.image.url}
-                alt={record.image.alt}
-                className="border-line bg-surface size-20 shrink-0 rounded-lg border object-contain p-2"
-              />
-            ) : null}
-
-            <div className="flex min-w-0 flex-col gap-1">
-              <h1 className="text-h1 text-ink">{record.name}</h1>
-              {record.shortDescription ? (
-                <p className="text-body-lg text-ink-muted">
-                  {record.shortDescription}
-                </p>
-              ) : null}
+      <PageHero
+        variant={heroImage ? "image" : "pearl"}
+        trail={trail}
+        eyebrow={copy.eyebrow}
+        title={record.name}
+        description={record.shortDescription}
+        image={heroImage}
+        aside={
+          brand && record.image ? (
+            <div className="border-line bg-surface flex aspect-[16/9] items-center justify-center rounded-3xl border p-10 shadow-[var(--shadow-float)]">
+              <div className="relative h-24 w-full">
+                <SmartImage src={record.image.url} alt={record.image.alt} sizes="400px" fit="contain" priority />
+              </div>
             </div>
-          </div>
-
-          {record.websiteUrl ? (
-            <div>
+          ) : undefined
+        }
+        meta={
+          <>
+            <MetaChip dark={Boolean(heroImage)}>
+              <span className="size-1.5 rounded-full bg-cyan-500" />
+              {total} product{total === 1 ? "" : "s"}
+            </MetaChip>
+            {record.categories.length > 0 ? (
+              <MetaChip dark={Boolean(heroImage)}>
+                {record.categories.length} equipment {record.categories.length === 1 ? "category" : "categories"}
+              </MetaChip>
+            ) : null}
+          </>
+        }
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {enquire}
+            {record.websiteUrl ? (
               <a
                 href={record.websiteUrl}
                 target="_blank"
                 rel="noreferrer nofollow"
-                className={buttonStyles({ variant: "outline", size: "sm" })}
+                className={buttonStyles({ variant: "outline", size: "lg" })}
               >
                 Manufacturer website
-                <ExternalLink aria-hidden="true" className="size-3.5" />
+                <ExternalLink aria-hidden="true" className="size-4" />
               </a>
-            </div>
-          ) : null}
+            ) : (
+              <Link
+                href="#products"
+                className={buttonStyles({ variant: heroImage ? "outline-inverse" : "outline", size: "lg" })}
+              >
+                View equipment
+              </Link>
+            )}
+          </div>
+        }
+      />
 
-          {record.description ? (
-            <div className="prose-hn max-w-[70ch]">
-              <RichText value={record.description} />
+      {record.description ? (
+        <Section spacing="large" container="wide">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">Overview</span>
+              <h2 className="text-h1 text-ink">{copy.overview}.</h2>
             </div>
-          ) : null}
-
-          {record.categories.length > 0 ? (
-            <div className="border-line flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t pt-5">
-              <span className="text-caption text-ink-subtle">Categories</span>
-              {record.categories.map((category) => (
-                <Link
-                  key={`${category.parentSlug}/${category.slug}`}
-                  href={categoryPath(category.slug, category.parentSlug)}
-                  className="text-body-sm text-primary underline underline-offset-4"
-                >
-                  {category.name}
-                </Link>
-              ))}
+            <div className="lg:col-span-7 lg:col-start-6">
+              <RichText value={record.description} className="prose-hn max-w-[68ch]" />
             </div>
-          ) : null}
-        </div>
-      </Section>
+          </div>
+        </Section>
+      ) : null}
 
-      <Section spacing="normal" container="standard" background="light">
+      {record.categories.length > 0 ? (
+        <Section spacing="large" container="wide" background="pearl">
+          <SectionHeader
+            overline="Equipment categories"
+            title="Ranges to explore."
+            action={<ArrowLink href="/categories">All categories</ArrowLink>}
+          />
+          <ul className={`reveal-stagger mt-12 grid grid-cols-2 gap-3 sm:gap-5 lg:gap-6 ${fitColumns(record.categories.length).replace("sm:grid-cols-2 ", "")}`}>
+            {record.categories.map((category) => (
+              <li key={`${category.parentSlug}/${category.slug}`}>
+                <CategoryCard
+                  size="compact"
+                  data={{
+                    name: category.name,
+                    href: categoryPath(category.slug, category.parentSlug),
+                    image: null,
+                  }}
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      <Section spacing="large" container="wide" anchorId="products">
         <SectionHeader
-          title="Products"
-          description={`${total} product${total === 1 ? "" : "s"}`}
-          align="left"
+          overline="Products"
+          title={`${copy.products}.`}
+          description={`${total} product${total === 1 ? "" : "s"}, each quoted to your requirement.`}
         />
-
-        <div className="mt-8 flex flex-col gap-8">
+        <div className="mt-12 flex flex-col gap-10">
           {products.length === 0 ? (
-            <EmptyState title="Nothing listed yet" description={emptyMessage} />
+            <EmptyState
+              title="Products are being added"
+              description={`${emptyMessage} Our team can still help with your requirement.`}
+              action={enquire}
+            />
           ) : (
-            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className={`reveal-stagger grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(products.length)}`}>
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </ul>
           )}
 
-          <Pagination
-            currentPage={page}
-            totalPages={Math.max(1, Math.ceil(total / pageSize))}
-            buildHref={(next) =>
-              buildQueryHref(basePath, searchParams, {
-                page: next === 1 ? null : next,
-              })
-            }
-          />
+          {totalPages > 1 ? (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              buildHref={(next) =>
+                buildQueryHref(basePath, searchParams, {
+                  page: next === 1 ? null : next,
+                })
+              }
+            />
+          ) : null}
         </div>
       </Section>
+
+      <PageCta
+        background="pearl"
+        title={brand ? `Sourcing ${record.name} equipment?` : `Planning equipment for ${record.name.toLowerCase()}?`}
+        body="Share the department, quantities and timeline — we will prepare a consolidated quotation for your requirement."
+        image={heroImage ?? undefined}
+        actions={
+          <>
+            {enquire}
+            <Link href="/contact" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Talk to our team
+            </Link>
+          </>
+        }
+      />
     </>
   );
 }
 
+const INDEX_KIND: Record<string, VisualKind | "brand"> = {
+  categories: "category",
+  specialties: "specialty",
+  solutions: "solution",
+  applications: "application",
+  brands: "brand",
+};
+
+const INDEX_EYEBROW: Record<string, string> = {
+  categories: "Equipment catalogue",
+  specialties: "Clinical specialties",
+  solutions: "Healthcare solutions",
+  applications: "Clinical environments",
+  brands: "Manufacturers",
+};
+
 /**
- * The index of one taxonomy — every brand, every specialty.
- *
- * Counts are shown because the number of products behind a label is the thing
- * that tells a visitor whether following it is worth the click.
+ * The index of one taxonomy — every category, specialty, solution,
+ * application or brand — each drawn with the card that suits it.
  */
 export function TaxonomyIndex({
   title,
@@ -201,58 +304,94 @@ export function TaxonomyIndex({
   emptyMessage: string;
   unit: string;
 }) {
+  const kind = INDEX_KIND[unit] ?? "category";
+  const clinical = kind === "specialty" || kind === "solution" || kind === "application";
+  const heroImage = clinical ? (cards.find((card) => card.image)?.image ?? sceneVisual(title)) : null;
+  const total = cards.reduce((sum, card) => sum + card.productCount, 0);
+
   return (
     <>
-      <Container className="pt-6">
-        <Breadcrumb items={trail} />
-      </Container>
+      <PageHero
+        variant={heroImage ? "image" : "pearl"}
+        trail={trail}
+        eyebrow={INDEX_EYEBROW[unit] ?? title}
+        title={title}
+        description={description}
+        image={heroImage}
+        meta={
+          cards.length > 0 ? (
+            <>
+              <MetaChip dark={Boolean(heroImage)}>
+                <span className="size-1.5 rounded-full bg-cyan-500" />
+                {cards.length} {unit}
+              </MetaChip>
+              {total > 0 ? <MetaChip dark={Boolean(heroImage)}>{total} linked products</MetaChip> : null}
+            </>
+          ) : undefined
+        }
+      />
 
-      <Section spacing="normal" container="standard">
-        <SectionHeader title={title} description={description} align="left" />
-
+      <Section spacing="large" container="wide" background={kind === "category" ? "pearl" : "default"}>
         {cards.length === 0 ? (
-          <div className="mt-8">
-            <EmptyState title={`No ${unit} yet`} description={emptyMessage} />
-          </div>
-        ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <EmptyState
+            title={`No ${unit} yet`}
+            description={emptyMessage}
+            action={
+              <Link href="/contact" className={buttonStyles({})}>
+                Ask our team
+              </Link>
+            }
+          />
+        ) : kind === "brand" ? (
+          <ul className="reveal-stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
             {cards.map((card) => (
               <li key={card.id}>
-                <Link
-                  href={card.href}
-                  className="border-line bg-surface hover:border-line-strong group flex h-full gap-4 rounded-lg border p-5 transition-colors"
-                >
-                  {card.image ? (
-                    <img
-                      src={card.image.url}
-                      alt={card.image.alt}
-                      loading="lazy"
-                      className="bg-surface-muted size-16 shrink-0 rounded-md object-contain p-1.5"
-                    />
-                  ) : null}
-
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
-                      {card.name}
-                    </span>
-                    {card.summary ? (
-                      <span className="text-body-sm text-ink-muted line-clamp-2">
-                        {card.summary}
-                      </span>
-                    ) : null}
-                    <span className="text-caption text-ink-subtle">
-                      {card.productCount} product
-                      {card.productCount === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                </Link>
+                <BrandCard data={{ name: card.name, href: card.href, image: card.image, count: card.productCount }} />
+              </li>
+            ))}
+          </ul>
+        ) : kind === "category" ? (
+          <ul className="reveal-stagger grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+            {cards.map((card) => (
+              <li key={card.id}>
+                <CategoryCard
+                  data={{ name: card.name, href: card.href, summary: card.summary, image: card.image, count: card.productCount }}
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className={`reveal-stagger grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(cards.length, 3)}`}>
+            {cards.map((card) => (
+              <li key={card.id}>
+                <SceneCard
+                  kind={kind as VisualKind}
+                  data={{ name: card.name, href: card.href, summary: card.summary, image: card.image, count: card.productCount }}
+                  aspect="landscape"
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  cta="Explore"
+                />
               </li>
             ))}
           </ul>
         )}
       </Section>
+
+      <PageCta
+        title="Need help choosing equipment?"
+        body="Tell us about the department or project. Our team will help shortlist equipment and prepare a quotation."
+        actions={
+          <>
+            <Link href="/rfq" className={buttonStyles({ size: "lg" })}>
+              Request a quote
+            </Link>
+            <Link href="/contact" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Talk to our team
+            </Link>
+          </>
+        }
+      />
     </>
   );
 }
-
-/* eslint-enable @next/next/no-img-element */

@@ -3,17 +3,17 @@
 import { useState } from "react";
 
 import { cn } from "@/lib/utils/cn";
+import { categoryVisual } from "@/lib/visuals";
 import type { PublicImage } from "@/server/products/public";
-
-/* eslint-disable @next/next/no-img-element -- catalogue images are served from
-   our own media route at their stored size. */
+import { SmartImage } from "./media";
 
 /**
  * The product's pictures.
  *
  * object-contain rather than cover: a ventilator photographed against white
- * must not be cropped to fill a square, because the shape of the machine is
- * part of what the buyer is looking at.
+ * must not be cropped to fill a frame, because the shape of the machine is
+ * part of what the buyer is looking at. A product without pictures shows a
+ * matching house render rather than an empty box.
  */
 export function ProductGallery({
   images,
@@ -23,49 +23,45 @@ export function ProductGallery({
   name: string;
 }) {
   const [active, setActive] = useState(0);
-  const current = images[active];
-
-  if (!current) {
-    return (
-      <div
-        aria-hidden="true"
-        className="border-line bg-surface-muted aspect-4/3 w-full rounded-lg border"
-      />
-    );
-  }
+  const list = images.length > 0 ? images : [categoryVisual(name)];
+  const current = list[Math.min(active, list.length - 1)];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="border-line bg-surface overflow-hidden rounded-lg border">
-        <img
+    <div className="flex flex-col gap-4">
+      <div className="media-frame border-line bg-pearl-100 relative aspect-[4/3] rounded-3xl border shadow-[var(--shadow-card)]">
+        <SmartImage
+          key={current.url}
           src={current.url}
           alt={current.alt}
-          className="aspect-4/3 w-full object-contain"
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          priority
+          fit="contain"
+          className="intro-fade"
         />
+        {list.length > 1 ? (
+          <span className="text-caption text-ink-muted absolute right-4 bottom-4 rounded-full bg-white/85 px-3 py-1 font-medium tabular-nums backdrop-blur-md">
+            {active + 1} / {list.length}
+          </span>
+        ) : null}
       </div>
 
-      {images.length > 1 ? (
-        <ul className="grid grid-cols-5 gap-2">
-          {images.map((image, index) => (
+      {list.length > 1 ? (
+        <ul className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+          {list.map((image, index) => (
             <li key={`${image.url}-${index}`}>
               <button
                 type="button"
                 onClick={() => setActive(index)}
-                aria-label={`Show image ${index + 1} of ${images.length} for ${name}`}
+                aria-label={`Show image ${index + 1} of ${list.length} for ${name}`}
                 aria-current={index === active}
                 className={cn(
-                  "block w-full overflow-hidden rounded-md border transition-colors",
+                  "media-frame bg-pearl-100 block aspect-square w-full rounded-xl border-2 transition-colors",
                   index === active
                     ? "border-primary"
-                    : "border-line hover:border-line-strong",
+                    : "border-transparent hover:border-line-strong",
                 )}
               >
-                <img
-                  src={image.url}
-                  alt=""
-                  loading="lazy"
-                  className="bg-surface aspect-square w-full object-contain"
-                />
+                <SmartImage src={image.url} alt="" sizes="120px" fit="contain" />
               </button>
             </li>
           ))}
@@ -74,5 +70,3 @@ export function ProductGallery({
     </div>
   );
 }
-
-/* eslint-enable @next/next/no-img-element */

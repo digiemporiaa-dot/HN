@@ -22,6 +22,8 @@ export const applicationSchema = z.object({
   name: z.string().trim().min(2, "Enter a name").max(120),
   slug: applicationSlugSchema,
   description: z.string().trim().max(2000).default(""),
+  /** Optional picture; blank means the site picks a matching house image. */
+  imageId: z.string().trim().max(40).default(""),
 });
 
 export const applicationIdSchema = z.object({

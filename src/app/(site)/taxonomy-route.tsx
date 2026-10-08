@@ -110,19 +110,8 @@ export async function TaxonomyRoute({
 
   return (
     <>
-      {published ? (
-        <JsonLd
-          data={itemListJsonLd(
-            record.name,
-            products.map((product) => ({
-              name: product.name,
-              path: `/products/${product.slug}`,
-            })),
-            (page - 1) * LANDING_PAGE_SIZE,
-          )}
-        />
-      ) : null}
       <TaxonomyLanding
+        kind={config.noun}
         record={record}
         trail={[
           { label: "Home", href: "/" },
@@ -142,6 +131,18 @@ export async function TaxonomyRoute({
             : { href: config.adminPath(record.id), label: config.noun }
         }
       />
+      {published ? (
+        <JsonLd
+          data={itemListJsonLd(
+            record.name,
+            products.map((product) => ({
+              name: product.name,
+              path: `/products/${product.slug}`,
+            })),
+            (page - 1) * LANDING_PAGE_SIZE,
+          )}
+        />
+      ) : null}
     </>
   );
 }

@@ -4,6 +4,7 @@ import { brandPath } from "@/server/brands/service";
 import { categoryPath } from "@/server/categories/service";
 import { productPath } from "@/server/products/service";
 import { specialtyPath } from "@/server/specialties/service";
+import { solutionPath } from "@/server/solutions/service";
 import type { ResolvedMedia } from "@/cms/render-page";
 import type { EntityKind } from "./entity-kinds";
 
@@ -23,13 +24,28 @@ export type EntityDocument = {
  */
 export type ResolvedEntity = {
   id: string;
+  kind: EntityKind;
   name: string;
   href: string;
   summary: string;
   /** A second line — a model number, a parent category. */
   meta: string;
+  /** A short label above the name — a product's category. */
+  label: string;
+  /** Published products behind the record, where that is meaningful. */
+  count: number | null;
+  /** Articles: when it was published (ISO) and by whom. */
+  date: string | null;
+  author: string | null;
   image: ResolvedMedia | null;
   documents: EntityDocument[];
+};
+
+const LIVE_PRODUCTS = {
+  where: { deletedAt: null, status: "PUBLISHED" as const },
+};
+const LIVE_LINKED = {
+  where: { product: { deletedAt: null, status: "PUBLISHED" as const } },
 };
 
 const image = (
@@ -74,15 +90,33 @@ export async function resolveEntities(
 
   const resolved = new Map<string, ResolvedEntity>();
   const key = (kind: EntityKind, id: string) => `${kind}:${id}`;
+  const blank = {
+    label: "",
+    count: null,
+    date: null,
+    author: null,
+    documents: [] as EntityDocument[],
+  };
 
   const productIds = byKind.get("product");
   const categoryIds = byKind.get("category");
   const subcategoryIds = byKind.get("subcategory");
   const brandIds = byKind.get("brand");
   const specialtyIds = byKind.get("specialty");
+  const solutionIds = byKind.get("solution");
+  const applicationIds = byKind.get("application");
+  const postIds = byKind.get("post");
 
-  const [products, categories, brands, specialties, documents] =
-    await Promise.all([
+  const [
+    products,
+    categories,
+    brands,
+    specialties,
+    documents,
+    solutions,
+    applications,
+    posts,
+  ] = await Promise.all([
       productIds?.size
         ? prisma.product.findMany({
             where: {
@@ -97,7 +131,8 @@ export async function resolveEntities(
               modelNumber: true,
               shortDescription: true,
               primaryImage: { select: { storageKey: true, altText: true } },
-              brand: { select: { name: true } },
+              brand: { select: { name: true, status: true } },
+              category: { select: { name: true } },
             },
           })
         : [],
@@ -119,6 +154,11 @@ export async function resolveEntities(
               shortDescription: true,
               image: { select: { storageKey: true, altText: true } },
               parent: { select: { slug: true, name: true } },
+              _count: { select: { products: LIVE_PRODUCTS } },
+              children: {
+                where: { deletedAt: null, status: "PUBLISHED" },
+                select: { _count: { select: { products: LIVE_PRODUCTS } } },
+              },
             },
           })
         : [],
@@ -145,6 +185,7 @@ export async function resolveEntities(
               slug: true,
               shortDescription: true,
               image: { select: { storageKey: true, altText: true } },
+              _count: { select: { products: LIVE_LINKED } },
             },
           })
         : [],
@@ -166,6 +207,59 @@ export async function resolveEntities(
             },
           })
         : [],
+
+      solutionIds?.size
+        ? prisma.solution.findMany({
+            where: { id: { in: [...solutionIds] }, status: "PUBLISHED" },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              shortDescription: true,
+              image: { select: { storageKey: true, altText: true } },
+              _count: { select: { products: LIVE_LINKED } },
+            },
+          })
+        : [],
+
+      // An application is public while a published product carries it.
+      applicationIds?.size
+        ? prisma.application.findMany({
+            where: {
+              id: { in: [...applicationIds] },
+              products: { some: LIVE_LINKED.where },
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              image: { select: { storageKey: true, altText: true } },
+              _count: { select: { products: LIVE_LINKED } },
+            },
+          })
+        : [],
+
+      postIds?.size
+        ? prisma.blogPost.findMany({
+            where: {
+              id: { in: [...postIds] },
+              status: "PUBLISHED",
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              excerpt: true,
+              authorName: true,
+              publishedAt: true,
+              cover: {
+                select: { storageKey: true, altText: true, deletedAt: true },
+              },
+            },
+          })
+        : [],
     ]);
 
   const documentsByProduct = new Map<string, EntityDocument[]>();
@@ -182,12 +276,18 @@ export async function resolveEntities(
   }
 
   for (const product of products) {
+    // A draft brand is not named publicly, here as on every card.
+    const brandName =
+      product.brand?.status === "PUBLISHED" ? product.brand.name : null;
     resolved.set(key("product", product.id), {
+      ...blank,
       id: product.id,
+      kind: "product",
       name: product.name,
       href: productPath(product.slug),
       summary: product.shortDescription ?? "",
-      meta: product.modelNumber ?? product.brand?.name ?? "",
+      meta: [brandName, product.modelNumber].filter(Boolean).join(" · "),
+      label: product.category.name,
       image: image(product.primaryImage, product.name),
       documents: documentsByProduct.get(product.id) ?? [],
     });
@@ -196,37 +296,88 @@ export async function resolveEntities(
   for (const category of categories) {
     const kind: EntityKind = category.depth === 0 ? "category" : "subcategory";
     resolved.set(key(kind, category.id), {
+      ...blank,
       id: category.id,
+      kind,
       name: category.name,
       href: categoryPath(category.slug, category.parent?.slug),
       summary: category.shortDescription ?? "",
       meta: category.parent?.name ?? "",
+      count:
+        category._count.products +
+        category.children.reduce((sum, child) => sum + child._count.products, 0),
       image: image(category.image, category.name),
-      documents: [],
     });
   }
 
   for (const brand of brands) {
     resolved.set(key("brand", brand.id), {
+      ...blank,
       id: brand.id,
+      kind: "brand",
       name: brand.name,
       href: brandPath(brand.slug),
       summary: brand.shortDescription ?? "",
       meta: "",
       image: image(brand.logo, brand.name),
-      documents: [],
     });
   }
 
   for (const specialty of specialties) {
     resolved.set(key("specialty", specialty.id), {
+      ...blank,
       id: specialty.id,
+      kind: "specialty",
       name: specialty.name,
       href: specialtyPath(specialty.slug),
       summary: specialty.shortDescription ?? "",
       meta: "",
+      count: specialty._count.products,
       image: image(specialty.image, specialty.name),
-      documents: [],
+    });
+  }
+
+  for (const solution of solutions) {
+    resolved.set(key("solution", solution.id), {
+      ...blank,
+      id: solution.id,
+      kind: "solution",
+      name: solution.name,
+      href: solutionPath(solution.slug),
+      summary: solution.shortDescription ?? "",
+      meta: "",
+      count: solution._count.products,
+      image: image(solution.image, solution.name),
+    });
+  }
+
+  for (const application of applications) {
+    resolved.set(key("application", application.id), {
+      ...blank,
+      id: application.id,
+      kind: "application",
+      name: application.name,
+      href: `/applications/${application.slug}`,
+      summary: application.description ?? "",
+      meta: "",
+      count: application._count.products,
+      image: image(application.image, application.name),
+    });
+  }
+
+  for (const post of posts) {
+    resolved.set(key("post", post.id), {
+      ...blank,
+      id: post.id,
+      kind: "post",
+      name: post.title,
+      href: `/blog/${post.slug}`,
+      summary: post.excerpt ?? "",
+      meta: "",
+      date: post.publishedAt?.toISOString() ?? null,
+      author: post.authorName,
+      image:
+        post.cover && !post.cover.deletedAt ? image(post.cover, post.title) : null,
     });
   }
 
@@ -235,4 +386,25 @@ export async function resolveEntities(
 
 export function entityKey(kind: EntityKind, id: string): string {
   return `${kind}:${id}`;
+}
+
+/**
+ * The newest published articles, for an article grid an editor left empty —
+ * "show the latest" is what an empty selection there means.
+ */
+export async function latestPosts(take = 3): Promise<ResolvedEntity[]> {
+  const ids = await prisma.blogPost.findMany({
+    where: { status: "PUBLISHED", deletedAt: null },
+    orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
+    take,
+    select: { id: true },
+  });
+  if (ids.length === 0) return [];
+  const resolved = await resolveEntities([
+    { kind: "post", ids: ids.map((row) => row.id), withDocuments: false },
+  ]);
+  return ids.flatMap((row) => {
+    const found = resolved.get(entityKey("post", row.id));
+    return found ? [found] : [];
+  });
 }

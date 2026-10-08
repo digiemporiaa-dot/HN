@@ -145,16 +145,34 @@ export function useQuoteBasket(): BasketValue {
 /** Adds one product to the list being quoted. */
 export function AddToQuoteButton({
   productId,
+  productName,
   size = "md",
+  compact = false,
+  variant = "outline",
   className,
 }: {
   productId: string;
+  /** Names the product for screen readers when the visible label is short. */
+  productName?: string;
   size?: "sm" | "md" | "lg";
+  /** A short label for tight spaces such as cards. */
+  compact?: boolean;
+  variant?: "outline" | "outline-inverse";
   className?: string;
 }) {
   const { add, has, ready, lines } = useQuoteBasket();
   const added = ready && has(productId);
   const full = ready && !added && lines.length >= MAX_RFQ_LINES;
+
+  const label = added
+    ? compact
+      ? "Added"
+      : "On your list"
+    : full
+      ? "List is full"
+      : compact
+        ? "Add to quote"
+        : "Add to quotation";
 
   return (
     <button
@@ -162,19 +180,20 @@ export function AddToQuoteButton({
       onClick={() => add(productId)}
       disabled={!ready || added || full}
       aria-live="polite"
-      className={cn(buttonStyles({ variant: "outline", size }), className)}
+      className={cn(
+        buttonStyles({ variant, size }),
+        compact && "h-9 px-3",
+        added && "border-success-600/40 text-success-700 opacity-100",
+        className,
+      )}
     >
       {added ? (
-        <>
-          <Check aria-hidden="true" className="size-4" />
-          On your list
-        </>
+        <Check aria-hidden="true" className="size-4" />
       ) : (
-        <>
-          <Plus aria-hidden="true" className="size-4" />
-          {full ? "List is full" : "Add to quotation"}
-        </>
+        <Plus aria-hidden="true" className="size-4" />
       )}
+      {label}
+      {productName ? <span className="sr-only">: {productName}</span> : null}
     </button>
   );
 }
@@ -193,11 +212,11 @@ export function QuoteBasketLink() {
   return (
     <Link
       href="/rfq"
-      className="text-body-sm text-ink hover:text-primary inline-flex items-center gap-2 font-medium transition-colors"
+      aria-label={`Quotation list, ${lines.length} product${lines.length === 1 ? "" : "s"}`}
+      className="text-ink hover:bg-surface-muted relative flex size-11 items-center justify-center rounded-lg transition-colors"
     >
-      <ClipboardList aria-hidden="true" className="size-4" />
-      <span className="hidden sm:inline">Quotation list</span>
-      <span className="bg-primary flex size-5 items-center justify-center rounded-full text-[11px] leading-none font-semibold text-white">
+      <ClipboardList aria-hidden="true" className="size-5" />
+      <span className="absolute top-1 right-1 flex size-[1.125rem] items-center justify-center rounded-full bg-cyan-500 text-[10px] leading-none font-bold text-white tabular-nums">
         {lines.length}
       </span>
     </Link>

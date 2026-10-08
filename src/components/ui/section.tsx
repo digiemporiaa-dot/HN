@@ -20,7 +20,11 @@ const backgroundClass: Record<SectionBackground, string> = {
   default: "surface-default",
   white: "surface-white",
   light: "surface-light",
-  dark: "surface-dark",
+  pearl: "surface-pearl",
+  gradient: "surface-gradient",
+  grid: "surface-grid",
+  glow: "surface-glow",
+  dark: "surface-dark surface-navy",
   brand: "surface-brand",
 };
 
@@ -57,9 +61,9 @@ export function Section({
     <section
       id={id}
       className={cn(
-        backgroundClass[background],
+        backgroundClass[background] ?? backgroundClass.default,
         spacingClass[spacing],
-        "scroll-mt-24",
+        "relative scroll-mt-24",
         className,
       )}
     >
@@ -80,9 +84,19 @@ type SectionHeaderProps = {
   description?: string;
   align?: "left" | "center";
   as?: "h1" | "h2" | "h3";
+  /** "section" is the large editorial title; "compact" suits dense pages. */
+  size?: "section" | "compact" | "page";
   className?: string;
+  /** Rendered beside the heading on wide screens (a "view all" link). */
+  action?: ReactNode;
   children?: ReactNode;
 };
+
+const titleSize = {
+  page: "text-hero",
+  section: "text-section",
+  compact: "text-h2",
+} as const;
 
 export function SectionHeader({
   overline,
@@ -90,25 +104,27 @@ export function SectionHeader({
   description,
   align = "left",
   as: Heading = "h2",
+  size,
   className,
+  action,
   children,
 }: SectionHeaderProps) {
-  return (
+  const resolved = size ?? (Heading === "h1" ? "page" : "section");
+  const centered = align === "center";
+
+  const text = (
     <div
       className={cn(
-        "flex flex-col gap-4",
-        align === "center" && "items-center text-center",
-        className,
+        "flex min-w-0 flex-col gap-4",
+        centered && "items-center text-center",
       )}
     >
-      {overline ? (
-        <span className="text-overline text-primary uppercase">{overline}</span>
-      ) : null}
+      {overline ? <span className="eyebrow">{overline}</span> : null}
       <Heading
         className={cn(
-          Heading === "h1" ? "text-h1" : "text-h2",
-          "text-ink max-w-[24ch]",
-          align === "center" && "max-w-[32ch]",
+          titleSize[resolved],
+          "text-ink text-safe max-w-[22ch]",
+          centered && "max-w-[26ch]",
         )}
       >
         {title}
@@ -116,14 +132,31 @@ export function SectionHeader({
       {description ? (
         <p
           className={cn(
-            "text-body-lg text-ink-muted max-w-[62ch]",
-            align === "center" && "mx-auto",
+            "text-lead text-ink-muted max-w-[58ch]",
+            centered && "mx-auto",
           )}
         >
           {description}
         </p>
       ) : null}
       {children}
+    </div>
+  );
+
+  if (!action) {
+    return <div className={cn("flex flex-col", className)}>{text}</div>;
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-6 md:flex-row md:items-end md:justify-between md:gap-10",
+        centered && "md:flex-col md:items-center",
+        className,
+      )}
+    >
+      {text}
+      <div className="shrink-0">{action}</div>
     </div>
   );
 }

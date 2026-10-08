@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import {
   Accordion,
-  Breadcrumb,
   buttonStyles,
   Container,
   EmptyState,
@@ -12,6 +11,18 @@ import {
   SectionHeader,
 } from "@/components/ui";
 import { ProductCard } from "@/components/site/product-card";
+import { MetaChip, PageHero } from "@/components/site/page-hero";
+import { PageCta } from "@/components/site/page-cta";
+import {
+  ArrowLink,
+  BrandCard,
+  CategoryCard,
+  fitColumns,
+  PillLink,
+  SceneCard,
+} from "@/components/site/cards";
+import { SectionNav } from "@/components/site/section-nav";
+import { categoryVisual } from "@/lib/visuals";
 import { EnquiryDialog } from "@/components/site/enquiry-form";
 import { RichText } from "@/cms/rich-text";
 import { buildQueryHref, readPageParam } from "@/lib/utils/query";
@@ -22,7 +33,6 @@ import {
   categoryApplications,
   categoryFeaturedProducts,
   publicCategory,
-  type PublicCategory,
 } from "@/server/catalogue/public";
 import { publicProductListing } from "@/server/products/public";
 import { entityFaqs } from "@/server/faqs/service";
@@ -40,9 +50,6 @@ type RouteParams = {
   params: Promise<{ path: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-/* eslint-disable @next/next/no-img-element -- catalogue images are served from
-   our own media route at their stored size. */
 
 /**
  * Rendered per request: the product list is paginated with ?page=, and a
@@ -111,8 +118,6 @@ export default async function CategoryPage({
 
   // A parent lists everything under it, including what sits in its
   // subcategories — that is what a visitor opening it expects to find.
-  // A parent's own id and its children's, because everything below it belongs
-  // to the page a visitor opened.
   const tree = [category.id, ...category.children.map((child) => child.id)];
 
   const [{ total, products }, featured, applications, faqs] = await Promise.all(
@@ -129,6 +134,38 @@ export default async function CategoryPage({
   );
 
   const here = categoryPath(category.slug, category.parent?.slug);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const trail = [
+    { label: "Home", href: "/" },
+    { label: "Categories", href: "/categories" },
+    ...(category.parent
+      ? [{ label: category.parent.name, href: categoryPath(category.parent.slug) }]
+      : []),
+    { label: category.name },
+  ];
+
+  const nav = [
+    category.children.length > 0 ? { id: "ranges", label: "Ranges" } : null,
+    { id: "products", label: "Products" },
+    category.description ? { id: "about", label: "About" } : null,
+    category.specialties.length > 0 ? { id: "specialties", label: "Specialties" } : null,
+    category.procurementInfo ? { id: "procurement", label: "Procurement" } : null,
+    faqs.length > 0 ? { id: "faq", label: "FAQ" } : null,
+  ].filter((row): row is { id: string; label: string } => row !== null);
+
+  const enquiry = (label = "Request a quotation") => (
+    // The category travels with the enquiry, so a lead records which range it
+    // came from rather than arriving as an unattributed contact-form message.
+    <EnquiryDialog
+      action={submitEnquiryAction}
+      categoryId={category.id}
+      triggerLabel={label}
+      triggerClassName={buttonStyles({ size: "lg" })}
+      title={`Request a quotation — ${category.name}`}
+      description="Tell us the department, quantities and timeline. We reply within one working day."
+      submitLabel="Send enquiry"
+    />
+  );
 
   return (
     <>
@@ -149,6 +186,37 @@ export default async function CategoryPage({
         </div>
       )}
 
+      <PageHero
+        variant={category.banner ? "image" : "pearl"}
+        trail={trail}
+        eyebrow={category.parent ? category.parent.name : "Equipment category"}
+        title={category.name}
+        description={category.shortDescription}
+        image={category.banner ?? category.image ?? categoryVisual(category.name)}
+        meta={
+          <>
+            <MetaChip dark={Boolean(category.banner)}>
+              <span className="size-1.5 rounded-full bg-cyan-500" />
+              {total} product{total === 1 ? "" : "s"}
+            </MetaChip>
+            {category.children.length > 0 ? (
+              <MetaChip dark={Boolean(category.banner)}>
+                {category.children.length} {category.children.length === 1 ? "range" : "ranges"}
+              </MetaChip>
+            ) : null}
+            <MetaChip dark={Boolean(category.banner)}>Quoted to requirement</MetaChip>
+          </>
+        }
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {enquiry()}
+            <Link href="#products" className={buttonStyles({ variant: category.banner ? "outline-inverse" : "outline", size: "lg" })}>
+              View products
+            </Link>
+          </div>
+        }
+      />
+
       {/* Described to search engines only once public, like the product page. */}
       {published ? (
         <>
@@ -166,67 +234,35 @@ export default async function CategoryPage({
         </>
       ) : null}
 
-      <CategoryHero category={category} total={total} />
-
-      {category.description ? (
-        <Section spacing="normal" container="standard">
-          <div className="prose-hn max-w-[70ch]">
-            <RichText value={category.description} />
-          </div>
-        </Section>
-      ) : null}
+      <SectionNav items={nav} label="Category sections" />
 
       {category.children.length > 0 ? (
-        <Section spacing="normal" container="standard" background="light">
-          <SectionHeader
-            title="Browse by type"
-            description="The ranges inside this category."
-            align="left"
-          />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Section spacing="large" container="wide" anchorId="ranges">
+          <SectionHeader overline="Ranges" title={`Inside ${category.name}.`} description="The equipment types within this category." />
+          <ul className={`reveal-stagger mt-12 grid grid-cols-2 gap-3 sm:gap-5 lg:gap-6 ${fitColumns(category.children.length).replace("sm:grid-cols-2 ", "")}`}>
             {category.children.map((child) => (
               <li key={child.id}>
-                <Link
-                  href={categoryPath(child.slug, category.slug)}
-                  className="border-line bg-surface hover:border-line-strong group flex h-full gap-4 rounded-lg border p-5 transition-colors"
-                >
-                  {child.image ? (
-                    <img
-                      src={child.image.url}
-                      alt={child.image.alt}
-                      loading="lazy"
-                      className="bg-surface-muted size-16 shrink-0 rounded-md object-contain p-1.5"
-                    />
-                  ) : null}
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
-                      {child.name}
-                    </span>
-                    {child.shortDescription ? (
-                      <span className="text-body-sm text-ink-muted line-clamp-2">
-                        {child.shortDescription}
-                      </span>
-                    ) : null}
-                    <span className="text-caption text-ink-subtle">
-                      {child.productCount} product
-                      {child.productCount === 1 ? "" : "s"}
-                    </span>
-                  </span>
-                </Link>
+                <CategoryCard
+                  size="compact"
+                  data={{
+                    name: child.name,
+                    href: categoryPath(child.slug, category.slug),
+                    summary: child.shortDescription,
+                    image: child.image,
+                    count: child.productCount,
+                  }}
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                />
               </li>
             ))}
           </ul>
         </Section>
       ) : null}
 
-      {featured.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader
-            title="Featured in this range"
-            description="Where a department has a usual choice, this is it."
-            align="left"
-          />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {featured.length > 0 && page === 1 && total > 6 ? (
+        <Section spacing="large" container="wide" background="pearl">
+          <SectionHeader overline="Featured" title="Frequently specified." description="Where a department has a usual choice, this is it." />
+          <ul className="reveal-stagger mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
             {featured.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -234,104 +270,82 @@ export default async function CategoryPage({
         </Section>
       ) : null}
 
-      <Section
-        spacing="normal"
-        container="standard"
-        background={featured.length > 0 ? "light" : "default"}
-      >
+      <Section spacing="large" container="wide" anchorId="products">
         <SectionHeader
-          title="Products"
-          description={`${total} product${total === 1 ? "" : "s"}${
-            category.children.length > 0 ? ", including subcategories" : ""
-          }`}
-          align="left"
+          overline="Products"
+          title={`All ${category.name.toLowerCase()} equipment.`}
+          description={`${total} product${total === 1 ? "" : "s"}${category.children.length > 0 ? ", including every range in this category" : ""}.`}
+          action={<ArrowLink href={`/products?category=${category.slug}`}>Filter in the catalogue</ArrowLink>}
         />
-
-        <div className="mt-8 flex flex-col gap-8">
+        <div className="mt-12 flex flex-col gap-10">
           {products.length === 0 ? (
             <EmptyState
-              title="Nothing listed yet"
-              description="No products are published in this category at the moment."
+              title="Products are being added"
+              description="This range is being prepared for the catalogue. Our team can already quote for it."
+              action={enquiry("Ask about this range")}
             />
           ) : (
-            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className={`reveal-stagger grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(products.length)}`}>
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </ul>
           )}
-
-          <Pagination
-            currentPage={page}
-            totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
-            buildHref={(next) =>
-              buildQueryHref(here, query, { page: next === 1 ? null : next })
-            }
-          />
+          {totalPages > 1 ? (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              buildHref={(next) =>
+                buildQueryHref(here, query, { page: next === 1 ? null : next })
+              }
+            />
+          ) : null}
         </div>
       </Section>
 
-      {category.specialties.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader
-            title="Specialties served"
-            description="The departments this range is supplied to."
-            align="left"
-          />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {category.specialties.map((specialty) => (
-              <li key={specialty.id}>
-                <Link
-                  href={specialtyPath(specialty.slug)}
-                  className="border-line bg-surface hover:border-line-strong group flex h-full gap-4 rounded-lg border p-5 transition-colors"
-                >
-                  {specialty.image ? (
-                    <img
-                      src={specialty.image.url}
-                      alt={specialty.image.alt}
-                      loading="lazy"
-                      className="bg-surface-muted size-14 shrink-0 rounded-md object-contain p-1.5"
-                    />
-                  ) : null}
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-body text-ink group-hover:text-primary font-medium transition-colors">
-                      {specialty.name}
-                    </span>
-                    {specialty.summary ? (
-                      <span className="text-body-sm text-ink-muted line-clamp-2">
-                        {specialty.summary}
-                      </span>
-                    ) : null}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+      {category.description ? (
+        <Section spacing="large" container="wide" background="pearl" anchorId="about">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">About this category</span>
+              <h2 className="text-h1 text-ink">{category.name} for healthcare institutions.</h2>
+            </div>
+            <div className="lg:col-span-7 lg:col-start-6">
+              <RichText value={category.description} className="prose-hn max-w-[68ch]" />
+              {applications.length > 0 ? (
+                <div className="mt-10 flex flex-col gap-4">
+                  <p className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">Used in</p>
+                  {/* Counted from the published products rather than stored
+                      against the category, so a procedure stops being listed
+                      when the last product for it is withdrawn. */}
+                  <ul className="flex flex-wrap gap-2">
+                    {applications.map((application) => (
+                      <li key={application.slug}>
+                        <PillLink href={`/applications/${application.slug}`} count={application.productCount}>
+                          {application.name}
+                        </PillLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </Section>
       ) : null}
 
-      {applications.length > 0 ? (
-        <Section spacing="normal" container="standard" background="light">
-          <SectionHeader
-            title="Where it is used"
-            description="Procedures the equipment in this range is supplied for."
-            align="left"
-          />
-          {/* Counted from the published products rather than stored against
-              the category, so a procedure stops being listed when the last
-              product for it is withdrawn. */}
-          <ul className="mt-8 flex flex-wrap gap-3">
-            {applications.map((application) => (
-              <li key={application.slug}>
-                <Link
-                  href={`/applications/${application.slug}`}
-                  className="border-line bg-surface hover:border-line-strong text-body-sm text-ink inline-flex items-center gap-2 rounded-full border px-4 py-2 transition-colors"
-                >
-                  {application.name}
-                  <span className="text-caption text-ink-subtle">
-                    {application.productCount}
-                  </span>
-                </Link>
+      {category.specialties.length > 0 ? (
+        <Section spacing="large" container="wide" anchorId="specialties">
+          <SectionHeader overline="Specialties" title="Departments this range serves." action={<ArrowLink href="/specialties">All specialties</ArrowLink>} />
+          <ul className={`reveal-stagger mt-12 grid grid-cols-1 gap-5 lg:gap-6 ${fitColumns(category.specialties.length)}`}>
+            {category.specialties.map((specialty) => (
+              <li key={specialty.id}>
+                <SceneCard
+                  kind="specialty"
+                  data={{ name: specialty.name, href: specialtyPath(specialty.slug), summary: specialty.summary, image: specialty.image }}
+                  aspect="landscape"
+                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                />
               </li>
             ))}
           </ul>
@@ -339,31 +353,12 @@ export default async function CategoryPage({
       ) : null}
 
       {category.brands.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader
-            title="Brands we supply"
-            description="Manufacturers whose equipment we supply, install and service in this range."
-            align="left"
-          />
-          <ul className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <Section spacing="normal" container="wide" background="pearl">
+          <SectionHeader overline="Brands" title="Manufacturers in this range." size="compact" />
+          <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {category.brands.map((brand) => (
               <li key={brand.slug}>
-                <Link
-                  href={brandPath(brand.slug)}
-                  className="border-line bg-surface hover:border-line-strong flex h-full flex-col items-center justify-center gap-3 rounded-lg border p-5 text-center transition-colors"
-                >
-                  {brand.logo ? (
-                    <img
-                      src={brand.logo.url}
-                      alt={brand.logo.alt}
-                      loading="lazy"
-                      className="h-10 w-full object-contain"
-                    />
-                  ) : null}
-                  <span className="text-body-sm text-ink font-medium">
-                    {brand.name}
-                  </span>
-                </Link>
+                <BrandCard data={{ name: brand.name, href: brandPath(brand.slug), image: brand.logo }} />
               </li>
             ))}
           </ul>
@@ -371,163 +366,52 @@ export default async function CategoryPage({
       ) : null}
 
       {category.procurementInfo ? (
-        <Section spacing="normal" container="standard" background="light">
-          <SectionHeader
-            title="Buying this equipment"
-            description="What a purchase team needs before raising a tender."
-            align="left"
-          />
-          <div className="prose-hn mt-6 max-w-[70ch]">
-            <RichText value={category.procurementInfo} />
+        <Section spacing="large" container="wide" anchorId="procurement">
+          <div className="surface-gradient border-line grid gap-8 rounded-3xl border p-8 sm:p-12 lg:grid-cols-12 lg:gap-12">
+            <div className="flex flex-col gap-4 lg:col-span-4">
+              <span className="eyebrow">Procurement</span>
+              <h2 className="text-h2 text-ink">Buying this equipment.</h2>
+              <p className="text-body-sm text-ink-muted">What a purchase team needs before raising a tender.</p>
+            </div>
+            <div className="lg:col-span-8">
+              <RichText value={category.procurementInfo} className="prose-hn" />
+            </div>
           </div>
         </Section>
       ) : null}
 
       {faqs.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="Questions" align="left" />
-          <div className="mt-6 max-w-[70ch]">
-            <Accordion
-              items={faqs.map((faq) => ({
-                id: faq.id,
-                question: faq.question,
-                answer: <RichText value={faq.answer} />,
-              }))}
-            />
+        <Section spacing="large" container="wide" background="pearl" anchorId="faq">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">FAQ</span>
+              <h2 className="text-h1 text-ink">Questions about {category.name.toLowerCase()}.</h2>
+            </div>
+            <div className="lg:col-span-8">
+              <Accordion
+                items={faqs.map((faq) => ({
+                  id: faq.id,
+                  question: faq.question,
+                  answer: <RichText value={faq.answer} />,
+                }))}
+              />
+            </div>
           </div>
         </Section>
       ) : null}
 
-      <Section spacing="large" container="standard" background="dark">
-        <div className="flex flex-col items-start gap-6">
-          <SectionHeader
-            title={`Ask us about ${category.name}`}
-            description="Tell us the department, the configuration and the timeline. Everything in this range is quoted to requirement, and we reply within one working day."
-            align="left"
-          />
-          {/* The category travels with the enquiry, so a lead records which
-              range it came from rather than arriving as an unattributed
-              contact-form submission. */}
-          <EnquiryDialog
-            action={submitEnquiryAction}
-            categoryId={category.id}
-            triggerLabel="Request a quotation"
-            triggerClassName={buttonStyles({ size: "lg" })}
-            title={`Request a quotation — ${category.name}`}
-            description="We reply within one working day."
-            submitLabel="Send enquiry"
-          />
-        </div>
-      </Section>
+      <PageCta
+        title={`Equipping a department with ${category.name.toLowerCase()}?`}
+        body="Tell us the department, quantities and timeline. Everything in this range is quoted to requirement, and we reply within one working day."
+        actions={
+          <>
+            {enquiry()}
+            <Link href="/rfq" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+              Build a quotation list
+            </Link>
+          </>
+        }
+      />
     </>
   );
 }
-
-/**
- * The top of a category page.
- *
- * A banner, where one has been uploaded, is the background rather than a strip
- * above the page: a picture of an operating theatre sitting in its own band
- * with the heading underneath reads as decoration, and the same picture behind
- * the heading reads as the page. Without one the hero is typographic, which is
- * the honest alternative to stretching a placeholder across the screen.
- */
-function CategoryHero({
-  category,
-  total,
-}: {
-  category: PublicCategory;
-  total: number;
-}) {
-  const trail = [
-    { label: "Home", href: "/" },
-    { label: "Categories", href: "/categories" },
-    ...(category.parent
-      ? [
-          {
-            label: category.parent.name,
-            href: categoryPath(category.parent.slug),
-          },
-        ]
-      : []),
-    { label: category.name },
-  ];
-
-  const heading = (
-    <div className="flex max-w-[60ch] flex-col gap-4">
-      <p className="text-overline text-primary uppercase">
-        {category.parent ? category.parent.name : "Catalogue"}
-      </p>
-      <h1 className="text-h1 text-ink">{category.name}</h1>
-      {category.shortDescription ? (
-        <p className="text-body-lg text-ink-muted">
-          {category.shortDescription}
-        </p>
-      ) : null}
-      <p className="text-body-sm text-ink-subtle">
-        {total} product{total === 1 ? "" : "s"}
-        {category.children.length > 0
-          ? ` across ${category.children.length} ${
-              category.children.length === 1 ? "type" : "types"
-            }`
-          : ""}
-      </p>
-    </div>
-  );
-
-  if (!category.banner) {
-    return (
-      <>
-        <Container className="pt-6">
-          <Breadcrumb items={trail} />
-        </Container>
-        <Section spacing="normal" container="standard">
-          {heading}
-        </Section>
-      </>
-    );
-  }
-
-  return (
-    <div className="relative isolate">
-      <img
-        src={category.banner.url}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 size-full object-cover"
-      />
-      {/* Dark enough for the heading to hold at any photograph. The gradient
-          rather than a flat wash so the picture still reads as a picture. */}
-      <div
-        aria-hidden="true"
-        className="from-navy-950/95 via-navy-950/80 to-navy-950/55 absolute inset-0 -z-10 bg-gradient-to-r"
-      />
-
-      {/* The same dark theme every other dark section uses, with its own
-          background turned off so the photograph shows through. Reusing the
-          class rather than hand-picking colours is what keeps a heading over a
-          picture the same white as a heading over navy. */}
-      {/* The accent is lightened for this one block rather than in
-          `.surface-dark` itself: the shared class also colours filled buttons,
-          and a pale blue button with white text on it would be worse than the
-          overline it fixes. There are no filled buttons in a hero. */}
-      <div className="surface-dark bg-transparent [--color-primary:var(--color-medical-300)]">
-        <Container className="pt-6">
-          <Breadcrumb items={trail} />
-        </Container>
-        {/* The section's own background has to go too, not just the wrapper's:
-            every Section paints one, and a white one here would cover the
-            photograph and leave a white heading on white. */}
-        <Section
-          spacing="large"
-          container="standard"
-          className="bg-transparent"
-        >
-          {heading}
-        </Section>
-      </div>
-    </div>
-  );
-}
-
-/* eslint-enable @next/next/no-img-element */

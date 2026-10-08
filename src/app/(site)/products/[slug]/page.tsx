@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, Download, Mail, MessageCircle, Phone } from "lucide-react";
+import {
+  Check,
+  Download,
+  FileText,
+  Lock,
+  Mail,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
 
 import {
   Accordion,
@@ -12,6 +20,9 @@ import {
 } from "@/components/ui";
 import { ProductCard } from "@/components/site/product-card";
 import { ProductGallery } from "@/components/site/product-gallery";
+import { SectionNav } from "@/components/site/section-nav";
+import { PageCta } from "@/components/site/page-cta";
+import { ArrowLink, PillLink, SceneCard } from "@/components/site/cards";
 import { RichText } from "@/cms/rich-text";
 import { getSiteSettings } from "@/server/settings/service";
 import { brandPath } from "@/server/brands/service";
@@ -108,6 +119,9 @@ export default async function ProductPage({ params }: RouteParams) {
 
   const settings = await getSiteSettings();
   const parent = product.category.parent;
+  const categoryHref = categoryPath(product.category.slug, parent?.slug);
+  const categoryLive = product.category.status === "PUBLISHED";
+  const brandLive = product.brand?.status === "PUBLISHED" ? product.brand : null;
 
   const trail = [
     { label: "Home", href: "/" },
@@ -115,22 +129,111 @@ export default async function ProductPage({ params }: RouteParams) {
     ...(parent && parent.status === "PUBLISHED"
       ? [{ label: parent.name, href: categoryPath(parent.slug) }]
       : []),
-    ...(product.category.status === "PUBLISHED"
-      ? [
-          {
-            label: product.category.name,
-            href: categoryPath(product.category.slug, parent?.slug),
-          },
-        ]
-      : []),
+    ...(categoryLive ? [{ label: product.category.name, href: categoryHref }] : []),
     { label: product.name },
   ];
 
+  const brochure = product.documents.find((document) => document.href);
+  const highlights = product.highlights.slice(0, 6);
+
+  const sections = [
+    { id: "overview", label: "Overview", show: Boolean(product.description) || highlights.length > 0 },
+    { id: "features", label: "Key features", show: product.features.length > 0 },
+    { id: "specifications", label: "Specifications", show: product.specGroups.length > 0 },
+    { id: "applications", label: "Applications", show: product.applications.length > 0 },
+    { id: "documents", label: "Documents", show: product.documents.length > 0 },
+    { id: "faq", label: "FAQ", show: product.faqs.length > 0 },
+  ].filter((section) => section.show);
+
+  const quoteDialog = (size: "sm" | "lg", label = "Request a quotation") => (
+    <EnquiryDialog
+      action={submitEnquiryAction}
+      productId={product.id}
+      triggerLabel={label}
+      triggerClassName={buttonStyles({ size })}
+      title={`Request a quotation — ${reference(product)}`}
+      description="Tell us the department, quantity and configuration. We reply within one working day."
+      submitLabel="Send enquiry"
+    />
+  );
+
   return (
     <>
-      {published ? null : (
-        <PreviewBanner id={product.id} status={product.status} />
-      )}
+      {published ? null : <PreviewBanner id={product.id} status={product.status} />}
+
+      <section className="surface-grid border-line relative border-b">
+        <Container width="wide" className="pt-6">
+          <Breadcrumb items={trail} />
+        </Container>
+        <Container width="wide" className="grid gap-10 pt-8 pb-14 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:pb-20">
+          <div className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
+            <ProductGallery images={product.gallery} name={product.name} />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-7">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {categoryLive ? (
+                  <Link
+                    href={categoryHref}
+                    className="bg-primary-subtle text-primary hover:bg-medical-100 rounded-full px-3 py-1 text-[0.75rem] font-semibold tracking-[0.1em] uppercase transition-colors"
+                  >
+                    {product.category.name}
+                  </Link>
+                ) : null}
+                {/* An unpublished brand is not named at all: draft means not
+                    visible publicly, and a name on someone else's page is
+                    still visible. */}
+                {brandLive ? (
+                  <Link
+                    href={brandPath(brandLive.slug)}
+                    className="border-line text-ink-muted hover:text-ink rounded-full border bg-white px-3 py-1 text-[0.75rem] font-semibold tracking-[0.1em] uppercase transition-colors"
+                  >
+                    {brandLive.name}
+                  </Link>
+                ) : null}
+              </div>
+
+              <h1 className="font-display text-ink text-safe text-[clamp(2rem,1.45rem+2.2vw,3.25rem)] leading-[1.08] font-semibold tracking-[-0.03em]">
+                {product.name}
+              </h1>
+
+              {product.modelNumber ? (
+                <p className="text-body-sm text-ink-muted">
+                  Model <span className="text-ink font-medium">{product.modelNumber}</span>
+                </p>
+              ) : null}
+
+              {product.shortDescription ? (
+                <p className="text-lead text-ink-muted">{product.shortDescription}</p>
+              ) : null}
+            </div>
+
+            {highlights.length > 0 ? (
+              <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                {highlights.map((point) => (
+                  <li key={point.id} className="text-body-sm text-ink flex items-start gap-3">
+                    <span className="bg-primary-subtle text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
+                      <Check aria-hidden="true" className="size-3" />
+                    </span>
+                    {point.title}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            <EnquiryPanel
+              id="enquiry-panel"
+              product={product}
+              settings={settings}
+              quote={quoteDialog("lg")}
+              brochureHref={brochure?.href ?? null}
+            />
+
+            <TaxonomyLinks product={product} />
+          </div>
+        </Container>
+      </section>
 
       {/* Only published products are described to search engines: a draft is
           noindex anyway, and structured data for a page nobody may see would
@@ -143,128 +246,68 @@ export default async function ProductPage({ params }: RouteParams) {
             description: product.shortDescription,
             modelNumber: product.modelNumber,
             images: product.gallery.map((image) => image.url),
-            brandName:
-              product.brand?.status === "PUBLISHED" ? product.brand.name : null,
+            brandName: brandLive ? brandLive.name : null,
             categoryName: product.category.name,
           })}
         />
       ) : null}
       {published ? <JsonLd data={faqPageJsonLd(product.faqs)} /> : null}
 
-      <Container className="pt-6">
-        <Breadcrumb items={trail} />
-      </Container>
+      <SectionNav items={sections.map(({ id, label }) => ({ id, label }))} label="Product sections" />
 
-      <Section spacing="normal" container="standard">
-        <div className="grid gap-10 lg:grid-cols-2">
-          <ProductGallery images={product.gallery} name={product.name} />
-
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              {/* An unpublished brand is not named at all, here or on a card:
-                  draft means not visible publicly, and a name on someone
-                  else's page is still visible. */}
-              {product.brand && product.brand.status === "PUBLISHED" ? (
-                <Link
-                  href={brandPath(product.brand.slug)}
-                  className="text-caption text-primary font-medium uppercase tracking-wide"
-                >
-                  {product.brand.name}
-                </Link>
-              ) : null}
-
-              <h1 className="text-h1 text-ink">{product.name}</h1>
-
-              {product.modelNumber ? (
-                <p className="text-body-sm text-ink-muted">
-                  Model {product.modelNumber}
-                </p>
+      {product.description || highlights.length > 0 ? (
+        <Section spacing="large" container="wide" anchorId="overview">
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-6 lg:col-span-7">
+              <span className="eyebrow">Overview</span>
+              <h2 className="text-h1 text-ink">Product overview</h2>
+              {product.description ? (
+                <RichText value={product.description} className="prose-hn max-w-[68ch]" />
               ) : null}
             </div>
-
-            {product.shortDescription ? (
-              <p className="text-body-lg text-ink-muted">
-                {product.shortDescription}
-              </p>
-            ) : null}
-
-            <EnquiryPanel
-              id="enquiry-panel"
-              product={product}
-              settings={settings}
-            />
-
-            <TaxonomyLinks product={product} />
-          </div>
-        </div>
-      </Section>
-
-      {product.highlights.length > 0 ? (
-        <Section spacing="compact" container="standard" background="light">
-          {/* No heading. These are the four or five things a buyer should see
-              on the way past, and a heading over them would only slow that
-              down — the section below is where the explaining happens. */}
-          <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            {product.highlights.map((point) => (
-              <li key={point.id} className="flex items-start gap-3">
-                <Check
-                  aria-hidden="true"
-                  className="text-primary mt-0.5 size-5 shrink-0"
-                />
-                <span className="text-body text-ink">{point.title}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
-
-      {product.description ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="About this product" align="left" />
-          <div className="prose-hn mt-6 max-w-[70ch]">
-            <RichText value={product.description} />
+            <aside className="lg:col-span-4 lg:col-start-9">
+              <div className="border-line bg-surface sticky top-[calc(var(--header-h)+5rem)] flex flex-col gap-5 rounded-3xl border p-7 shadow-[var(--shadow-card)]">
+                <p className="text-caption text-ink-subtle font-semibold tracking-[0.14em] uppercase">At a glance</p>
+                <dl className="divide-line flex flex-col divide-y">
+                  {[
+                    ["Category", product.category.name],
+                    ["Brand", brandLive?.name ?? null],
+                    ["Model", product.modelNumber],
+                    ["Pricing", "Quoted to requirement"],
+                    ["Documents", product.documents.length > 0 ? `${product.documents.length} available` : null],
+                  ]
+                    .filter((row): row is [string, string] => Boolean(row[1]))
+                    .map(([label, value]) => (
+                      <div key={label} className="flex items-baseline justify-between gap-4 py-3">
+                        <dt className="text-body-sm text-ink-muted">{label}</dt>
+                        <dd className="text-body-sm text-ink text-right font-medium">{value}</dd>
+                      </div>
+                    ))}
+                </dl>
+                {quoteDialog("lg")}
+              </div>
+            </aside>
           </div>
         </Section>
       ) : null}
 
       {product.features.length > 0 ? (
-        <Section spacing="normal" container="standard" background="light">
+        <Section spacing="large" container="wide" background="pearl" anchorId="features">
           <SectionHeader
-            title="Features"
+            overline="Key features"
+            title="Designed for daily clinical use."
             description="What the equipment does, and what that means in a working department."
-            align="left"
           />
-          <ul className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            {product.features.map((point) => (
-              <li key={point.id} className="flex flex-col gap-1.5">
-                <h3 className="text-body text-ink font-medium">
-                  {point.title}
-                </h3>
-                {point.body ? (
-                  <p className="text-body-sm text-ink-muted">{point.body}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
-
-      {product.applications.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader
-            title="Where it is used"
-            description="Procedures and departments this equipment is supplied for."
-            align="left"
-          />
-          <ul className="mt-8 flex flex-wrap gap-3">
-            {product.applications.map((row) => (
-              <li key={row.slug}>
-                <Link
-                  href={`/applications/${row.slug}`}
-                  className="border-line bg-surface hover:border-line-strong text-body-sm text-ink inline-flex rounded-full border px-4 py-2 transition-colors"
-                >
-                  {row.name}
-                </Link>
+          <ul className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:gap-6">
+            {product.features.map((point, index) => (
+              <li key={point.id} className="border-line bg-surface flex gap-5 rounded-2xl border p-7 shadow-[var(--shadow-card)]">
+                <span className="font-display text-primary border-medical-100 bg-primary-subtle flex size-12 shrink-0 items-center justify-center rounded-xl border text-[0.9375rem] font-semibold tabular-nums">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-h4 text-ink">{point.title}</h3>
+                  {point.body ? <p className="text-body-sm text-ink-muted">{point.body}</p> : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -272,38 +315,29 @@ export default async function ProductPage({ params }: RouteParams) {
       ) : null}
 
       {product.specGroups.length > 0 ? (
-        <Section
-          spacing="normal"
-          container="standard"
-          background="light"
-          anchorId="specifications"
-        >
-          <SectionHeader title="Specifications" align="left" />
-
-          <div className="mt-8 flex flex-col gap-8">
+        <Section spacing="large" container="wide" anchorId="specifications">
+          <SectionHeader
+            overline="Specifications"
+            title="Technical specifications."
+            description="Typical values for the standard configuration. Your quotation confirms the exact specification."
+          />
+          <div className="mt-12 grid gap-6 lg:grid-cols-2">
             {product.specGroups.map((group) => (
-              <div key={group.id} className="flex flex-col gap-3">
-                <h3 className="text-h4 text-ink">{group.label}</h3>
-                {/* A definition list rather than a table, and stacked until
-                    there is room for two columns. A specification label is a
-                    phrase — "Central illuminance" — and a third of a phone is
-                    not enough for one, so on a narrow screen the value goes
-                    underneath rather than the label breaking across four
-                    lines. */}
-                <dl className="border-line bg-surface divide-line divide-y rounded-lg border">
+              <div key={group.id} className="reveal border-line bg-surface overflow-hidden rounded-2xl border">
+                <h3 className="border-line bg-surface-subtle text-ink flex items-center gap-3 border-b px-6 py-4 text-[0.8125rem] font-semibold tracking-[0.12em] uppercase">
+                  <span className="size-1.5 rounded-full bg-cyan-500" />
+                  {group.label}
+                </h3>
+                {/* A definition list rather than a table, stacked until there
+                    is room for two columns: a label is a phrase, and a third
+                    of a phone is not enough for one. */}
+                <dl className="divide-line divide-y">
                   {group.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:gap-4"
-                    >
-                      <dt className="text-body-sm text-ink-muted sm:w-2/5 sm:shrink-0">
-                        {item.label}
-                      </dt>
-                      <dd className="text-body-sm text-ink">
+                    <div key={item.id} className="grid gap-1 px-6 py-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-6">
+                      <dt className="text-body-sm text-ink-muted">{item.label}</dt>
+                      <dd className="text-body-sm text-ink text-safe font-medium">
                         {item.value || "—"}
-                        {item.value && item.unit ? (
-                          <span className="text-ink-muted"> {item.unit}</span>
-                        ) : null}
+                        {item.value && item.unit ? <span className="text-ink-muted font-normal"> {item.unit}</span> : null}
                       </dd>
                     </div>
                   ))}
@@ -314,37 +348,50 @@ export default async function ProductPage({ params }: RouteParams) {
         </Section>
       ) : null}
 
+      {product.applications.length > 0 ? (
+        <Section spacing="large" container="wide" background="pearl" anchorId="applications">
+          <SectionHeader
+            overline="Applications"
+            title="Where it is used."
+            description="Clinical environments this equipment is supplied for."
+          />
+          <ul className="reveal-stagger mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+            {product.applications.map((row) => (
+              <li key={row.slug}>
+                <SceneCard
+                  kind="application"
+                  data={{ name: row.name, href: `/applications/${row.slug}`, summary: row.description, image: row.image }}
+                  aspect="landscape"
+                  sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 92vw"
+                />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
       {product.documents.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="Documents" align="left" />
-          <ul className="mt-6 flex max-w-[70ch] flex-col gap-2">
+        <Section spacing="large" container="wide" anchorId="documents">
+          <SectionHeader overline="Documents" title="Brochures and datasheets." size="compact" />
+          <ul className="mt-10 grid gap-4 md:grid-cols-2">
             {product.documents.map((document) => (
               <li
                 key={document.id}
-                className="border-line bg-surface flex flex-wrap items-center gap-3 rounded-md border p-4"
+                className="border-line bg-surface flex flex-wrap items-center gap-4 rounded-2xl border p-5 shadow-[var(--shadow-card)]"
               >
-                <Download
-                  aria-hidden="true"
-                  className="text-primary size-5 shrink-0"
-                />
+                <span className="bg-primary-subtle text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
+                  {document.gated ? <Lock aria-hidden="true" className="size-5" /> : <FileText aria-hidden="true" className="size-5" />}
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="text-body-sm text-ink block font-medium">
-                    {document.title}
-                  </span>
+                  <span className="text-body-sm text-ink block font-semibold">{document.title}</span>
                   <span className="text-caption text-ink-subtle block">
-                    {DOCUMENT_LABELS[document.kind] ?? "Document"} ·{" "}
-                    {fileSize(document.sizeBytes)}
+                    {DOCUMENT_LABELS[document.kind] ?? "Document"} · {fileSize(document.sizeBytes)}
                     {document.gated ? " · sent after a short enquiry" : ""}
                   </span>
                 </span>
-
                 {document.href ? (
-                  <a
-                    href={document.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={buttonStyles({ variant: "outline", size: "sm" })}
-                  >
+                  <a href={document.href} target="_blank" rel="noreferrer" className={buttonStyles({ variant: "outline", size: "sm" })}>
+                    <Download aria-hidden="true" className="size-4" />
                     Download
                   </a>
                 ) : (
@@ -352,11 +399,8 @@ export default async function ProductPage({ params }: RouteParams) {
                     action={submitEnquiryAction}
                     productId={product.id}
                     documentId={document.id}
-                    triggerLabel="Request this document"
-                    triggerClassName={buttonStyles({
-                      variant: "outline",
-                      size: "sm",
-                    })}
+                    triggerLabel="Request document"
+                    triggerClassName={buttonStyles({ variant: "outline", size: "sm" })}
                     title={document.title}
                     description="Tell us who you are and we will send it straight over."
                     submitLabel="Send and download"
@@ -368,10 +412,38 @@ export default async function ProductPage({ params }: RouteParams) {
         </Section>
       ) : null}
 
+      {product.faqs.length > 0 ? (
+        <Section spacing="large" container="wide" background="pearl" anchorId="faq">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-5 lg:col-span-4">
+              <span className="eyebrow">FAQ</span>
+              <h2 className="text-h1 text-ink">Common questions.</h2>
+              <p className="text-body text-ink-muted">About quoting, installation and requesting several products together.</p>
+              <ArrowLink href="/contact" className="w-fit">
+                Ask a different question
+              </ArrowLink>
+            </div>
+            <div className="lg:col-span-8">
+              <Accordion
+                items={product.faqs.map((faq) => ({
+                  id: faq.id,
+                  question: faq.question,
+                  answer: <RichText value={faq.answer} />,
+                }))}
+              />
+            </div>
+          </div>
+        </Section>
+      ) : null}
+
       {product.related.length > 0 ? (
-        <Section spacing="normal" container="standard" background="light">
-          <SectionHeader title="Related products" align="left" />
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Section spacing="large" container="wide">
+          <SectionHeader
+            overline="Related equipment"
+            title="Often specified together."
+            action={<ArrowLink href={categoryLive ? categoryHref : "/products"}>Browse the range</ArrowLink>}
+          />
+          <ul className="reveal-stagger mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {product.related.map((row) => (
               <ProductCard
                 key={row.id}
@@ -391,70 +463,32 @@ export default async function ProductPage({ params }: RouteParams) {
         </Section>
       ) : null}
 
-      {product.faqs.length > 0 ? (
-        <Section spacing="normal" container="standard">
-          <SectionHeader title="Questions" align="left" />
-          <div className="mt-6 max-w-[70ch]">
-            <Accordion
-              items={product.faqs.map((faq) => ({
-                id: faq.id,
-                question: faq.question,
-                answer: <RichText value={faq.answer} />,
-              }))}
-            />
-          </div>
-        </Section>
-      ) : null}
-
-      <Section spacing="large" container="standard" background="dark">
-        <div className="flex flex-col items-start gap-6">
-          <SectionHeader
-            title={`Ask us about the ${product.name}`}
-            description="Tell us the department, the configuration and the timeline. We reply within one working day."
-            align="left"
-          />
-          <div className="flex flex-wrap gap-3">
-            <EnquiryDialog
-              action={submitEnquiryAction}
-              productId={product.id}
-              triggerLabel="Request a quotation"
-              triggerClassName={buttonStyles({ size: "lg" })}
-              title={`Request a quotation — ${reference(product)}`}
-              description="We reply within one working day."
-              submitLabel="Send enquiry"
-            />
-            <AddToQuoteButton productId={product.id} size="lg" />
-          </div>
-        </div>
-      </Section>
+      <PageCta
+        eyebrow="Request a quotation"
+        title={`Planning to procure the ${product.name}?`}
+        body="Tell us the department, the configuration and the timeline. Everything is quoted to your requirement, and we reply within one working day."
+        background={product.related.length > 0 ? "pearl" : "default"}
+        actions={
+          <>
+            {quoteDialog("lg")}
+            <AddToQuoteButton productId={product.id} productName={product.name} size="lg" variant="outline-inverse" />
+          </>
+        }
+      />
 
       {/* Follows the reader down a page that is long by design. It shows only
           once the panel at the top has scrolled away, so it never competes
           with the control it stands in for. */}
       <StickyQuoteBar watchId="enquiry-panel">
-        <div className="min-w-0 flex-1">
-          <p className="text-body-sm text-ink truncate font-medium">
-            {product.name}
-          </p>
-          <p className="text-caption text-ink-muted hidden sm:block">
-            Quoted to your requirement
-          </p>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="min-w-0">
+            <p className="text-body-sm text-ink truncate font-semibold">{product.name}</p>
+            <p className="text-caption text-ink-muted hidden sm:block">Quoted to your requirement</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <AddToQuoteButton
-            productId={product.id}
-            size="sm"
-            className="hidden sm:inline-flex"
-          />
-          <EnquiryDialog
-            action={submitEnquiryAction}
-            productId={product.id}
-            triggerLabel="Request a quotation"
-            triggerClassName={buttonStyles({ size: "sm" })}
-            title={`Request a quotation — ${reference(product)}`}
-            description="We reply within one working day."
-            submitLabel="Send enquiry"
-          />
+          <AddToQuoteButton productId={product.id} productName={product.name} size="sm" compact className="hidden sm:inline-flex" />
+          {quoteDialog("sm", "Request quote")}
         </div>
       </StickyQuoteBar>
     </>
@@ -490,14 +524,16 @@ function PreviewBanner({ id, status }: { id: string; status: string }) {
 /**
  * How to ask about this product.
  *
- * Four ways of asking, and the last three appear only if an administrator has
- * entered the details behind them: a dead mailto is worse than no button. The
- * quotation form is always here, because it is ours rather than a mail client's.
+ * The quotation form is always here, because it is ours rather than a mail
+ * client's; email, phone and WhatsApp appear only if an administrator has
+ * entered the details behind them — a dead mailto is worse than no button.
  */
 function EnquiryPanel({
   id,
   product,
   settings,
+  quote,
+  brochureHref,
 }: {
   id?: string;
   product: PublicProduct;
@@ -506,6 +542,8 @@ function EnquiryPanel({
     phone: string | null;
     whatsapp: string | null;
   };
+  quote: React.ReactNode;
+  brochureHref: string | null;
 }) {
   const name = reference(product);
 
@@ -516,59 +554,53 @@ function EnquiryPanel({
     ? `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`I would like a quotation for ${name}.`)}`
     : null;
 
-  return (
-    <div
-      id={id}
-      className="border-line bg-surface-muted flex flex-col gap-3 rounded-lg border p-5"
-    >
-      <p className="text-body-sm text-ink">
-        This product is quoted to your requirement — configuration, accessories
-        and installation all affect the price.
-      </p>
+  const contacts = [
+    mailto ? { href: mailto, icon: Mail, label: "Email us", external: false } : null,
+    settings.phone ? { href: `tel:${settings.phone.replace(/[^\d+]/g, "")}`, icon: Phone, label: settings.phone, external: false } : null,
+    whatsapp ? { href: whatsapp, icon: MessageCircle, label: "WhatsApp", external: true } : null,
+  ].filter((row): row is { href: string; icon: typeof Mail; label: string; external: boolean } => row !== null);
 
-      <div className="flex flex-wrap gap-3">
-        <EnquiryDialog
-          action={submitEnquiryAction}
-          productId={product.id}
-          triggerLabel="Request a quotation"
-          triggerClassName={buttonStyles({ size: "lg" })}
-          title={`Request a quotation — ${name}`}
-          description="We reply within one working day."
-          submitLabel="Send enquiry"
-        />
+  return (
+    <div id={id} className="border-line bg-surface flex flex-col gap-5 rounded-3xl border p-6 shadow-[var(--shadow-card)] sm:p-7">
+      <div className="flex items-start gap-3">
+        <span className="live-dot mt-1.5 size-2 shrink-0 rounded-full bg-teal-500" />
+        <p className="text-body-sm text-ink-muted">
+          <span className="text-ink font-semibold">Quoted to your requirement.</span>{" "}
+          Configuration, accessories and installation scope all shape the quotation.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        {quote}
         {/* For the tender that covers a list rather than one machine: adding
             builds it up across the catalogue and sends it in one request. */}
-        <AddToQuoteButton productId={product.id} size="lg" />
-        {mailto ? (
-          <a
-            href={mailto}
-            className={buttonStyles({ variant: "outline", size: "lg" })}
-          >
-            <Mail aria-hidden="true" className="size-4" />
-            Email us
-          </a>
-        ) : null}
-        {settings.phone ? (
-          <a
-            href={`tel:${settings.phone.replace(/\s+/g, "")}`}
-            className={buttonStyles({ variant: "outline", size: "lg" })}
-          >
-            <Phone aria-hidden="true" className="size-4" />
-            {settings.phone}
-          </a>
-        ) : null}
-        {whatsapp ? (
-          <a
-            href={whatsapp}
-            target="_blank"
-            rel="noreferrer"
-            className={buttonStyles({ variant: "outline", size: "lg" })}
-          >
-            <MessageCircle aria-hidden="true" className="size-4" />
-            WhatsApp
-          </a>
-        ) : null}
+        <AddToQuoteButton productId={product.id} productName={product.name} size="lg" />
       </div>
+
+      {brochureHref || contacts.length > 0 ? (
+        <div className="border-line flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4">
+          {brochureHref ? (
+            <a href={brochureHref} target="_blank" rel="noreferrer" className="text-body-sm text-primary inline-flex items-center gap-2 font-semibold">
+              <Download aria-hidden="true" className="size-4" />
+              Download brochure
+            </a>
+          ) : null}
+          {contacts.map((contact) => {
+            const Icon = contact.icon;
+            return (
+              <a
+                key={contact.href}
+                href={contact.href}
+                {...(contact.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                className="text-body-sm text-ink-muted hover:text-ink inline-flex items-center gap-2 transition-colors"
+              >
+                <Icon aria-hidden="true" className="size-4" />
+                {contact.label}
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -576,7 +608,7 @@ function EnquiryPanel({
 function TaxonomyLinks({ product }: { product: PublicProduct }) {
   const groups = [
     {
-      label: "Used by",
+      label: "Used in",
       items: product.specialties.map((row) => ({
         name: row.name,
         href: specialtyPath(row.slug),
@@ -596,21 +628,17 @@ function TaxonomyLinks({ product }: { product: PublicProduct }) {
   if (groups.length === 0) return null;
 
   return (
-    <dl className="border-line flex flex-col gap-3 border-t pt-5">
+    <dl className="flex flex-col gap-4">
       {groups.map((group) => (
-        <div key={group.label} className="flex flex-wrap items-baseline gap-2">
-          <dt className="text-caption text-ink-subtle w-24 shrink-0">
+        <div key={group.label} className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-4">
+          <dt className="text-caption text-ink-subtle w-20 shrink-0 font-semibold tracking-[0.12em] uppercase">
             {group.label}
           </dt>
-          <dd className="flex flex-wrap gap-x-3 gap-y-1">
+          <dd className="flex flex-wrap gap-2">
             {group.items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-body-sm text-primary underline underline-offset-4"
-              >
+              <PillLink key={item.href} href={item.href}>
                 {item.name}
-              </Link>
+              </PillLink>
             ))}
           </dd>
         </div>
@@ -618,3 +646,4 @@ function TaxonomyLinks({ product }: { product: PublicProduct }) {
     </dl>
   );
 }
+

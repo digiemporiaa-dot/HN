@@ -12,6 +12,10 @@ export const SECTION_BACKGROUND = [
   "default",
   "white",
   "light",
+  "pearl",
+  "gradient",
+  "grid",
+  "glow",
   "dark",
   "brand",
 ] as const;
@@ -22,8 +26,21 @@ export const CARD_STYLE = [
   "bordered",
   "elevated",
   "minimal",
+  "overlay",
 ] as const;
 export const IMAGE_POSITION = ["left", "right"] as const;
+/**
+ * How a section arranges its content. Each section honours the subset that
+ * makes sense for it and treats anything else as "standard", so a stored value
+ * can never produce a broken layout.
+ */
+export const SECTION_LAYOUT = [
+  "standard",
+  "split",
+  "editorial",
+  "bento",
+  "full",
+] as const;
 
 export type SectionSpacing = (typeof SECTION_SPACING)[number];
 export type SectionContainer = (typeof SECTION_CONTAINER)[number];
@@ -32,6 +49,7 @@ export type SectionAlign = (typeof SECTION_ALIGN)[number];
 export type SectionColumns = (typeof SECTION_COLUMNS)[number];
 export type CardStyle = (typeof CARD_STYLE)[number];
 export type ImagePosition = (typeof IMAGE_POSITION)[number];
+export type SectionLayout = (typeof SECTION_LAYOUT)[number];
 
 export type SectionDesign = {
   spacing: SectionSpacing;
@@ -41,6 +59,7 @@ export type SectionDesign = {
   columns?: SectionColumns;
   cardStyle?: CardStyle;
   imagePosition?: ImagePosition;
+  layout?: SectionLayout;
   anchorId?: string;
 };
 
@@ -57,6 +76,38 @@ export const DEFAULT_SECTION_DESIGN: SectionDesign = {
   columns: "3",
   cardStyle: "standard",
   imagePosition: "left",
+  layout: "standard",
+};
+
+/** Human labels for the editor. Values stay stable; labels can change. */
+export const DESIGN_CHOICE_LABELS: Record<string, string> = {
+  compact: "Compact",
+  normal: "Standard",
+  large: "Large",
+  xl: "Hero",
+  narrow: "Narrow",
+  standard: "Standard",
+  wide: "Wide",
+  full: "Full width",
+  default: "Default (white)",
+  white: "Pure white",
+  light: "Light grey",
+  pearl: "Pearl",
+  gradient: "Soft clinical gradient",
+  grid: "Technical grid",
+  glow: "Soft radial glow",
+  dark: "Deep navy",
+  brand: "Brand navy",
+  left: "Left",
+  center: "Centre",
+  right: "Right",
+  bordered: "Bordered",
+  elevated: "Elevated",
+  minimal: "Minimal",
+  overlay: "Image overlay",
+  split: "Split",
+  editorial: "Editorial",
+  bento: "Bento",
 };
 
 /** Anchor IDs are author-supplied, so they are constrained to a safe shape. */

@@ -11,6 +11,9 @@ export const ENTITY_KINDS = [
   "subcategory",
   "brand",
   "specialty",
+  "solution",
+  "application",
+  "post",
 ] as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[number];
@@ -22,4 +25,7 @@ export const ENTITY_LABELS: Record<EntityKind, { one: string; many: string }> =
     subcategory: { one: "subcategory", many: "subcategories" },
     brand: { one: "brand", many: "brands" },
     specialty: { one: "specialty", many: "specialties" },
+    solution: { one: "solution", many: "solutions" },
+    application: { one: "application", many: "applications" },
+    post: { one: "article", many: "articles" },
   };
