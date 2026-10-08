@@ -149,14 +149,14 @@ export default async function CityPage({ params }: RouteParams) {
         description={city.intro}
         meta={
           <>
-            {city.categories.length > 0 ? <MetaChip dark>{city.categories.length} equipment categories</MetaChip> : null}
-            <MetaChip dark>Supply, installation & support</MetaChip>
+            {city.categories.length > 0 ? <MetaChip>{city.categories.length} equipment categories</MetaChip> : null}
+            <MetaChip>Supply, installation & support</MetaChip>
           </>
         }
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
             {enquiry(city.ctaLabel?.trim() || "Request a quotation")}
-            <Link href="#enquire" className={buttonStyles({ variant: "outline-inverse", size: "lg" })}>
+            <Link href="#enquire" className={buttonStyles({ variant: "soft", size: "lg" })}>
               Send an enquiry
             </Link>
           </div>

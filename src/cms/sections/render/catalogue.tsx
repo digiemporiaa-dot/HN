@@ -372,7 +372,7 @@ function Logo({ entity, hidden }: { entity: ResolvedEntity; hidden?: boolean }) 
     <Link
       href={entity.href}
       tabIndex={hidden ? -1 : undefined}
-      className="group flex h-16 w-44 items-center justify-center rounded-xl px-4 transition-colors sm:w-52"
+      className="group flex h-16 w-full max-w-[13rem] items-center justify-center rounded-xl px-2 transition-colors"
     >
       {entity.image ? (
         <span className="relative h-10 w-full opacity-60 grayscale transition-[filter,opacity] duration-[var(--duration-slow)] group-hover:opacity-100 group-hover:grayscale-0">
@@ -390,7 +390,7 @@ function Logo({ entity, hidden }: { entity: ResolvedEntity; hidden?: boolean }) 
 export function LogoStrip({ content, design, entities }: RendererProps) {
   const items = entities.items ?? [];
   if (items.length === 0) return null;
-  const marquee = design.layout === "full" || items.length >= 6;
+  const marquee = design.layout === "full";
 
   return (
     <div className="flex flex-col gap-8">
@@ -408,7 +408,7 @@ export function LogoStrip({ content, design, entities }: RendererProps) {
             {[0, 1].map((copy) => (
               <ul key={copy} aria-hidden={copy === 1 ? true : undefined} className="flex shrink-0 items-center gap-4 pr-4">
                 {items.map((entity) => (
-                  <li key={entity.id}>
+                  <li key={entity.id} className="w-44 sm:w-52">
                     <Logo entity={entity} hidden={copy === 1} />
                   </li>
                 ))}
@@ -417,9 +417,11 @@ export function LogoStrip({ content, design, entities }: RendererProps) {
           </div>
         </div>
       ) : (
-        <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+        // A quiet grid of hairline cells: logos given room, none louder
+        // than another.
+        <ul className="border-line grid grid-cols-2 border-t border-l sm:grid-cols-3 lg:grid-cols-6">
           {items.map((entity) => (
-            <li key={entity.id}>
+            <li key={entity.id} className="border-line flex min-h-24 items-center justify-center border-r border-b px-4 py-6 sm:min-h-28">
               <Logo entity={entity} />
             </li>
           ))}

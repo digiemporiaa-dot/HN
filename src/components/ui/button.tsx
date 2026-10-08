@@ -5,16 +5,18 @@ import { variants } from "@/lib/utils/variants";
 import { Spinner } from "./spinner";
 
 export const buttonStyles = variants({
-  base: "group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium tracking-[-0.005em] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] active:translate-y-px disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55",
+  base: "group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium tracking-[-0.005em] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] active:translate-y-px disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55",
   variants: {
     variant: {
       primary:
-        "bg-primary text-primary-ink shadow-[0_1px_0_rgb(255_255_255/0.18)_inset,0_8px_20px_-10px_rgb(31_102_220/0.7)] hover:bg-primary-hover active:bg-primary-active",
+        "bg-primary text-primary-ink hover:bg-primary-hover active:bg-primary-active",
       secondary:
         "bg-secondary text-secondary-ink hover:bg-secondary-hover active:bg-navy-950",
       outline:
         "border border-line-strong bg-transparent text-ink hover:border-ink-subtle hover:bg-surface-subtle",
       ghost: "bg-transparent text-ink hover:bg-surface-muted",
+      /** White chip with a soft shadow: the quiet companion to a primary. */
+      soft: "bg-white text-ink shadow-[0_1px_2px_rgb(11_13_15/0.06),0_6px_16px_-8px_rgb(11_13_15/0.18)] hover:shadow-[0_1px_2px_rgb(11_13_15/0.06),0_10px_22px_-10px_rgb(11_13_15/0.26)]",
       danger: "bg-danger-600 text-white hover:bg-danger-700",
       link: "bg-transparent p-0 text-primary underline underline-offset-4 hover:text-primary-hover",
       /** White on a dark or photographic background. */
@@ -26,7 +28,7 @@ export const buttonStyles = variants({
     size: {
       sm: "h-9 px-3.5 text-body-sm",
       md: "h-11 px-5 text-body-sm",
-      lg: "h-12 px-6 text-body",
+      lg: "h-12 px-6 text-body-sm",
       xl: "h-14 px-8 text-body",
       icon: "h-11 w-11 p-0",
     },
@@ -40,6 +42,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
     | "secondary"
     | "outline"
     | "ghost"
+    | "soft"
     | "danger"
     | "link"
     | "inverse"

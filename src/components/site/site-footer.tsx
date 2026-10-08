@@ -169,12 +169,12 @@ export async function SiteFooter({
     "Medical equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.";
 
   return (
-    <footer className="surface-dark surface-navy relative overflow-hidden">
+    <footer className="surface-pearl border-line relative overflow-hidden border-t">
       <Container width="wide" className="flex flex-col gap-14 pt-16 pb-10 lg:pt-20">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="flex flex-col gap-6 lg:col-span-4">
             <Link href="/" aria-label={`${settings.companyName} — home`} className="w-fit">
-              <BrandMark name={settings.companyName} logoUrl={settings.logoUrl} inverse />
+              <BrandMark name={settings.companyName} logoUrl={settings.logoUrl} />
             </Link>
             <p className="text-body-sm text-ink-muted max-w-[42ch]">{description}</p>
 
@@ -182,7 +182,7 @@ export async function SiteFooter({
               {settings.phone ? (
                 <li>
                   <a href={`tel:${settings.phone.replace(/[^\d+]/g, "")}`} className="hover:text-ink inline-flex items-center gap-3 transition-colors">
-                    <Phone aria-hidden="true" className="size-4 shrink-0 text-cyan-300" />
+                    <Phone aria-hidden="true" className="size-4 shrink-0 text-cyan-600" />
                     {settings.phone}
                   </a>
                 </li>
@@ -190,33 +190,33 @@ export async function SiteFooter({
               {settings.email ? (
                 <li>
                   <a href={`mailto:${settings.email}`} className="hover:text-ink inline-flex items-center gap-3 break-all transition-colors">
-                    <Mail aria-hidden="true" className="size-4 shrink-0 text-cyan-300" />
+                    <Mail aria-hidden="true" className="size-4 shrink-0 text-cyan-600" />
                     {settings.email}
                   </a>
                 </li>
               ) : null}
               {settings.address ? (
                 <li className="flex items-start gap-3">
-                  <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-300" />
+                  <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-600" />
                   <span className="whitespace-pre-line">{settings.address}</span>
                 </li>
               ) : null}
               {settings.hours ? (
                 <li className="flex items-start gap-3">
-                  <Clock aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-300" />
+                  <Clock aria-hidden="true" className="mt-1 size-4 shrink-0 text-cyan-600" />
                   <span>{settings.hours}</span>
                 </li>
               ) : null}
             </ul>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/rfq" className={buttonStyles({ size: "md" })}>
-                Request a quote
-                <ArrowRight aria-hidden="true" className="size-4" />
+              <Link href="/rfq" className={cn(buttonStyles({ size: "md" }), "group")}>
+                Get a quote
+                <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
               </Link>
               <Link
                 href="/contact"
-                className={buttonStyles({ variant: "outline-inverse", size: "md" })}
+                className={buttonStyles({ variant: "outline", size: "md" })}
               >
                 Contact our team
               </Link>
@@ -255,7 +255,7 @@ export async function SiteFooter({
           >
             {columns.map((column) => (
               <nav key={column.id} aria-label={column.label} className="min-w-0">
-                <h2 className="text-overline mb-5 font-semibold tracking-[0.14em] text-white uppercase">
+                <h2 className="text-overline text-ink mb-5 font-semibold tracking-[0.1em] uppercase">
                   {column.label}
                 </h2>
                 <ul className="flex flex-col gap-3">

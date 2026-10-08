@@ -108,10 +108,12 @@ export function CategoryCard({
   heading?: "h2" | "h3";
 }) {
   if (size === "feature") {
+    // The lead tile of a bento: the equipment large on grey, the words over
+    // its lower left.
     return (
       <article
         className={cn(
-          "group relative isolate flex h-full min-h-[22rem] flex-col justify-end overflow-hidden rounded-2xl bg-navy-950 p-6 text-white shadow-[var(--shadow-card)] transition-[box-shadow,transform] duration-[var(--duration-slow)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] sm:p-8",
+          "group bg-surface-panel relative isolate flex h-full min-h-[22rem] flex-col justify-end overflow-hidden rounded-2xl p-6 transition-colors duration-[var(--duration-base)] hover:bg-steel-200/60 sm:p-8",
           cardFocus,
         )}
       >
@@ -120,31 +122,24 @@ export function CategoryCard({
           name={data.name}
           image={data.image}
           sizes={sizes}
-          frameClassName="zoom-media absolute inset-0 -z-10"
-        />
-        <span
-          aria-hidden="true"
-          className="from-navy-975/90 via-navy-975/35 absolute inset-0 -z-10 bg-gradient-to-t to-transparent"
+          fit="contain"
+          frameClassName="zoom-media absolute inset-x-[8%] top-[6%] bottom-[34%] -z-10 bg-transparent"
         />
         {data.count ? (
-          <span className="absolute top-5 left-5 rounded-full border border-white/20 bg-navy-975/55 px-3 py-1 text-[0.75rem] font-medium text-white backdrop-blur-md sm:top-6 sm:left-6">
+          <span className="text-ink-muted absolute top-5 left-5 rounded-md bg-white px-2.5 py-1 text-[0.75rem] font-medium sm:top-6 sm:left-6">
             {plural(data.count, "product")}
           </span>
         ) : null}
-        <span className="text-overline tracking-[0.14em] text-cyan-200 uppercase">
-          {data.eyebrow ?? "Featured range"}
-        </span>
-        <Heading className="text-h2 mt-2 text-white">
+        <span className="eyebrow">{data.eyebrow ?? "Featured range"}</span>
+        <Heading className="text-h2 text-ink mt-2">
           <Link href={data.href} className={stretched}>
             {data.name}
           </Link>
         </Heading>
         {data.summary ? (
-          <p className="text-body-sm mt-2 max-w-[44ch] text-white/75">
-            {data.summary}
-          </p>
+          <p className="text-body-sm text-ink-muted mt-2 max-w-[44ch]">{data.summary}</p>
         ) : null}
-        <span className="text-body-sm mt-5 inline-flex items-center gap-2 font-semibold">
+        <span className="text-body-sm text-ink group-hover:text-primary mt-5 inline-flex items-center gap-2 font-semibold transition-colors">
           Explore range
           <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
         </span>
@@ -155,7 +150,7 @@ export function CategoryCard({
   return (
     <article
       className={cn(
-        "group border-line bg-surface relative flex h-full flex-col overflow-hidden rounded-2xl border shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-[var(--duration-slow)] hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-card-hover)]",
+        "group bg-surface-panel relative flex h-full flex-col overflow-hidden rounded-2xl p-2 transition-colors duration-[var(--duration-base)] hover:bg-steel-200/60",
         cardFocus,
       )}
     >
@@ -164,17 +159,18 @@ export function CategoryCard({
         name={data.name}
         image={data.image}
         sizes={sizes}
+        fit="contain"
         frameClassName={cn(
-          "zoom-media",
+          "zoom-media rounded-xl bg-transparent [&>img]:p-[8%]",
           size === "compact" ? "aspect-[16/10]" : "aspect-[4/3]",
         )}
       />
-      <div className={cn("flex flex-1 flex-col gap-2", size === "compact" ? "p-4 sm:p-6" : "p-5 sm:p-6")}>
+      <div className={cn("flex flex-1 flex-col gap-1.5", size === "compact" ? "px-3 pt-1 pb-3" : "px-3 pt-2 pb-4")}>
         <div className="flex items-start justify-between gap-3">
           <Heading
             className={cn(
-              "text-ink group-hover:text-primary text-safe transition-colors",
-              size === "compact" ? "text-body sm:text-h4 font-semibold" : "text-h4",
+              "text-ink text-safe font-semibold transition-transform duration-[var(--duration-base)] group-hover:translate-x-0.5",
+              size === "compact" ? "text-body-sm sm:text-body" : "text-body",
             )}
           >
             <Link href={data.href} className={stretched}>
@@ -183,18 +179,14 @@ export function CategoryCard({
           </Heading>
           <ArrowUpRight
             aria-hidden="true"
-            className="text-ink-subtle group-hover:text-primary mt-1 hidden size-5 shrink-0 sm:block transition-[color,transform] duration-[var(--duration-base)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            className="text-ink-subtle group-hover:text-primary mt-0.5 hidden size-4 shrink-0 transition-colors sm:block"
           />
         </div>
         {data.summary && size !== "compact" ? (
-          <p className="text-body-sm text-ink-muted line-clamp-2">
-            {data.summary}
-          </p>
+          <p className="text-ink-muted line-clamp-2 text-[0.8125rem] leading-relaxed">{data.summary}</p>
         ) : null}
         {data.count ? (
-          <p className="text-caption text-ink-subtle mt-auto pt-2 font-medium">
-            {plural(data.count, "product")}
-          </p>
+          <p className="text-ink-subtle mt-auto pt-1 text-[0.75rem]">{plural(data.count, "product")}</p>
         ) : null}
       </div>
     </article>
@@ -249,11 +241,11 @@ export function SceneCard({
       />
       <span
         aria-hidden="true"
-        className="from-navy-975/95 via-navy-975/45 absolute inset-0 -z-10 bg-gradient-to-t via-45% to-transparent"
+        className="from-navy-975/85 via-navy-975/25 absolute inset-0 -z-10 bg-gradient-to-t via-40% to-transparent"
       />
       <div className={cn("flex flex-col gap-2", size === "lg" ? "p-7 sm:p-9" : "p-5 sm:p-6")}>
         {data.eyebrow ? (
-          <span className="text-overline tracking-[0.14em] text-cyan-200 uppercase">
+          <span className="text-overline tracking-[0.1em] text-white/75 uppercase">
             {data.eyebrow}
           </span>
         ) : null}

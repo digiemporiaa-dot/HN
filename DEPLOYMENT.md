@@ -226,11 +226,12 @@ account,
 the second only adds what is missing.
 
 To see the whole site populated before the real catalogue and copy are
-ready, load demo content: ten equipment categories with sub-ranges, 26
-products (studio images, specifications, features, brochures and FAQs),
+ready, load demo content: ten equipment categories with sub-ranges, 28
+products including a CT scanner and a digital X-ray room (studio cut-out
+images, specifications, features, brochures and FAQs),
 placeholder partner brands, specialties, solutions, clinical applications,
-ten city pages, six blog posts, About / Privacy / Terms pages, a complete
-homepage, and a header menu if that is empty — all published, so the site
+ten city pages, six blog posts, About / Service & support / Privacy / Terms
+pages, a complete homepage, and a header menu if that is empty — all published, so the site
 looks complete. Demo records are identifiable: every catalogue, post and
 media slug starts `demo-`, brands are called "Partner Alpha", "Partner Beta"
 and so on, the homepage figures are labelled as indicative, and there are no

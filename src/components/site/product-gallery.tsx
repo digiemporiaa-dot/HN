@@ -28,7 +28,7 @@ export function ProductGallery({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="media-frame border-line bg-pearl-100 relative aspect-[4/3] rounded-3xl border shadow-[var(--shadow-card)]">
+      <div className="media-frame bg-surface-panel relative aspect-[4/3] rounded-2xl [&>img]:p-[6%]">
         <SmartImage
           key={current.url}
           src={current.url}
@@ -39,7 +39,7 @@ export function ProductGallery({
           className="intro-fade"
         />
         {list.length > 1 ? (
-          <span className="text-caption text-ink-muted absolute right-4 bottom-4 rounded-full bg-white/85 px-3 py-1 font-medium tabular-nums backdrop-blur-md">
+          <span className="text-caption text-ink-muted absolute right-4 bottom-4 rounded-md bg-white px-2.5 py-1 font-medium tabular-nums">
             {active + 1} / {list.length}
           </span>
         ) : null}
@@ -55,7 +55,7 @@ export function ProductGallery({
                 aria-label={`Show image ${index + 1} of ${list.length} for ${name}`}
                 aria-current={index === active}
                 className={cn(
-                  "media-frame bg-pearl-100 block aspect-square w-full rounded-xl border-2 transition-colors",
+                  "media-frame bg-surface-panel block aspect-square w-full rounded-xl border-2 transition-colors [&>img]:p-[10%]",
                   index === active
                     ? "border-primary"
                     : "border-transparent hover:border-line-strong",

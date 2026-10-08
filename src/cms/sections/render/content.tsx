@@ -69,7 +69,7 @@ export function HeadingText({ content, design }: RendererProps) {
   return (
     <SectionHeader
       overline={overline || undefined}
-      title={heading}
+      title={<AccentHeading value={heading} />}
       description={body || undefined}
       align={design.align === "center" ? "center" : "left"}
       className="reveal"
@@ -81,7 +81,7 @@ export function RichTextSection({ content }: RendererProps) {
   const heading = text(content, "heading");
   return (
     <div className="flex flex-col gap-6">
-      {heading ? <h2 className="text-h2 text-ink">{heading}</h2> : null}
+      {heading ? <h2 className="text-h2 text-ink"><AccentHeading value={heading} /></h2> : null}
       <RichText value={text(content, "body")} className="prose-hn max-w-[70ch]" />
     </div>
   );
@@ -436,7 +436,7 @@ export function Faq({ content, design }: RendererProps) {
       {text(content, "heading") || text(content, "intro") ? (
         <SectionHeader
           overline={text(content, "overline") || undefined}
-          title={text(content, "heading")}
+          title={<AccentHeading value={text(content, "heading")} />}
           description={text(content, "intro") || undefined}
           size="compact"
           align={design.align === "center" ? "center" : "left"}
@@ -448,6 +448,15 @@ export function Faq({ content, design }: RendererProps) {
 }
 
 /* ----------------------------------------------------------------- CTA -- */
+
+/* How far a full-bleed backdrop reaches past the content: exactly the
+   section's own padding, whichever rhythm the editor chose. */
+const BLEED: Record<string, string> = {
+  compact: "inset-y-[calc(var(--section-space-compact)*-1)]",
+  normal: "inset-y-[calc(var(--section-space-normal)*-1)]",
+  large: "inset-y-[calc(var(--section-space-large)*-1)]",
+  xl: "inset-y-[calc(var(--section-space-xl)*-1)]",
+};
 
 export function CallToAction({ content, design, media }: RendererProps) {
   const centered = design.align !== "left";
@@ -507,7 +516,7 @@ export function CallToAction({ content, design, media }: RendererProps) {
     return (
       <div className="reveal relative isolate py-4">
         {media.image ? (
-          <div aria-hidden="true" className="absolute inset-y-[calc(var(--section-space-normal)*-1)] left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden">
+          <div aria-hidden="true" className={cn("absolute left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden", BLEED[design.spacing] ?? BLEED.normal)}>
             {backdrop}
           </div>
         ) : null}
@@ -536,48 +545,39 @@ export function ProcessSteps({ content, design }: RendererProps) {
   return (
     <Stack>
       <Intro content={content} design={design} />
-      <ol
-        className="reveal-stagger grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-x-8 md:gap-y-12 lg:grid-cols-[repeat(var(--steps),minmax(0,1fr))] lg:gap-x-6"
-        style={{ ["--steps" as string]: String(count) } as CSSProperties}
-      >
-        {items.map((item, index) => (
-          <li key={index} className="relative flex gap-5 pb-10 last:pb-0 md:flex-col md:gap-5 md:pb-0">
-            {/* Connector: vertical on phones, horizontal on desktop. */}
-            {index < items.length - 1 ? (
-              <>
-                <span
-                  aria-hidden="true"
-                  className={cn("absolute top-14 bottom-0 left-7 w-px md:hidden", dark ? "bg-white/15" : "bg-line-strong")}
-                />
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute top-7 left-16 hidden h-px lg:block",
-                    "right-[-1.5rem]",
-                    dark ? "bg-gradient-to-r from-white/30 to-white/5" : "from-medical-300 to-line bg-gradient-to-r",
-                  )}
-                />
-              </>
-            ) : null}
-            <span
-              className={cn(
-                "font-display relative z-[1] flex size-14 shrink-0 items-center justify-center rounded-2xl border text-[1.0625rem] font-semibold tabular-nums",
-                dark
-                  ? "border-white/15 bg-navy-900 text-cyan-300"
-                  : "border-line bg-surface text-primary shadow-[var(--shadow-card)]",
-              )}
-            >
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <div className="flex flex-col gap-2 pt-1 md:pt-0">
-              <h3 className="text-h4 text-ink">{row(item, "title")}</h3>
-              {row(item, "body") ? (
-                <p className="text-body-sm text-ink-muted">{row(item, "body")}</p>
+      {/* Typography and a single rule rather than icons: a track across the
+          top on desktop that draws itself in as it scrolls into view, a
+          vertical line down the left on phones. */}
+      <div className="relative">
+        <span aria-hidden="true" className={cn("absolute inset-x-0 top-[7px] hidden h-px lg:block", dark ? "bg-white/15" : "bg-line")} />
+        <span aria-hidden="true" className="draw-line absolute inset-x-0 top-[7px] hidden h-px bg-cyan-500 lg:block" />
+        <ol
+          className="reveal-stagger grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-x-10 md:gap-y-12 lg:grid-cols-[repeat(var(--steps),minmax(0,1fr))] lg:gap-x-8"
+          style={{ ["--steps" as string]: String(count) } as CSSProperties}
+        >
+          {items.map((item, index) => (
+            <li key={index} className="relative pb-10 pl-9 last:pb-0 md:pb-0 lg:pt-10 lg:pl-0">
+              {index < items.length - 1 ? (
+                <span aria-hidden="true" className={cn("absolute top-5 bottom-0 left-[7px] w-px md:hidden", dark ? "bg-white/15" : "bg-line")} />
               ) : null}
-            </div>
-          </li>
-        ))}
-      </ol>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute top-0 left-0 size-[15px] rounded-full border-2 border-cyan-500",
+                  dark ? "bg-navy-975" : "bg-white",
+                )}
+              />
+              <span className="font-display text-ink-subtle block text-[2.25rem] leading-none font-light tracking-[-0.04em] tabular-nums">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3 className="text-h4 text-ink mt-4">{row(item, "title")}</h3>
+              {row(item, "body") ? (
+                <p className="text-body-sm text-ink-muted mt-2 max-w-[34ch]">{row(item, "body")}</p>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </div>
     </Stack>
   );
 }

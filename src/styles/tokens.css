@@ -18,90 +18,89 @@
  */
 @theme static {
   /* ---------------------------------------------------------------------
-   * Palette — Deep Navy
-   * The institutional brand colour. Used for headers, footers, dark surfaces
-   * and primary text.
+   * Palette — Clinical Ink ("navy")
+   * Near-black with the faintest teal cast: dark sections, the final call to
+   * action and the deepest text. The scale keeps its historical name so
+   * existing CMS content and components re-skin without renaming classes.
    * ------------------------------------------------------------------- */
-  --color-navy-50: #f2f5f9;
-  --color-navy-100: #e3eaf2;
-  --color-navy-200: #c7d5e6;
-  --color-navy-300: #9bb2cf;
-  --color-navy-400: #6886b0;
-  --color-navy-500: #446593;
-  --color-navy-600: #2f4c78;
-  --color-navy-700: #233c61;
-  --color-navy-800: #1a2e4a;
-  --color-navy-900: #12233a;
-  --color-navy-950: #0a1626;
+  --color-navy-50: #f2f5f5;
+  --color-navy-100: #e5eaeb;
+  --color-navy-200: #c9d3d5;
+  --color-navy-300: #9fadb0;
+  --color-navy-400: #6d7e82;
+  --color-navy-500: #4a5a5e;
+  --color-navy-600: #334246;
+  --color-navy-700: #233135;
+  --color-navy-800: #172327;
+  --color-navy-900: #0f1a1d;
+  --color-navy-950: #0b1316;
 
   /* ---------------------------------------------------------------------
-   * Palette — Medical Blue
-   * The action colour. Reserved for primary CTAs, links and active states so
-   * that "Request a Quote" always reads as the most important action on screen.
+   * Palette — Action Cyan ("medical")
+   * The action colour for buttons, links and active states. Deeper than the
+   * accent cyan so white button text holds 4.5:1 (WCAG AA).
    * ------------------------------------------------------------------- */
-  --color-medical-50: #eff6ff;
-  --color-medical-100: #dceafe;
-  --color-medical-200: #bedafd;
-  --color-medical-300: #91c3fb;
-  --color-medical-400: #5ea4f7;
-  --color-medical-500: #3b86f0;
-  --color-medical-600: #1f66dc;
-  --color-medical-700: #1a52b4;
-  --color-medical-800: #1a458f;
-  --color-medical-900: #1a3b74;
-  --color-medical-950: #11244a;
+  --color-medical-50: #e8f6f9;
+  --color-medical-100: #cdedf3;
+  --color-medical-200: #9fdcea;
+  --color-medical-300: #62c6dc;
+  --color-medical-400: #26aecb;
+  --color-medical-500: #0898b6;
+  --color-medical-600: #00819d;
+  --color-medical-700: #006f88;
+  --color-medical-800: #005c71;
+  --color-medical-900: #0a4b5b;
+  --color-medical-950: #06323d;
 
   /* ---------------------------------------------------------------------
-   * Palette — Steel (cool neutral)
-   * Text, borders, muted surfaces. Cool-toned so it sits with navy rather
-   * than fighting it.
+   * Palette — Steel (neutral grey)
+   * Text, borders and the soft grey panels the product imagery sits on.
    * ------------------------------------------------------------------- */
-  --color-steel-50: #f6f8fa;
-  --color-steel-100: #ecf0f5;
-  --color-steel-200: #dce3ec;
-  --color-steel-300: #c2cdda;
-  --color-steel-400: #93a3b5;
-  --color-steel-500: #6e8098;
+  --color-steel-50: #f7f9fa;
+  --color-steel-100: #f1f4f5;
+  --color-steel-200: #e4e8ea;
+  --color-steel-300: #d2d8db;
+  --color-steel-400: #a5aeb2;
+  --color-steel-500: #7c868b;
   /* Subtle text on light surfaces: the lightest step that still reads at
      4.5:1 (WCAG AA) on white, steel-50 and steel-100. */
-  --color-steel-550: #5b6d84;
-  --color-steel-600: #55677d;
-  --color-steel-700: #415264;
-  --color-steel-800: #2f3d4c;
-  --color-steel-900: #1f2a36;
-  --color-steel-950: #131b24;
+  --color-steel-550: #646d72;
+  --color-steel-600: #60696e;
+  --color-steel-700: #454d51;
+  --color-steel-800: #2d3336;
+  --color-steel-900: #1a1e20;
+  --color-steel-950: #0f1214;
 
   /* ---------------------------------------------------------------------
    * Palette — Pearl
-   * The premium light surface: a cool, faintly blue white that separates
-   * sections without the greyness of a neutral panel.
+   * The off-white canvas and the soft grey of product panels.
    * ------------------------------------------------------------------- */
-  --color-pearl-50: #fafbfd;
-  --color-pearl-100: #f4f7fa;
-  --color-pearl-200: #ebf0f5;
-  --color-pearl-300: #dfe6ee;
+  --color-pearl-50: #fbfcfc;
+  --color-pearl-100: #f7f9fa;
+  --color-pearl-200: #f1f4f5;
+  --color-pearl-300: #e8ecee;
 
   /* ---------------------------------------------------------------------
-   * Palette — Clinical Cyan
-   * A precise, technical accent: indicator lights, data highlights and thin
+   * Palette — Medical Cyan
+   * The signature accent: icons, indicator lights, highlights and thin
    * rules. Never used for body text on white (it does not hold 4.5:1).
    * ------------------------------------------------------------------- */
-  --color-cyan-50: #ecfbfd;
-  --color-cyan-100: #cff4f9;
-  --color-cyan-200: #a3e8f2;
-  --color-cyan-300: #67d6e8;
-  --color-cyan-400: #2fbdd6;
-  --color-cyan-500: #129fbb;
-  --color-cyan-600: #0e7f98;
-  --color-cyan-700: #11667b;
+  --color-cyan-50: #e8f4f7;
+  --color-cyan-100: #cdeef5;
+  --color-cyan-200: #9fe1ee;
+  --color-cyan-300: #5fd0e5;
+  --color-cyan-400: #26bad7;
+  --color-cyan-500: #0ba8c7;
+  --color-cyan-600: #008fae;
+  --color-cyan-700: #0a6f86;
 
   /* Teal — the rarest accent, for a positive signal (availability, support). */
   --color-teal-400: #2cc3a9;
   --color-teal-500: #13a58e;
   --color-teal-600: #0c8574;
 
-  /* The deepest navy, for the hero and footer base. */
-  --color-navy-975: #050d18;
+  /* The deepest clinical dark, for the closing call to action. */
+  --color-navy-975: #071316;
 
   /* ---------------------------------------------------------------------
    * Palette — Status
@@ -136,9 +135,9 @@
   --color-surface: #ffffff;
   --color-surface-subtle: var(--color-steel-50);
   --color-surface-muted: var(--color-steel-100);
-  --color-surface-inverse: var(--color-navy-950);
+  --color-surface-inverse: var(--color-navy-975);
 
-  --color-ink: var(--color-navy-950);
+  --color-ink: #0b0d0f;
   --color-ink-muted: var(--color-steel-600);
   --color-ink-subtle: var(--color-steel-550);
   --color-ink-inverse: #ffffff;
@@ -152,8 +151,8 @@
   --color-primary-ink: #ffffff;
   --color-primary-subtle: var(--color-medical-50);
 
-  --color-secondary: var(--color-navy-900);
-  --color-secondary-hover: var(--color-navy-800);
+  --color-secondary: #0b0d0f;
+  --color-secondary-hover: var(--color-steel-800);
   --color-secondary-ink: #ffffff;
 
   --color-ring: var(--color-medical-600);
@@ -161,31 +160,34 @@
   --color-accent: var(--color-cyan-500);
   --color-accent-soft: var(--color-cyan-50);
   --color-surface-pearl: var(--color-pearl-100);
+  /* The soft grey panel product imagery and compact cards sit on. */
+  --color-surface-panel: var(--color-pearl-200);
 
   /* ---------------------------------------------------------------------
    * Typography
    * `--font-display` is reserved for headings, `--font-sans` for everything
    * else. Mono falls back to the system stack — no third webfont download.
    * ------------------------------------------------------------------- */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif,
+  --font-display: var(--font-jakarta), ui-sans-serif,
     system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
   /* Fluid type scale. Every size is a token — no arbitrary font sizes in components. */
-  /* Hero: a large desktop presence that still fits a 320px screen. */
-  --text-hero: clamp(2.375rem, 1.35rem + 4.6vw, 5.25rem);
-  --text-hero--line-height: 1.02;
-  --text-hero--letter-spacing: -0.03em;
-  --text-hero--font-weight: 600;
+  /* Hero: ~83px at 1440, ~53px on tablets, 42px on phones. Light by default;
+     the bold words are set with <strong>. */
+  --text-hero: clamp(2.625rem, 1.2rem + 4.4vw, 5.5rem);
+  --text-hero--line-height: 1.04;
+  --text-hero--letter-spacing: -0.04em;
+  --text-hero--font-weight: 400;
 
-  /* Section titles: ~42–60px on desktop, proportional on phones. */
-  --text-section: clamp(1.875rem, 1.3rem + 2.3vw, 3.625rem);
-  --text-section--line-height: 1.06;
-  --text-section--letter-spacing: -0.028em;
-  --text-section--font-weight: 600;
+  /* Section titles: ~50px on desktop, proportional on phones. */
+  --text-section: clamp(1.875rem, 1.2rem + 2.3vw, 3.375rem);
+  --text-section--line-height: 1.1;
+  --text-section--letter-spacing: -0.035em;
+  --text-section--font-weight: 500;
 
   --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.3125rem);
   --text-lead--line-height: 1.6;
@@ -202,17 +204,17 @@
 
   --text-h1: clamp(2rem, 1.55rem + 1.8vw, 3rem);
   --text-h1--line-height: 1.12;
-  --text-h1--letter-spacing: -0.025em;
-  --text-h1--font-weight: 600;
+  --text-h1--letter-spacing: -0.032em;
+  --text-h1--font-weight: 500;
 
   --text-h2: clamp(1.625rem, 1.35rem + 1.1vw, 2.25rem);
   --text-h2--line-height: 1.18;
-  --text-h2--letter-spacing: -0.02em;
-  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.028em;
+  --text-h2--font-weight: 500;
 
   --text-h3: clamp(1.3rem, 1.15rem + 0.6vw, 1.625rem);
   --text-h3--line-height: 1.25;
-  --text-h3--letter-spacing: -0.015em;
+  --text-h3--letter-spacing: -0.022em;
   --text-h3--font-weight: 600;
 
   --text-h4: clamp(1.125rem, 1.06rem + 0.28vw, 1.25rem);
@@ -238,8 +240,8 @@
 
   --text-overline: 0.75rem;
   --text-overline--line-height: 1.3;
-  --text-overline--letter-spacing: 0.08em;
-  --text-overline--font-weight: 600;
+  --text-overline--letter-spacing: 0.1em;
+  --text-overline--font-weight: 500;
 
   /* ---------------------------------------------------------------------
    * Containers
@@ -247,7 +249,7 @@
    * ------------------------------------------------------------------- */
   --container-narrow: 45rem;
   --container-standard: 80rem;
-  --container-wide: 92rem;
+  --container-wide: 90rem;
 
   /* ---------------------------------------------------------------------
    * Radii — restrained. Enterprise medical, not consumer app.
@@ -258,20 +260,19 @@
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
-  --radius-3xl: 22px;
+  --radius-3xl: 20px;
 
   /* ---------------------------------------------------------------------
-   * Shadows — low-spread, navy-tinted. No coloured glows.
+   * Shadows — barely there. Separation comes from grey panels and hairlines.
    * ------------------------------------------------------------------- */
-  --shadow-xs: 0 1px 2px rgb(10 22 38 / 0.06);
-  --shadow-sm: 0 1px 3px rgb(10 22 38 / 0.08), 0 1px 2px rgb(10 22 38 / 0.04);
-  --shadow-md: 0 4px 12px rgb(10 22 38 / 0.08);
-  --shadow-lg: 0 12px 32px rgb(10 22 38 / 0.1);
-  --shadow-xl: 0 24px 56px rgb(10 22 38 / 0.12);
-  /* Cards: a hairline and a long, faint drop — depth without a halo. */
-  --shadow-card: 0 1px 2px rgb(10 22 38 / 0.04), 0 8px 24px -12px rgb(10 22 38 / 0.1);
-  --shadow-card-hover: 0 2px 4px rgb(10 22 38 / 0.04), 0 22px 44px -18px rgb(10 22 38 / 0.22);
-  --shadow-float: 0 30px 80px -30px rgb(5 13 24 / 0.45);
+  --shadow-xs: 0 1px 2px rgb(11 13 15 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(11 13 15 / 0.07), 0 1px 2px rgb(11 13 15 / 0.03);
+  --shadow-md: 0 4px 12px rgb(11 13 15 / 0.07);
+  --shadow-lg: 0 12px 32px rgb(11 13 15 / 0.09);
+  --shadow-xl: 0 24px 56px rgb(11 13 15 / 0.11);
+  --shadow-card: 0 1px 2px rgb(11 13 15 / 0.04);
+  --shadow-card-hover: 0 1px 2px rgb(11 13 15 / 0.04), 0 16px 36px -20px rgb(11 13 15 / 0.2);
+  --shadow-float: 0 18px 44px -22px rgb(11 13 15 / 0.24);
 
   /* ---------------------------------------------------------------------
    * Motion — subtle by policy. See `prefers-reduced-motion` in globals.css.
@@ -298,7 +299,7 @@
 
   --gutter: 1rem;
   /* Height of the public header, for heroes that sit beneath it. */
-  --header-h: 4.25rem;
+  --header-h: 4rem;
 }
 
 @media (min-width: 480px) {
@@ -309,7 +310,7 @@
 
 @media (min-width: 1024px) {
   :root {
-    --header-h: 5rem;
+    --header-h: 4.5rem;
   }
 }
 

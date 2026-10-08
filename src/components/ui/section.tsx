@@ -21,6 +21,7 @@ const backgroundClass: Record<SectionBackground, string> = {
   white: "surface-white",
   light: "surface-light",
   pearl: "surface-pearl",
+  grey: "surface-grey",
   gradient: "surface-gradient",
   grid: "surface-grid",
   glow: "surface-glow",
@@ -80,7 +81,8 @@ export function Section({
 
 type SectionHeaderProps = {
   overline?: string;
-  title: string;
+  /** Plain text, or rich content such as a mixed-weight headline. */
+  title: ReactNode;
   description?: string;
   align?: "left" | "center";
   as?: "h1" | "h2" | "h3";
@@ -132,7 +134,7 @@ export function SectionHeader({
       {description ? (
         <p
           className={cn(
-            "text-lead text-ink-muted max-w-[58ch]",
+            "text-body-lg text-ink-muted max-w-[58ch]",
             centered && "mx-auto",
           )}
         >

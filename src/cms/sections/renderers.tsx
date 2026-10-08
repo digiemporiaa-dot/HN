@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-import { CinematicHero, Hero, isCinematicHero } from "./render/hero";
+import {
+  CinematicHero,
+  Hero,
+  isCinematicHero,
+  isShowcaseHero,
+  ShowcaseHero,
+} from "./render/hero";
 import {
   AccordionSection,
   BrochureDownload,
@@ -32,6 +38,14 @@ import {
   SpecialtyGrid,
 } from "./render/catalogue";
 import { ImageCardsSection } from "./render/image-cards";
+import {
+  CategoryTiles,
+  ImageBand,
+  ProductBento,
+  ProductFeature,
+  SolutionTiles,
+  StatementStats,
+} from "./render/showcase";
 import type { RendererProps } from "./render/shared";
 
 export type { LocationGroup, RendererProps } from "./render/shared";
@@ -47,20 +61,36 @@ type Renderer = (props: RendererProps) => ReactNode;
  * renders — in the layout it was designed in.
  */
 export const SECTION_RENDERERS: Record<string, Renderer> = {
-  HERO: (props) => (isCinematicHero(props) ? CinematicHero(props) : Hero(props)),
+  HERO: (props) =>
+    isCinematicHero(props)
+      ? CinematicHero(props)
+      : isShowcaseHero(props)
+        ? ShowcaseHero(props)
+        : Hero(props),
   HEADING_TEXT: HeadingText,
   RICH_TEXT: RichTextSection,
   IMAGE_TEXT: ImageText,
-  STATISTICS: Statistics,
+  STATISTICS: (props) =>
+    props.design.layout === "bento" ? StatementStats(props) : Statistics(props),
   ICON_CARDS: IconCards,
   FAQ: Faq,
-  CTA: CallToAction,
-  PRODUCT_GRID: ProductGrid,
-  CATEGORY_GRID: CategoryGrid,
+  CTA: (props) =>
+    props.design.layout === "full" ? ImageBand(props) : CallToAction(props),
+  PRODUCT_GRID: (props) =>
+    props.design.layout === "bento"
+      ? ProductBento(props)
+      : props.design.layout === "editorial"
+        ? ProductFeature(props)
+        : ProductGrid(props),
+  CATEGORY_GRID: (props) =>
+    props.design.layout === "standard" && props.design.cardStyle !== "overlay"
+      ? CategoryTiles(props)
+      : CategoryGrid(props),
   SUBCATEGORY_GRID: CategoryGrid,
   BRAND_GRID: BrandGrid,
   SPECIALTY_GRID: SpecialtyGrid,
-  SOLUTION_GRID: SolutionGrid,
+  SOLUTION_GRID: (props) =>
+    props.design.layout === "bento" ? SolutionTiles(props) : SolutionGrid(props),
   APPLICATION_GRID: ApplicationGrid,
   POST_GRID: PostGrid,
   RELATED_LOCATIONS: Locations,

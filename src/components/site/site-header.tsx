@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone } from "lucide-react";
+import { ArrowRight, Phone } from "lucide-react";
 
 import { buttonStyles, Container } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
@@ -21,12 +21,11 @@ import { BrandMark } from "./brand-mark";
  * a complete header. Every entry is a route the application always serves.
  */
 const DEFAULT_ITEMS: Array<{ label: string; href: string }> = [
+  { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
-  { label: "Specialties", href: "/specialties" },
   { label: "Solutions", href: "/solutions" },
-  { label: "Applications", href: "/applications" },
+  { label: "Specialties", href: "/specialties" },
   { label: "Locations", href: "/locations" },
-  { label: "Insights", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -72,12 +71,14 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
   const items = toItems(tree.filter((node) => node !== highlighted));
   const cta = highlighted
     ? { label: highlighted.label, href: highlighted.href ?? "/rfq" }
-    : { label: "Request a quote", href: "/rfq" };
+    : { label: "Get a quote", href: "/rfq" };
 
   return (
     <HeaderShell>
       <div className="relative">
-        <Container width="wide" className="flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6">
+        {/* Three columns on desktop so the menu sits on the page's centre line
+            whatever the width of the logo and the actions either side. */}
+        <Container width="wide" className="flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6 xl:grid xl:grid-cols-[1fr_auto_1fr]">
           <Link
             href="/"
             className="flex min-w-0 items-center"
@@ -88,7 +89,7 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
 
           <DesktopNav items={items} data={mega} />
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 xl:justify-self-end">
             {settings.phone ? (
               <a
                 href={`tel:${settings.phone.replace(/[^\d+]/g, "")}`}
@@ -103,9 +104,10 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
 
             <Link
               href={cta.href}
-              className={cn(buttonStyles({ size: "md" }), "hidden h-10 px-4 sm:inline-flex")}
+              className={cn(buttonStyles({ size: "sm" }), "group hidden h-10 px-4 sm:inline-flex")}
             >
               {cta.label}
+              <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
             </Link>
 
             <MobileNav

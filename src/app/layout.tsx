@@ -1,20 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Inter_Tight } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { appUrl } from "@/lib/site-config";
 import { getSiteSettings } from "@/server/settings/service";
 import { validId, VERIFICATION_TOKEN } from "@/lib/seo/tracking";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+/* One geometric family for headings and text: light and bold weights side by
+   side carry the editorial headlines, so no second display face is needed. */
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const interTight = Inter_Tight({
-  variable: "--font-inter-tight",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -79,7 +76,7 @@ export default function RootLayout({
   return (
     // Font variables must sit on <html>: the `--font-sans` token is computed at
     // :root, so a reference defined lower down would be invalid at that point.
-    <html lang="en" className={`${inter.variable} ${interTight.variable}`}>
+    <html lang="en" className={jakarta.variable}>
       <body>
         <a href="#main" className="skip-link">
           Skip to main content

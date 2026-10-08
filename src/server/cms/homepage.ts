@@ -82,12 +82,11 @@ function section(
 }
 
 const LIMITS = {
-  categories: 9,
-  products: 8,
+  categories: 10,
+  products: 9,
   specialties: 8,
   brands: 12,
   solutions: 6,
-  applications: 6,
 };
 
 const LIVE_PRODUCT = { deletedAt: null, status: "PUBLISHED" as const };
@@ -113,7 +112,6 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
     specialties,
     brands,
     solutions,
-    applications,
     counts,
   ] = await Promise.all([
     getSiteSettings(),
@@ -124,10 +122,10 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       select: { id: true },
     }),
     prisma.product.findMany({
-      where: { ...LIVE_PRODUCT, featured: true },
-      orderBy: [{ order: "asc" }, { name: "asc" }],
+      where: LIVE_PRODUCT,
+      orderBy: [{ featured: "desc" }, { order: "asc" }, { name: "asc" }],
       take: LIMITS.products,
-      select: { id: true },
+      select: { id: true, name: true, slug: true, shortDescription: true, primaryImageId: true },
     }),
     prisma.specialty.findMany({
       where: { status: "PUBLISHED" },
@@ -145,12 +143,6 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       where: { status: "PUBLISHED" },
       orderBy: [{ featured: "desc" }, { order: "asc" }, { name: "asc" }],
       take: LIMITS.solutions,
-      select: { id: true },
-    }),
-    prisma.application.findMany({
-      where: { products: { some: { product: LIVE_PRODUCT } } },
-      orderBy: [{ order: "asc" }, { name: "asc" }],
-      take: LIMITS.applications,
       select: { id: true },
     }),
     Promise.all([
@@ -171,48 +163,56 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
     cityCount > 0 ? { value: String(cityCount), label: "Cities with local pages", detail: "Supply and service across India" } : null,
   ].filter((row): row is { value: string; label: string; detail: string } => row !== null);
 
+  // The bento takes the first six products, the featured trio the next three.
+  const bento = products.slice(0, 6);
+  const featured = products.length > 6 ? products.slice(6, 9) : products.slice(0, 3);
+  // Floating cards beside the hero: products that have a picture.
+  const cards = products
+    .filter((product) => product.primaryImageId)
+    .slice(-3)
+    .map((product) => ({
+      title: product.name,
+      detail: product.shortDescription?.split(/[.,]/)[0]?.slice(0, 80) ?? "",
+      image: product.primaryImageId ?? "",
+      href: `/products/${product.slug}`,
+    }));
+
   const sections = [
     section(
       "HERO",
       {
-        overline: settings.companyName,
-        heading: "Advanced Medical Technology. Built Around Better Care.",
+        overline: "Medical equipment & healthcare technology",
+        heading: "**Precision** equipment, / designed for **care**",
         subheading:
-          "Equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.",
+          settings.description ??
+          "Medical equipment and healthcare technology for hospitals, clinics, diagnostic centres and healthcare institutions across India.",
         primaryLabel: "Explore equipment",
         primaryHref: "/products",
-        secondaryLabel: "Request a consultation",
-        secondaryHref: "/contact",
-        note: "For hospitals, clinics, diagnostic centres and healthcare institutions.",
-        points: [
-          { title: "Multi-category portfolio", detail: "Critical care to hospital furniture" },
-          { title: "Procurement assistance", detail: "Specifications, quotations, documents" },
-          { title: "Installation & support", detail: "Commissioning and after-sales care" },
-          { title: "Pan-India supply", detail: "Single items to complete projects" },
-        ],
+        secondaryLabel: "Our solutions",
+        secondaryHref: "/solutions",
+        points: cards,
+        statValue: productCount > 0 ? String(productCount) : "",
+        statLabel: productCount > 0 ? "Products in the catalogue" : "",
+        statDetail: productCount > 0
+          ? "Each one quoted to your requirement, with installation and support coordinated by our team."
+          : "",
       },
-      { layout: "full", background: "dark", spacing: "xl" },
+      { layout: "editorial", background: "default", spacing: "compact", container: "wide" },
     ),
-    brands.length > 0
+    figures.length >= 3
       ? section(
-          "LOGO_STRIP",
-          { heading: "Brands we supply", items: ids(brands) },
-          { background: "white", spacing: "compact", layout: "full" },
-        )
-      : null,
-    categories.length > 0
-      ? section(
-          "CATEGORY_GRID",
+          "STATISTICS",
           {
-            overline: "Equipment categories",
-            heading: "Explore the complete equipment portfolio.",
-            intro:
-              "From bedside monitoring to fully equipped operating theatres — every category we supply, install and support.",
-            items: ids(categories),
-            ctaLabel: "All categories",
-            ctaHref: "/categories",
+            overline: `Why ${settings.companyName}`,
+            heading:
+              "Every department we equip gets the same promise: **dependable technology**, clear guidance and support that lasts beyond installation.",
+            intro: "",
+            note: "Figures are counted from the live catalogue.",
+            ctaLabel: "Talk to our team",
+            ctaHref: "/contact",
+            items: figures.slice(0, 3),
           },
-          { layout: "bento", background: "default", spacing: "large" },
+          { layout: "bento", background: "default", spacing: "large", container: "wide" },
         )
       : null,
     solutions.length > 0
@@ -220,144 +220,142 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
           "SOLUTION_GRID",
           {
             overline: "Healthcare solutions",
-            heading: "Infrastructure for every clinical environment.",
-            intro:
-              "Planned equipment packages for new facilities, department upgrades and specialist units.",
+            heading: "Designed around **clinical needs**.",
+            intro: "",
             items: ids(solutions),
             ctaLabel: "All solutions",
             ctaHref: "/solutions",
           },
-          { layout: "editorial", background: "dark", spacing: "large" },
+          { layout: "bento", background: "default", spacing: "normal", container: "wide" },
         )
       : null,
-    products.length > 0
+    bento.length > 0
       ? section(
           "PRODUCT_GRID",
           {
-            overline: "Featured equipment",
-            heading: "Selected technology for modern care.",
-            items: ids(products),
+            overline: "",
+            heading: "Engineered for **precision**.",
+            items: ids(bento),
             ctaLabel: "View all products",
             ctaHref: "/products",
           },
-          { background: "pearl", columns: "4", spacing: "large" },
+          { layout: "bento", background: "default", spacing: "large", container: "wide" },
+        )
+      : null,
+    section(
+      "CTA",
+      {
+        overline: "",
+        heading: "Innovation, in service of **care**.",
+        body: "From imaging suites to intensive care, we help hospitals bring dependable technology into every clinical space.",
+        primaryLabel: "Discover our solutions",
+        primaryHref: "/solutions",
+        secondaryLabel: "",
+        secondaryHref: "",
+      },
+      { layout: "full", background: "default", spacing: "compact", container: "wide" },
+    ),
+    featured.length > 0
+      ? section(
+          "PRODUCT_GRID",
+          {
+            overline: "Featured",
+            heading: "Featured medical **technology**.",
+            items: ids(featured),
+            ctaLabel: "",
+            ctaHref: "",
+          },
+          { layout: "editorial", background: "default", spacing: "large", container: "wide" },
+        )
+      : null,
+    categories.length > 0
+      ? section(
+          "CATEGORY_GRID",
+          {
+            overline: "Equipment categories",
+            heading: "Explore by **category**.",
+            intro: "",
+            items: ids(categories),
+            ctaLabel: "All categories",
+            ctaHref: "/categories",
+          },
+          { layout: "standard", background: "default", spacing: "normal", container: "wide" },
+        )
+      : null,
+    brands.length > 0
+      ? section(
+          "LOGO_STRIP",
+          { heading: "Technology partners", items: ids(brands) },
+          { background: "default", spacing: "large", layout: "standard", container: "wide" },
         )
       : null,
     specialties.length > 0
       ? section(
           "SPECIALTY_GRID",
           {
-            overline: "Explore by specialty",
-            heading: "Equipment matched to each department.",
-            intro:
-              "Browse the equipment typically specified for each clinical department.",
+            overline: "Clinical specialties",
+            heading: "Equipment for every **department**.",
+            intro: "Browse the equipment typically specified for each clinical department.",
             items: ids(specialties),
             ctaLabel: "All specialties",
             ctaHref: "/specialties",
           },
-          { columns: "4", spacing: "large" },
+          { columns: "4", background: "grey", spacing: "large", container: "wide" },
         )
       : null,
-    section(
-      "ICON_CARDS",
-      {
-        overline: `Why ${settings.companyName}`,
-        heading: "Reliable technology. Professional procurement. Long-term support.",
-        intro:
-          "A single partner for specifying, sourcing, installing and supporting medical equipment — from one device to an entire facility.",
-        ctaLabel: "Talk to our team",
-        ctaHref: "/contact",
-        items: [
-          { title: "Multi-category equipment portfolio", body: "Monitoring, critical care, operation theatre, diagnostics, neonatal care and hospital furniture from one supplier.", icon: "portfolio", linkLabel: "", linkHref: "" },
-          { title: "Pan-India supply capability", body: "Delivery and coordination for hospitals and clinics in metros and regional centres alike.", icon: "coverage", linkLabel: "", linkHref: "" },
-          { title: "Procurement assistance", body: "Help comparing configurations, preparing specifications and building quotations for tenders.", icon: "procurement", linkLabel: "", linkHref: "" },
-          { title: "Installation & support", body: "Installation, commissioning and user orientation, with after-sales service coordination.", icon: "installation", linkLabel: "", linkHref: "" },
-          { title: "Documentation & product guidance", body: "Brochures, datasheets and product information to support clinical and purchase decisions.", icon: "documents", linkLabel: "", linkHref: "" },
-        ],
-      },
-      { layout: "split", background: "gradient", spacing: "large" },
-    ),
     section(
       "PROCESS_STEPS",
       {
         overline: "How we work",
-        heading: "A clear path from requirement to installation.",
+        heading: "From requirement to **installation**.",
         intro: "",
         items: [
-          { title: "Discover", body: "Share the department, the clinical need and the timeline." },
-          { title: "Consult", body: "Our team reviews configurations and options with you." },
-          { title: "Select", body: "Finalise the equipment list and specifications." },
-          { title: "Quote", body: "Receive a detailed quotation for your requirement." },
-          { title: "Deliver", body: "Coordinated delivery, installation and commissioning." },
-          { title: "Support", body: "Ongoing service coordination after handover." },
+          { title: "Understand", body: "We learn the department, the clinical need and the timeline." },
+          { title: "Recommend", body: "Our team shortlists configurations that fit the brief and budget." },
+          { title: "Quote", body: "A detailed quotation, with specifications and delivery terms." },
+          { title: "Deliver", body: "Coordinated delivery, installation and commissioning on site." },
+          { title: "Support", body: "User orientation and service coordination after handover." },
         ],
       },
-      { background: "default", spacing: "large" },
+      { background: "default", spacing: "large", container: "wide" },
     ),
-    figures.length >= 3
+    cityCount > 0
       ? section(
-          "STATISTICS",
+          "RELATED_LOCATIONS",
           {
-            overline: "At a glance",
-            heading: "A catalogue built for healthcare institutions.",
-            intro: "",
-            note: "Figures are counted from the live catalogue.",
-            items: figures,
+            overline: "Pan-India",
+            heading: "Medical technology, / closer to **care**.",
+            intro:
+              "Supporting healthcare institutions across India with equipment sourcing, procurement assistance and installation.",
+            ctaLabel: "All locations",
+            ctaHref: "/locations",
           },
-          { background: "dark", columns: figures.length === 3 ? "3" : "4", spacing: "large" },
-        )
-      : null,
-    applications.length > 0
-      ? section(
-          "APPLICATION_GRID",
-          {
-            overline: "Clinical environments",
-            heading: "Where our equipment works.",
-            intro: "Explore equipment by the environment it is designed for.",
-            items: ids(applications),
-            ctaLabel: "All applications",
-            ctaHref: "/applications",
-          },
-          { background: "pearl", spacing: "large" },
+          { background: "pearl", spacing: "large", container: "wide" },
         )
       : null,
     section(
       "POST_GRID",
       {
         overline: "Insights",
-        heading: "Guidance for equipment planning and procurement.",
+        heading: "Guidance for **better** procurement.",
         items: [],
         ctaLabel: "All articles",
         ctaHref: "/blog",
       },
-      { layout: "editorial", spacing: "large" },
+      { layout: "editorial", spacing: "large", container: "wide" },
     ),
-    cityCount > 0
-      ? section(
-          "RELATED_LOCATIONS",
-          {
-            overline: "Pan-India coverage",
-            heading: "Supplying healthcare institutions across India.",
-            intro:
-              "Local pages for the cities we serve, with the equipment hospitals there most often ask us about.",
-            ctaLabel: "All locations",
-            ctaHref: "/locations",
-          },
-          { background: "grid", spacing: "large" },
-        )
-      : null,
     section(
       "CTA",
       {
         overline: "Start a conversation",
-        heading: "Planning a new healthcare facility?",
-        body: "Talk to our medical equipment team about your procurement requirements — from a single device to a complete department.",
+        heading: "Building better healthcare **environments**?",
+        body: "Talk to our team about your equipment requirement — from a single device to a complete department.",
         primaryLabel: "Request a quote",
         primaryHref: "/rfq",
         secondaryLabel: "Talk to our team",
         secondaryHref: "/contact",
       },
-      { background: "default", align: "left", spacing: "large" },
+      { background: "dark", align: "left", spacing: "xl", container: "wide" },
     ),
   ];
 

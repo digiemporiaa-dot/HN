@@ -115,7 +115,7 @@ export const POSTS: DemoPost[] = [
 export const ABOUT = {
   hero: {
     overline: "About HN Medical",
-    heading: "Medical technology partners for healthcare institutions.",
+    heading: "Medical technology **partners** / for healthcare institutions",
     subheading:
       "HN Medical provides advanced medical equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.",
   },

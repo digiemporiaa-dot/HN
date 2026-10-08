@@ -161,7 +161,7 @@ export default async function ProductPage({ params }: RouteParams) {
     <>
       {published ? null : <PreviewBanner id={product.id} status={product.status} />}
 
-      <section className="surface-grid border-line relative border-b">
+      <section className="bg-canvas relative">
         <Container width="wide" className="pt-6">
           <Breadcrumb items={trail} />
         </Container>

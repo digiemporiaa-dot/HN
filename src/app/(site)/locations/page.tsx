@@ -50,12 +50,12 @@ export default async function LocationsPage() {
         meta={
           total > 0 ? (
             <>
-              <MetaChip dark>
+              <MetaChip>
                 <span className="size-1.5 rounded-full bg-cyan-500" />
                 {total} cit{total === 1 ? "y" : "ies"}
               </MetaChip>
-              <MetaChip dark>{states.length} state{states.length === 1 ? "" : "s"}</MetaChip>
-              <MetaChip dark>{regions.length} region{regions.length === 1 ? "" : "s"}</MetaChip>
+              <MetaChip>{states.length} state{states.length === 1 ? "" : "s"}</MetaChip>
+              <MetaChip>{regions.length} region{regions.length === 1 ? "" : "s"}</MetaChip>
             </>
           ) : undefined
         }

@@ -160,6 +160,7 @@ export default async function ContactPage() {
         title="Talk to our healthcare equipment team."
         description={DESCRIPTION}
         image={SCENES.station}
+        imageFit="cover"
       />
 
       <Section spacing="large" container="wide">

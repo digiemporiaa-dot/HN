@@ -148,7 +148,7 @@ export default async function BlogPostPage({ params }: RouteParams) {
       )}
 
       <article>
-        <header className="surface-grid border-line relative overflow-hidden border-b">
+        <header className="bg-canvas relative overflow-hidden">
           <Container width="wide" className="pt-6">
             {/* The visible trail carries the BreadcrumbList structured data. */}
             <Breadcrumb items={trail} />

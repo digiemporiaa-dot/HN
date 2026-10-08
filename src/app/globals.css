@@ -109,7 +109,7 @@
   }
 
   .surface-dark {
-    background-color: var(--color-navy-950);
+    background-color: var(--color-navy-975);
     --color-ink: #ffffff;
     --color-ink-muted: var(--color-steel-300);
     --color-ink-subtle: var(--color-steel-400);
@@ -146,23 +146,30 @@
     --color-surface-subtle: var(--color-pearl-50);
   }
 
-  /* Soft clinical gradient: white into a cool pearl, top to bottom. */
+  /* Soft gradient: white into off-white, with the faintest cyan light. */
   .surface-gradient {
     background-color: var(--color-pearl-100);
     background-image:
-      radial-gradient(60rem 30rem at 85% -10%, rgb(47 189 214 / 0.1), transparent 70%),
-      radial-gradient(50rem 30rem at 0% 110%, rgb(31 102 220 / 0.07), transparent 70%),
+      radial-gradient(60rem 30rem at 85% -10%, rgb(11 168 199 / 0.07), transparent 70%),
       linear-gradient(180deg, #ffffff 0%, var(--color-pearl-100) 100%);
     --color-surface: #ffffff;
   }
 
-  /* Subtle technical grid on pearl — the house "precision" texture. */
+  /* Light grey: the soft panel tone, used as a whole section. */
+  .surface-grey {
+    background-color: var(--color-pearl-200);
+    --color-surface: #ffffff;
+    --color-surface-subtle: var(--color-pearl-100);
+    --color-surface-panel: #ffffff;
+  }
+
+  /* A barely-there technical grid on off-white — "precision" texture. */
   .surface-grid {
     background-color: var(--color-pearl-50);
     background-image:
-      linear-gradient(to right, rgb(68 101 147 / 0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(68 101 147 / 0.07) 1px, transparent 1px);
-    background-size: 56px 56px;
+      linear-gradient(to right, rgb(11 13 15 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(11 13 15 / 0.035) 1px, transparent 1px);
+    background-size: 64px 64px;
     background-position: center top;
     --color-surface: #ffffff;
   }
@@ -171,49 +178,37 @@
   .surface-glow {
     background-color: #ffffff;
     background-image:
-      radial-gradient(42rem 26rem at 50% 0%, rgb(31 102 220 / 0.08), transparent 70%),
-      radial-gradient(30rem 20rem at 90% 100%, rgb(47 189 214 / 0.08), transparent 70%);
+      radial-gradient(42rem 26rem at 50% 0%, rgb(11 168 199 / 0.07), transparent 70%);
   }
 
-  /* Deep navy with ambient light and a faint grid: the dark section. */
+  /* Clinical dark with a single soft cyan light: the dark section. */
   .surface-navy {
     background-color: var(--color-navy-975);
     background-image:
-      radial-gradient(48rem 28rem at 12% 0%, rgb(31 102 220 / 0.28), transparent 70%),
-      radial-gradient(40rem 26rem at 100% 100%, rgb(18 159 187 / 0.18), transparent 70%),
-      linear-gradient(to right, rgb(155 178 207 / 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(155 178 207 / 0.06) 1px, transparent 1px);
-    background-size: auto, auto, 64px 64px, 64px 64px;
+      radial-gradient(44rem 26rem at 85% 0%, rgb(11 168 199 / 0.2), transparent 70%),
+      radial-gradient(36rem 24rem at 0% 100%, rgb(11 168 199 / 0.08), transparent 70%);
   }
 
   /*
-   * A section label: a short accent rule, then an uppercase technical caption.
-   * The single most repeated piece of the visual identity.
+   * A section label: a small, quiet uppercase caption above a headline.
+   * Grey rather than coloured, so the cyan stays rare.
    */
   .eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     font-size: var(--text-overline);
     line-height: 1.3;
-    letter-spacing: 0.14em;
-    font-weight: 600;
+    letter-spacing: 0.1em;
+    font-weight: 500;
     text-transform: uppercase;
-    color: var(--color-eyebrow, var(--color-primary));
-  }
-
-  .eyebrow::before {
-    content: "";
-    width: 1.75rem;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.7;
+    color: var(--color-eyebrow, var(--color-ink-muted));
   }
 
   .surface-dark .eyebrow,
   .surface-brand .eyebrow,
   .on-dark .eyebrow {
-    --color-eyebrow: var(--color-cyan-300);
+    --color-eyebrow: rgb(255 255 255 / 0.66);
   }
 
   /* The lit second line of a headline. */
@@ -227,11 +222,20 @@
   }
 
   .text-gradient {
-    background-image: linear-gradient(100deg, var(--color-medical-600) 10%, var(--color-cyan-500) 90%);
+    background-image: linear-gradient(100deg, var(--color-ink) 10%, var(--color-medical-600) 90%);
   }
 
   .text-gradient-dark {
-    background-image: linear-gradient(100deg, #a9d6ff 0%, var(--color-cyan-300) 55%, #d4f5fa 100%);
+    background-image: linear-gradient(100deg, #ffffff 0%, var(--color-cyan-200) 100%);
+  }
+
+  /* An editorial headline: light by default, the words that matter bold. */
+  .headline-mix {
+    font-weight: 400;
+  }
+
+  .headline-mix strong {
+    font-weight: 700;
   }
 
   /* An image well that never stretches and never shifts layout. */
@@ -302,10 +306,10 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    background-color: rgb(255 255 255 / 0.86);
+    background-color: #ffffff;
     -webkit-backdrop-filter: saturate(1.6) blur(18px);
     backdrop-filter: saturate(1.6) blur(18px);
-    border-bottom: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-steel-100);
     transition:
       background-color var(--duration-slow) var(--ease-out-quart),
       border-color var(--duration-slow) var(--ease-out-quart),
@@ -314,8 +318,8 @@
   }
 
   .site-header[data-scrolled="true"] {
-    background-color: rgb(255 255 255 / 0.92);
-    box-shadow: 0 12px 32px -24px rgb(10 22 38 / 0.35);
+    background-color: rgb(255 255 255 / 0.82);
+    border-bottom-color: var(--color-steel-200);
   }
 
   /* No backdrop filter while a menu is open: a filtered ancestor becomes
@@ -346,10 +350,6 @@
     filter: brightness(0) invert(1);
   }
 
-  html:has(main > .hero-overlay:first-child) .site-header:not([data-scrolled="true"]):not([data-open="true"]) .brand-glyph {
-    background-color: #ffffff;
-    color: var(--color-navy-950);
-  }
 
   /* The element that sits under a transparent header. */
   main > .hero-overlay:first-child {
@@ -506,7 +506,7 @@
 @keyframes hn-rise {
   from {
     opacity: 0;
-    transform: translate3d(0, 28px, 0);
+    transform: translate3d(0, 20px, 0);
   }
   to {
     opacity: 1;
@@ -520,6 +520,37 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes hn-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hn-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hn-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 
@@ -572,6 +603,27 @@
     animation: hn-fade 900ms var(--ease-out-quart) both;
   }
 
+  /* The hero object arriving: a slight scale-up, after the headline. */
+  .intro-scale {
+    animation: hn-scale-in 1100ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+  }
+
+  /* Each navigation: the new page eases in rather than snapping. */
+  .page-enter {
+    animation: hn-enter 420ms var(--ease-out-quart) both;
+  }
+
+  /* The header fades in once, on the first paint of a visit. */
+  .site-header {
+    animation: hn-fade 600ms var(--ease-out-quart) both;
+  }
+
+  /* A rule that draws itself across as it scrolls into view. */
+  .draw-line {
+    transform-origin: left center;
+  }
+
   .settle {
     animation: hn-settle 2.2s var(--ease-out-expo) both;
   }
@@ -605,6 +657,12 @@
       animation-timeline: view();
       animation-range: entry 0% entry 42%;
     }
+
+    .draw-line {
+      animation: hn-draw linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 45%;
+    }
   }
 
   /* Keeps long words (URLs, model numbers) from forcing horizontal scroll. */
@@ -624,7 +682,9 @@
 @media print {
   .reveal,
   .reveal-stagger > *,
-  .intro {
+  .intro,
+  .intro-scale,
+  .draw-line {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -644,6 +704,10 @@
   .reveal-stagger > *,
   .intro,
   .intro-fade,
+  .intro-scale,
+  .page-enter,
+  .site-header,
+  .draw-line,
   .settle {
     animation: none !important;
     opacity: 1 !important;

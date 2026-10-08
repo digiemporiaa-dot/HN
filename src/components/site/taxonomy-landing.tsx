@@ -134,12 +134,12 @@ export function TaxonomyLanding({
         }
         meta={
           <>
-            <MetaChip dark={Boolean(heroImage)}>
+            <MetaChip>
               <span className="size-1.5 rounded-full bg-cyan-500" />
               {total} product{total === 1 ? "" : "s"}
             </MetaChip>
             {record.categories.length > 0 ? (
-              <MetaChip dark={Boolean(heroImage)}>
+              <MetaChip>
                 {record.categories.length} equipment {record.categories.length === 1 ? "category" : "categories"}
               </MetaChip>
             ) : null}
@@ -161,7 +161,7 @@ export function TaxonomyLanding({
             ) : (
               <Link
                 href="#products"
-                className={buttonStyles({ variant: heroImage ? "outline-inverse" : "outline", size: "lg" })}
+                className={buttonStyles({ variant: "soft", size: "lg" })}
               >
                 View equipment
               </Link>
@@ -321,11 +321,11 @@ export function TaxonomyIndex({
         meta={
           cards.length > 0 ? (
             <>
-              <MetaChip dark={Boolean(heroImage)}>
+              <MetaChip>
                 <span className="size-1.5 rounded-full bg-cyan-500" />
                 {cards.length} {unit}
               </MetaChip>
-              {total > 0 ? <MetaChip dark={Boolean(heroImage)}>{total} linked products</MetaChip> : null}
+              {total > 0 ? <MetaChip>{total} linked products</MetaChip> : null}
             </>
           ) : undefined
         }

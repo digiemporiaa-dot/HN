@@ -68,9 +68,10 @@ export const isDark = (design: SectionDesign) =>
   design.background === "dark" || design.background === "brand";
 
 /**
- * A heading whose second sentence is set in the accent: "Advanced Medical
- * Technology. Built Around Better Care." reads as two lines, the second lit.
- * Editors write plain text; the split is purely presentational.
+ * An editorial headline: words the editor wraps in **double asterisks** are
+ * set bold against a light base ("Precision **equipment**"). A heading with
+ * no markers falls back to the older convention — a second sentence set in
+ * the accent — so existing content keeps its emphasis.
  */
 export function AccentHeading({
   value,
@@ -82,6 +83,7 @@ export function AccentHeading({
   /** Start the lit sentence on its own line (from small screens up). */
   breakLine?: boolean;
 }) {
+  if (value.includes("**")) return <MixedWeight value={value} />;
   const match = /^(.+?[.!?])\s+(\S.*)$/.exec(value.trim());
   if (!match) return <>{value}</>;
   return (
@@ -94,6 +96,34 @@ export function AccentHeading({
     </>
   );
 }
+
+/** Splits "a **b** c" into light and bold runs; a line break in the text
+ *  ("\n" or " / ") becomes a line break in the heading. */
+export function MixedWeight({ value }: { value: string }) {
+  const lines = value.split(/\n| \/ /);
+  return (
+    <>
+      {lines.map((line, lineIndex) => (
+        <span key={lineIndex} className="block">
+          {line.split(/(\*\*[^*]+\*\*)/).map((part, index) =>
+            part.startsWith("**") && part.endsWith("**") ? (
+              <strong key={index} className="font-bold">
+                {part.slice(2, -2)}
+              </strong>
+            ) : (
+              <span key={index}>{part}</span>
+            ),
+          )}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Plain text of a heading, with the emphasis markers removed (for alt text
+ *  and aria labels). */
+export const plainHeading = (value: string) =>
+  value.replace(/\*\*/g, "").replace(/ \/ /g, " ");
 
 export function Actions({
   primaryLabel,
@@ -110,7 +140,7 @@ export function Actions({
   secondaryHref: string;
   align?: string;
   dark?: boolean;
-  size?: "lg" | "xl";
+  size?: "md" | "lg" | "xl";
 }) {
   const hasPrimary = primaryLabel && primaryHref;
   const hasSecondary = secondaryLabel && secondaryHref;
@@ -133,11 +163,12 @@ export function Actions({
         <Link
           href={secondaryHref}
           className={buttonStyles({
-            variant: dark ? "outline-inverse" : "outline",
+            variant: dark ? "outline-inverse" : "soft",
             size,
           })}
         >
           {secondaryLabel}
+          <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-[var(--duration-base)] group-hover/button:translate-x-0.5" />
         </Link>
       ) : null}
     </div>
@@ -173,7 +204,7 @@ export function Intro({
   return (
     <SectionHeader
       overline={text(content, "overline") || undefined}
-      title={heading}
+      title={heading.includes("**") ? <MixedWeight value={heading} /> : heading}
       description={intro || undefined}
       align={design.align === "center" ? "center" : "left"}
       action={action}

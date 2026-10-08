@@ -116,9 +116,6 @@ async function writeManifest(manifest: Manifest): Promise<void> {
 const IMAGES = path.resolve(process.cwd(), "public/images/hn");
 
 const DIMENSIONS: Record<string, [number, number]> = {
-  products: [1600, 1200],
-  categories: [1600, 1200],
-  scenes: [2000, 1250],
   brands: [240, 60],
 };
 
@@ -162,6 +159,22 @@ async function storeFile(params: {
   return asset.id;
 }
 
+/**
+ * Width and height from a WebP header, without an image library (the bundled
+ * ops script runs where native modules are not available).
+ */
+function webpSize(bytes: Buffer): [number, number] | null {
+  if (bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WEBP") return null;
+  const chunk = bytes.toString("ascii", 12, 16);
+  if (chunk === "VP8X") return [1 + bytes.readUIntLE(24, 3), 1 + bytes.readUIntLE(27, 3)];
+  if (chunk === "VP8 ") return [bytes.readUInt16LE(26) & 0x3fff, bytes.readUInt16LE(28) & 0x3fff];
+  if (chunk === "VP8L") {
+    const bits = bytes.readUInt32LE(21);
+    return [1 + (bits & 0x3fff), 1 + ((bits >> 14) & 0x3fff)];
+  }
+  return null;
+}
+
 /** A house image from public/images/hn, as a media library asset. */
 async function image(
   rel: string,
@@ -171,8 +184,10 @@ async function image(
   const [group, file] = rel.split("/");
   const extension = path.extname(file).slice(1);
   const bytes = await fs.readFile(path.join(IMAGES, rel));
+  // Raster images report their real size (cut-outs are cropped to the
+  // object, so no two share one); vector marks use their artboard.
   const [width, height] =
-    rel.includes("hero-") ? [2560, 1280] : (DIMENSIONS[group] ?? [1600, 1200]);
+    (extension === "webp" ? webpSize(bytes) : null) ?? DIMENSIONS[group] ?? [1600, 1200];
   return storeFile({
     originalName: `${PREFIX}${group}-${file}`,
     bytes,
@@ -688,7 +703,7 @@ async function add(): Promise<void> {
       state = await prisma.state.create({ data: { name: city.state, slug: stateSlug }, select: { id: true } });
       manifest.states.push(state.id);
     }
-    const featuredCategories = ["Critical Care", "Patient Monitoring", "Operation Theatre", "Diagnostic Equipment"];
+    const featuredCategories = ["Critical Care", "Patient Monitoring", "Operation Theatre", "Diagnostics & Imaging"];
     const featuredProducts = ["Multi-Parameter Patient Monitor", "ICU Ventilator", "LED Operation Theatre Light", "Motorised ICU Bed"];
     const row = await prisma.city.create({
       data: {
@@ -751,12 +766,13 @@ async function add(): Promise<void> {
   // ---- pages
   const aboutHero = await scene("corridor", "Hospital corridor");
   const aboutImage = await scene("station", "Nurses' station with central monitoring");
+  const supportImage = await scene("icu", "Equipped intensive care bay with ventilator and patient monitoring");
   const pages = [
     {
       slug: "about",
       title: "About us",
       sections: [
-        { type: "HERO", content: { ...ABOUT.hero, primaryLabel: "Explore equipment", primaryHref: "/products", secondaryLabel: "Contact our team", secondaryHref: "/contact", image: aboutHero, note: "", points: [] }, design: { layout: "full", background: "dark", spacing: "xl" } },
+        { type: "HERO", content: { ...ABOUT.hero, primaryLabel: "Explore equipment", primaryHref: "/products", secondaryLabel: "Contact our team", secondaryHref: "/contact", image: aboutHero, note: "", points: [] }, design: { layout: "standard", background: "default", spacing: "large", container: "wide" } },
         { type: "IMAGE_TEXT", content: { image: aboutImage, overline: ABOUT.story.overline, heading: ABOUT.story.heading, body: ABOUT.story.body, points: ABOUT.story.points.map((title) => ({ title })), ctaLabel: "Our solutions", ctaHref: "/solutions" }, design: { layout: "editorial", imagePosition: "left", spacing: "large" } },
         { type: "ICON_CARDS", content: { overline: "What we do", heading: "From specification to support.", intro: "Services that sit around the equipment itself.", image: "", ctaLabel: "", ctaHref: "", items: [
           { title: "Equipment planning", body: "Room-by-room equipment lists for new facilities and department upgrades.", icon: "consultation", linkLabel: "", linkHref: "" },
@@ -775,7 +791,35 @@ async function add(): Promise<void> {
           { title: "Support", body: "Ongoing service coordination after handover." },
         ] }, design: { spacing: "large" } },
         { type: "RELATED_LOCATIONS", content: { overline: "Coverage", heading: "Working with institutions across India.", intro: "City pages for the places we serve most often.", highlight: "", ctaLabel: "All locations", ctaHref: "/locations" }, design: { background: "grid", spacing: "large" } },
-        { type: "CTA", content: { overline: "Start a conversation", heading: "Planning a new department or an upgrade?", body: "Talk to our medical equipment team about your requirement.", primaryLabel: "Request a quote", primaryHref: "/rfq", secondaryLabel: "Contact us", secondaryHref: "/contact", image: "" }, design: { background: "default", align: "left", spacing: "large" } },
+        { type: "CTA", content: { overline: "Start a conversation", heading: "Planning a new department or an **upgrade**?", body: "Talk to our medical equipment team about your requirement.", primaryLabel: "Request a quote", primaryHref: "/rfq", secondaryLabel: "Contact us", secondaryHref: "/contact", image: "" }, design: { background: "dark", align: "left", spacing: "xl", container: "wide" } },
+      ],
+    },
+    {
+      slug: "support",
+      title: "Service & support",
+      sections: [
+        { type: "HERO", content: { overline: "Service & support", heading: "Support that **lasts** / beyond installation", subheading: "Installation, user orientation, preventive maintenance coordination and service support for the equipment we supply — planned with your biomedical team.", primaryLabel: "Request service", primaryHref: "/contact", secondaryLabel: "Get a quote", secondaryHref: "/rfq", image: supportImage, note: "", points: [] }, design: { layout: "standard", background: "default", spacing: "large", container: "wide" } },
+        { type: "ICON_CARDS", content: { overline: "What we cover", heading: "Service across the equipment **lifecycle**.", intro: "Scope and response terms are agreed for each installation and set out in your service agreement.", image: "", ctaLabel: "", ctaHref: "", items: [
+          { title: "Installation & commissioning", body: "Site readiness checks, installation and commissioning with your team.", icon: "installation", linkLabel: "", linkHref: "" },
+          { title: "User orientation", body: "Hands-on orientation for clinical and biomedical staff at handover.", icon: "training", linkLabel: "", linkHref: "" },
+          { title: "Preventive maintenance", body: "Scheduled maintenance visits coordinated to keep equipment in service.", icon: "quality", linkLabel: "", linkHref: "" },
+          { title: "Breakdown support", body: "Fault reporting and service coordination with the manufacturer's engineers.", icon: "support", linkLabel: "", linkHref: "" },
+          { title: "Spares & accessories", body: "Help sourcing consumables, accessories and replacement parts.", icon: "delivery", linkLabel: "", linkHref: "" },
+          { title: "Documentation", body: "Manuals, service records and handover documentation kept in order.", icon: "documents", linkLabel: "", linkHref: "" },
+        ] }, design: { background: "pearl", columns: "3", cardStyle: "standard", spacing: "large", container: "wide" } },
+        { type: "PROCESS_STEPS", content: { overline: "Raising a request", heading: "How a service request **works**.", intro: "", items: [
+          { title: "Report", body: "Tell us the equipment, its location and what you are seeing." },
+          { title: "Assess", body: "We review the issue and agree the next step with your team." },
+          { title: "Resolve", body: "A visit, a part or a remote fix, coordinated to your schedule." },
+          { title: "Record", body: "The work is documented against the equipment's service history." },
+        ] }, design: { spacing: "large", container: "wide" } },
+        { type: "FAQ", content: { overline: "Questions", heading: "Service questions.", intro: "", items: [
+          { question: "Is installation included with the equipment?", answer: "Installation and commissioning are quoted with each system. The scope — site checks, mounting, utilities and orientation — is listed in the quotation." },
+          { question: "Do you offer maintenance contracts?", answer: "Maintenance and service arrangements can be quoted for the equipment we supply. Coverage, visit frequency and response terms are set out in the agreement for each installation." },
+          { question: "Can you help with equipment we did not supply?", answer: "Tell us the make and model. Where we can coordinate service or source parts we will say so; where we cannot, we will tell you." },
+          { question: "How do I raise a service request?", answer: "Use the contact page or the details in your service agreement, with the equipment's serial number and a short description of the issue." },
+        ] }, design: { layout: "split", spacing: "large", container: "wide" } },
+        { type: "CTA", content: { overline: "Need support?", heading: "Talk to our **service** team.", body: "Share the equipment and the issue — we will come back to you with the next step.", primaryLabel: "Contact us", primaryHref: "/contact", secondaryLabel: "Browse equipment", secondaryHref: "/products", image: "" }, design: { background: "dark", align: "left", spacing: "xl", container: "wide" } },
       ],
     },
     { slug: "privacy", title: "Privacy policy", sections: [{ type: "RICH_TEXT", content: { heading: "Privacy policy", body: POLICY("Privacy policy") }, design: { container: "narrow", spacing: "large" } }] },
@@ -794,32 +838,52 @@ async function add(): Promise<void> {
   // ---- homepage: the starter, built from what now exists, with imagery and
   // clearly labelled demonstration figures. Never replaces an existing one.
   if (!(await prisma.page.findUnique({ where: { slug: "home" } }))) {
-    const heroImage = await scene("hero-ot", "Modern operating theatre with LED surgical lights and anaesthesia workstation");
-    const whyImage = await scene("icu", "Equipped intensive care bay");
-    const ctaImage = await scene("ot-b", "Operation theatre");
+    const heroObject = await image("hero/ct-scanner.webp", "general", "CT scanner with patient table");
+    const statementImage = await scene("ot-b", "Operating theatre with anaesthesia workstation and surgical lights");
+    const bandImage = await scene("ct-room", "CT imaging suite with scanner gantry and patient table");
+    const ctaImage = await scene("icu-b", "Equipped intensive care bay");
+    // The floating cards beside the hero: three products and their pictures.
+    const heroCards = await prisma.product.findMany({
+      where: { slug: { in: [slug("Biphasic Defibrillator"), slug("Digital X-Ray System"), slug("Colour Doppler Ultrasound System")] } },
+      select: { name: true, slug: true, primaryImageId: true },
+    });
+    const cardOrder = [slug("Biphasic Defibrillator"), slug("Digital X-Ray System"), slug("Colour Doppler Ultrasound System")];
+    const cardDetail: Record<string, string> = {
+      [slug("Biphasic Defibrillator")]: "Fast response when every second counts.",
+      [slug("Digital X-Ray System")]: "Clear imaging, efficient workflow.",
+      [slug("Colour Doppler Ultrasound System")]: "Versatile imaging at the bedside.",
+    };
     const starter = await starterHomeSections();
     const sections = starter.map((row) => {
       const content = { ...row.content } as Record<string, unknown>;
       const design = { ...row.design } as Record<string, unknown>;
       if (row.type === "HERO") {
-        content.image = heroImage;
-        content.overline = "Medical equipment & healthcare infrastructure";
+        content.image = heroObject;
+        content.points = cardOrder
+          .map((key) => heroCards.find((product) => product.slug === key))
+          .filter((product) => product !== undefined)
+          .map((product) => ({
+            title: product.name.replace("Colour Doppler ", "").replace(" System", ""),
+            detail: cardDetail[product.slug] ?? "",
+            image: product.primaryImageId ?? "",
+            href: `/products/${product.slug}`,
+          }));
       }
-      if (row.type === "ICON_CARDS") content.image = whyImage;
       if (row.type === "STATISTICS") {
+        // DEMO FIGURES — indicative only, and labelled as such on the page.
+        // Replace with verified figures in the CMS before launch.
         content.items = [
-          { value: "50+", label: "Equipment categories", detail: "Across critical care, surgery and diagnostics" },
           { value: "500+", label: "Products & solutions", detail: "Configured to each requirement" },
-          { value: "Pan-India", label: "Service coverage", detail: "Metros and regional centres" },
-          { value: "Dedicated", label: "B2B procurement assistance", detail: "From specification to handover" },
+          { value: "15+", label: "Years of team experience", detail: "In healthcare equipment supply" },
+          { value: "Pan-India", label: "Supply & installation", detail: "Metros and regional centres" },
         ];
-        content.heading = "Scale, reach and dedicated support.";
+        content.image = statementImage;
+        content.ctaLabel = "About us";
+        content.ctaHref = "/about";
         content.note = "Indicative figures for demonstration — replace with verified figures in the CMS before launch.";
-        design.columns = "4";
       }
-      if (row.type === "CTA") {
-        content.image = ctaImage;
-      }
+      if (row.type === "CTA" && design.layout === "full") content.image = bandImage;
+      else if (row.type === "CTA") content.image = ctaImage;
       return { type: row.type, content, design };
     });
     const home = await prisma.page.create({
@@ -839,13 +903,11 @@ async function add(): Promise<void> {
   });
   if (header._count.items === 0) {
     const items = [
+      ["Home", "/"],
       ["Products", "/products"],
-      ["Specialties", "/specialties"],
       ["Solutions", "/solutions"],
-      ["Applications", "/applications"],
-      ["Locations", "/locations"],
-      ["Insights", "/blog"],
       ["About", "/about"],
+      ["Support", "/support"],
       ["Contact", "/contact"],
     ];
     for (const [order, [label, href]] of items.entries()) {

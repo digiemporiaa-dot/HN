@@ -6,9 +6,8 @@ import { cn } from "@/lib/utils/cn";
 /**
  * The company mark.
  *
- * An uploaded logo wins. Without one, a typographic mark: a precise square
- * glyph built from the initials and a cyan indicator — no medical cross, no
- * heartbeat line — beside the company name.
+ * An uploaded logo wins. Without one, the house glyph beside the company
+ * name, its first word bold and the rest light.
  */
 export function BrandMark({
   name,
@@ -37,55 +36,40 @@ export function BrandMark({
   }
 
   const [first, ...rest] = name.split(" ");
-  // A short all-capitals first word ("HN") is already the monogram.
-  const initials = /^[A-Z0-9]{2,3}$/.test(first)
-    ? first
-    : name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word) => word[0]?.toUpperCase())
-        .join("");
 
   return (
-    <span className={cn("flex min-w-0 items-center gap-3", className)}>
+    <span className={cn("flex min-w-0 items-center gap-2.5", className)}>
+      <BrandGlyph className="size-7 shrink-0" />
       <span
-        aria-hidden="true"
         className={cn(
-          "relative flex size-10 shrink-0 items-center justify-center rounded-[10px] font-display text-[0.95rem] font-semibold tracking-[-0.04em]",
-          inverse
-            ? "bg-white text-navy-950"
-            : "brand-glyph bg-navy-950 text-white",
+          "font-display truncate text-[1.1875rem] leading-none tracking-[-0.03em]",
+          inverse ? "text-white" : "text-ink",
         )}
       >
-        {initials || "HN"}
-        <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-cyan-400" />
-      </span>
-      <span className="flex min-w-0 flex-col leading-none">
-        <span
-          className={cn(
-            "font-display truncate text-[1.0625rem] font-semibold tracking-[-0.02em]",
-            inverse ? "text-white" : "text-ink",
-          )}
-        >
-          {first}
-          {rest.length > 0 ? (
-            <span className={inverse ? "text-white/70" : "text-ink-muted"}>
-              {" "}
-              {rest.join(" ")}
-            </span>
-          ) : null}
-        </span>
-        <span
-          className={cn(
-            "mt-1 text-[0.625rem] font-semibold tracking-[0.2em] uppercase max-[399px]:hidden",
-            inverse ? "text-cyan-300" : "text-ink-subtle",
-          )}
-        >
-          Healthcare technology
-        </span>
+        <span className="font-bold">{first}</span>
+        {rest.length > 0 ? (
+          <span className="font-light"> {rest.join(" ")}</span>
+        ) : null}
       </span>
     </span>
+  );
+}
+
+/**
+ * The house glyph: a clinical cross whose arms stop short of the centre,
+ * leaving a point of light — precision around care.
+ */
+export function BrandGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 28" aria-hidden="true" className={className}>
+      <g fill="var(--color-cyan-500)">
+        <rect x="10.5" y="1" width="7" height="10" rx="3.5" />
+        <rect x="10.5" y="17" width="7" height="10" rx="3.5" />
+        <rect x="1" y="10.5" width="10" height="7" rx="3.5" />
+        <rect x="17" y="10.5" width="10" height="7" rx="3.5" />
+      </g>
+      <circle cx="14" cy="14" r="2.2" fill="var(--color-cyan-700)" />
+    </svg>
   );
 }
 

@@ -195,22 +195,22 @@ export default async function CategoryPage({
         image={category.banner ?? category.image ?? categoryVisual(category.name)}
         meta={
           <>
-            <MetaChip dark={Boolean(category.banner)}>
+            <MetaChip>
               <span className="size-1.5 rounded-full bg-cyan-500" />
               {total} product{total === 1 ? "" : "s"}
             </MetaChip>
             {category.children.length > 0 ? (
-              <MetaChip dark={Boolean(category.banner)}>
+              <MetaChip>
                 {category.children.length} {category.children.length === 1 ? "range" : "ranges"}
               </MetaChip>
             ) : null}
-            <MetaChip dark={Boolean(category.banner)}>Quoted to requirement</MetaChip>
+            <MetaChip>Quoted to requirement</MetaChip>
           </>
         }
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
             {enquiry()}
-            <Link href="#products" className={buttonStyles({ variant: category.banner ? "outline-inverse" : "outline", size: "lg" })}>
+            <Link href="#products" className={buttonStyles({ variant: "soft", size: "lg" })}>
               View products
             </Link>
           </div>

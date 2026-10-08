@@ -26,7 +26,17 @@ export const SCENES = {
   ward: { url: `${BASE}/scenes/ward.webp`, alt: "A hospital ward with patient beds, bedside lockers and privacy curtains" },
   corridor: { url: `${BASE}/scenes/corridor.webp`, alt: "A bright hospital corridor" },
   station: { url: `${BASE}/scenes/station.webp`, alt: "A nurses' station with central monitoring screens" },
+  ctRoom: { url: `${BASE}/scenes/ct-room.webp`, alt: "A CT imaging suite with the scanner gantry and patient table" },
 } as const satisfies Record<string, Visual>;
+
+/**
+ * The homepage hero object: a studio cut-out on a transparent background, so
+ * it can sit across the grey stage and over its edges.
+ */
+export const HERO_OBJECT: Visual = {
+  url: `${BASE}/hero/ct-scanner.webp`,
+  alt: "A CT scanner with its patient table, photographed in the studio",
+};
 
 export type SceneKey = keyof typeof SCENES;
 

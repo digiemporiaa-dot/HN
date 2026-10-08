@@ -14,7 +14,7 @@ import { MetaChip, PageHero } from "@/components/site/page-hero";
 import { PageCta } from "@/components/site/page-cta";
 import { FilterSheet } from "@/components/site/filter-sheet";
 import { SmartImage } from "@/components/site/media";
-import { CATEGORY_VISUALS } from "@/lib/visuals";
+import { CATEGORY_VISUALS, HERO_OBJECT } from "@/lib/visuals";
 import { cn } from "@/lib/utils/cn";
 import {
   buildQueryHref,
@@ -308,19 +308,19 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
 
 /** Three equipment renders, arranged as the hero's visual. */
 function HeroMosaic() {
-  const tiles = [
-    CATEGORY_VISUALS.patientMonitoring,
-    CATEGORY_VISUALS.criticalCare,
-    CATEGORY_VISUALS.diagnostic,
-  ];
+  const tiles = [CATEGORY_VISUALS.patientMonitoring, CATEGORY_VISUALS.criticalCare];
   return (
-    <div className="hidden grid-cols-2 gap-4 lg:grid">
-      <div className="media-frame border-line row-span-2 aspect-[3/4] rounded-3xl border shadow-[var(--shadow-float)]">
-        <SmartImage src={tiles[0].url} alt={tiles[0].alt} sizes="20vw" priority className="object-[40%_center]" />
+    <div className="hidden grid-cols-[1.35fr_1fr] gap-3 lg:grid">
+      <div className="bg-surface-panel relative row-span-2 aspect-[4/5] overflow-hidden rounded-2xl">
+        <div className="absolute inset-[6%]">
+          <SmartImage src={HERO_OBJECT.url} alt={HERO_OBJECT.alt} sizes="25vw" fit="contain" priority />
+        </div>
       </div>
-      {tiles.slice(1).map((tile) => (
-        <div key={tile.url} className="media-frame border-line aspect-[4/3] rounded-3xl border shadow-[var(--shadow-card)]">
-          <SmartImage src={tile.url} alt={tile.alt} sizes="20vw" />
+      {tiles.map((tile) => (
+        <div key={tile.url} className="bg-surface-panel relative overflow-hidden rounded-2xl">
+          <div className="absolute inset-[10%]">
+            <SmartImage src={tile.url} alt={tile.alt} sizes="15vw" fit="contain" />
+          </div>
         </div>
       ))}
     </div>
@@ -343,7 +343,7 @@ function CategoryPill({
       className={cn(
         "text-body-sm inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 font-medium whitespace-nowrap transition-colors",
         active
-          ? "bg-navy-950 border-navy-950 text-white"
+          ? "bg-ink border-ink text-white"
           : "border-line text-ink-muted hover:border-line-strong hover:text-ink bg-surface",
       )}
     >

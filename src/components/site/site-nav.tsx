@@ -380,10 +380,10 @@ function DesktopEntry({
   );
 
   const navLink = cn(
-    "relative flex h-[var(--header-h)] items-center gap-1 px-1 text-body-sm font-medium transition-colors",
-    "after:absolute after:inset-x-1 after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:bg-[var(--color-accent)] after:transition-transform after:duration-[var(--duration-base)]",
-    "hover:text-ink hover:after:scale-x-100",
-    active || open ? "text-ink after:scale-x-100" : "text-ink-muted",
+    "relative flex h-[var(--header-h)] items-center gap-1 px-0.5 text-[0.875rem] font-medium tracking-[-0.005em] transition-colors",
+    "after:absolute after:inset-x-0.5 after:bottom-[1.15rem] after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-[var(--duration-base)]",
+    "hover:text-primary",
+    active || open ? "text-ink after:scale-x-100" : "text-ink",
   );
 
   if (!panel) {
@@ -455,7 +455,7 @@ function DesktopEntry({
         id={panelId}
         inert={!open}
         className={cn(
-          "surface-reset bg-surface text-ink border-line absolute inset-x-0 top-full border-t shadow-[0_30px_60px_-30px_rgb(10_22_38/0.35)]",
+          "surface-reset bg-surface text-ink border-line absolute inset-x-0 top-full border-t shadow-[0_30px_60px_-34px_rgb(11_13_15/0.28)]",
           "origin-top transition-[opacity,transform,visibility] duration-[var(--duration-base)] ease-[var(--ease-out-quart)]",
           open
             ? "visible translate-y-0 opacity-100"
@@ -494,7 +494,7 @@ export function DesktopNav({
 
   return (
     <nav aria-label="Main" className="hidden xl:block">
-      <ul className="flex items-center gap-6 2xl:gap-8">
+      <ul className="flex items-center gap-7 2xl:gap-9">
         {items.map((item) => (
           <DesktopEntry
             key={item.id}

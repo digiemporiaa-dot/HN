@@ -413,15 +413,73 @@ export const CATALOGUE: DemoCategory[] = [
     ],
   },
   {
-    name: "Diagnostic Equipment",
+    name: "Diagnostics & Imaging",
     image: "diagnostic-equipment",
     featured: true,
-    short: "ECG and ultrasound systems for clinics, hospitals and diagnostic centres.",
+    short: "CT, digital radiography, ultrasound and ECG for hospitals and diagnostic centres.",
     description:
-      "Diagnostic equipment for outpatient clinics, hospital departments and diagnostic centres, including 12-channel ECG and colour Doppler ultrasound systems.",
+      "Imaging and diagnostic equipment for hospital radiology departments, diagnostic centres and outpatient clinics: multi-slice CT, digital radiography, colour Doppler ultrasound and 12-channel ECG.",
     procurement:
-      "Ultrasound systems are quoted with the probes selected for your applications; software packages and printers are listed separately. " + QUOTE_NOTE,
+      "Imaging systems are quoted with the site-preparation, shielding and power requirements your room will need; ultrasound systems with the probes selected for your applications. " + QUOTE_NOTE,
     subs: [
+      {
+        name: "CT Imaging",
+        short: "Multi-slice CT for hospital radiology departments.",
+        products: [
+          {
+            name: "Multi-Slice CT Scanner",
+            image: "ct-scanner",
+            alt: true,
+            featured: true,
+            brand: "Sigma",
+            short: "Whole-body multi-slice CT with a wide bore, a low-height patient table and gantry-side controls.",
+            body: "A whole-body multi-slice CT system for hospital radiology departments and diagnostic centres, with a wide-bore gantry, positioning displays either side of the bore and a motorised patient table that lowers for easier transfers.\n\nSlice configuration, reconstruction software and workstation options are selected to suit your case mix and are confirmed at quotation stage, together with the room's site-preparation and shielding requirements.",
+            highlights: ["Wide-bore gantry", "Gantry-side positioning displays", "Low-height motorised table", "Configurable reconstruction packages"],
+            features: [
+              ["Patient-friendly design", "A wide bore and a low table height make positioning easier for patients and staff."],
+              ["Positioning at the gantry", "Displays and controls either side of the bore keep the operator beside the patient."],
+              ["Configured to your department", "Slice configuration, software and workstations chosen for your case mix."],
+              ["Site planning", "Room layout, shielding and power requirements prepared with your facility team."],
+            ],
+            specs: [
+              { label: "Gantry", items: [["Bore", "Wide bore, typically 70 cm or more"], ["Tilt", "Configuration dependent"]] },
+              { label: "Patient table", items: [["Height", "Motorised, low position for transfers"], ["Load capacity", "Typically up to 200 kg"]] },
+              { label: "Configuration", items: [["Slices", "Selected at quotation"], ["Workstation", "Optional advanced reconstruction"]] },
+            ],
+            applications: ["Diagnostics"],
+            specialties: ["Radiology", "Emergency Medicine"],
+            solutions: ["Diagnostics", "Hospital Setup"],
+          },
+        ],
+      },
+      {
+        name: "Digital Radiography",
+        short: "Floor-mounted DR systems with table and wall stand.",
+        products: [
+          {
+            name: "Digital X-Ray System",
+            image: "xray",
+            alt: true,
+            featured: true,
+            brand: "Delta",
+            short: "Floor-mounted digital radiography with a floating-top table, tube stand and upright wall stand.",
+            body: "A floor-mounted digital radiography room for hospitals and diagnostic centres: a floating-top patient table, a rail-mounted tube stand and an upright wall stand for chest and standing examinations.\n\nDetector type, generator rating and acquisition software are configured to your workload and confirmed at quotation stage, together with the room's shielding requirements.",
+            highlights: ["Floating-top patient table", "Rail-mounted tube stand", "Upright wall stand", "Digital flat-panel workflow"],
+            features: [
+              ["Complete DR room", "Table, tube stand and wall stand planned together for the room."],
+              ["Digital workflow", "Flat-panel acquisition with images available for review in seconds."],
+              ["Flexible positioning", "Table and wall-stand examinations from one tube stand."],
+            ],
+            specs: [
+              { label: "Configuration", items: [["Mounting", "Floor-mounted tube stand on rail"], ["Wall stand", "Upright, height adjustable"]] },
+              { label: "Imaging", items: [["Detector", "Flat panel, selected at quotation"], ["Generator", "Rating selected for workload"]] },
+            ],
+            applications: ["Diagnostics", "Emergency Department"],
+            specialties: ["Radiology", "Orthopaedics", "Emergency Medicine"],
+            solutions: ["Diagnostics", "Hospital Setup"],
+          },
+        ],
+      },
       {
         name: "Cardiology Diagnostics",
         short: "Resting ECG for clinics and wards.",
@@ -797,14 +855,14 @@ export const BRANDS = [
 ];
 
 export const SPECIALTIES = [
-  { name: "Cardiology", image: "icu-b", short: "Monitoring, ECG, defibrillation and imaging for cardiac care units and clinics.", categories: ["Patient Monitoring", "Diagnostic Equipment", "Emergency Care"] },
+  { name: "Cardiology", image: "icu-b", short: "Monitoring, ECG, defibrillation and imaging for cardiac care units and clinics.", categories: ["Patient Monitoring", "Diagnostics & Imaging", "Emergency Care"] },
   { name: "Critical Care", image: "icu", short: "Ventilation, monitoring, infusion and ICU furniture for intensive care units.", categories: ["Critical Care", "Patient Monitoring", "Hospital Furniture", "Respiratory Care"] },
   { name: "Anaesthesiology", image: "ot-b", short: "Anaesthesia workstations, monitoring and infusion for theatres and recovery.", categories: ["Anaesthesia", "Patient Monitoring", "Critical Care"] },
   { name: "Orthopaedics", image: "ot", short: "Operating tables, surgical lights and theatre infrastructure for orthopaedic surgery.", categories: ["Operation Theatre", "Surgical Equipment"] },
-  { name: "Radiology", image: "diagnostics", short: "Ultrasound and diagnostic systems for imaging departments and diagnostic centres.", categories: ["Diagnostic Equipment"] },
+  { name: "Radiology", image: "diagnostics", short: "Ultrasound and diagnostic systems for imaging departments and diagnostic centres.", categories: ["Diagnostics & Imaging"] },
   { name: "Emergency Medicine", image: "emergency", short: "Resuscitation, transfer and monitoring equipment for emergency departments.", categories: ["Emergency Care", "Patient Monitoring", "Respiratory Care"] },
   { name: "General Surgery", image: "hero-ot", short: "Theatre lights, tables, electrosurgery and suction for general surgical suites.", categories: ["Operation Theatre", "Surgical Equipment", "Anaesthesia"] },
-  { name: "Gynaecology", image: "diagnostics-b", short: "Ultrasound, theatre and neonatal equipment for obstetrics and gynaecology.", categories: ["Diagnostic Equipment", "Operation Theatre", "Neonatal Care"] },
+  { name: "Gynaecology", image: "diagnostics-b", short: "Ultrasound, theatre and neonatal equipment for obstetrics and gynaecology.", categories: ["Diagnostics & Imaging", "Operation Theatre", "Neonatal Care"] },
   { name: "Neonatology", image: "nicu", short: "Warmers, incubators, phototherapy and syringe pumps for newborn care units.", categories: ["Neonatal Care", "Critical Care"] },
 ];
 
@@ -812,7 +870,7 @@ export const SOLUTIONS = [
   { name: "Hospital Setup", image: "corridor", short: "Equipment planning and supply for new hospitals and major expansions.", categories: ["Hospital Furniture", "Patient Monitoring", "Operation Theatre", "Critical Care"] },
   { name: "Critical Care Solutions", image: "icu", short: "Complete ICU and HDU packages: beds, ventilation, monitoring and infusion.", categories: ["Critical Care", "Patient Monitoring", "Hospital Furniture"] },
   { name: "Surgical Infrastructure", image: "ot-b", short: "Theatre lights, tables, pendants and anaesthesia for modular operating theatres.", categories: ["Operation Theatre", "Anaesthesia", "Surgical Equipment"] },
-  { name: "Diagnostics", image: "diagnostics", short: "ECG and ultrasound for diagnostic centres, OPDs and imaging departments.", categories: ["Diagnostic Equipment"] },
+  { name: "Diagnostics", image: "diagnostics", short: "ECG and ultrasound for diagnostic centres, OPDs and imaging departments.", categories: ["Diagnostics & Imaging"] },
   { name: "Patient Monitoring Systems", image: "station", short: "Bedside and central monitoring planned across wards and critical care.", categories: ["Patient Monitoring"] },
   { name: "Emergency Care", image: "emergency", short: "Resuscitation points, transfer and emergency department equipment.", categories: ["Emergency Care", "Respiratory Care"] },
 ];

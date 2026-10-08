@@ -85,9 +85,9 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     type: "HERO",
     label: "Hero",
     description:
-      "Large opening statement with an optional image and actions. With an image and the Full width layout it becomes a cinematic full-bleed hero.",
+      "Large opening statement with actions. Editorial layout: a showcase stage with one piece of equipment, floating product cards and a figure. Full width layout: a cinematic full-bleed photograph.",
     designOptions: [...BASE_DESIGN, "align", "layout"],
-    design: { spacing: "xl", background: "dark", layout: "full" },
+    design: { spacing: "compact", container: "wide", background: "default", layout: "editorial" },
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
       {
@@ -96,6 +96,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         label: "Heading",
         required: true,
         maxLength: 160,
+        help: "Wrap words in **double asterisks** to set them bold; \" / \" starts a new line, e.g. \"**Precision** equipment / designed for **care**\".",
       },
       {
         kind: "textarea",
@@ -131,7 +132,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         name: "points",
         label: "Highlights",
         itemLabel: "Highlight",
-        help: "Optional. Up to four short points shown along the bottom of a full-width hero.",
+        help: "Optional. Editorial layout: the first three become floating product cards beside the stage (add an image and a link). Full width layout: up to four points along the bottom.",
         max: 4,
         fields: [
           {
@@ -142,7 +143,24 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
             maxLength: 60,
           },
           { kind: "text", name: "detail", label: "Detail", maxLength: 90 },
+          { kind: "media", name: "image", label: "Image (cut-out works best)" },
+          { kind: "url", name: "href", label: "Link" },
         ],
+      },
+      {
+        kind: "text",
+        name: "statValue",
+        label: "Figure",
+        maxLength: 16,
+        help: "Editorial layout only, e.g. \"500+\". Use a figure you can evidence.",
+      },
+      { kind: "text", name: "statLabel", label: "Figure label", maxLength: 60 },
+      {
+        kind: "textarea",
+        name: "statDetail",
+        label: "Figure note",
+        maxLength: 200,
+        rows: 2,
       },
     ],
   },
@@ -227,12 +245,13 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
     type: "STATISTICS",
     label: "Statistics",
-    description: "A row of figures. Only use numbers the company can evidence.",
+    description:
+      "A row of figures. The Bento layout sets a statement beside grey, cyan and black figure tiles and a photograph. Only use numbers the company can evidence.",
     designOptions: [...BASE_DESIGN, "columns", "layout"],
     design: { background: "dark", columns: "4" },
     fields: [
       { kind: "text", name: "overline", label: "Overline", maxLength: 80 },
-      { kind: "text", name: "heading", label: "Heading", maxLength: 160 },
+      { kind: "text", name: "heading", label: "Heading", maxLength: 200 },
       { kind: "textarea", name: "intro", label: "Intro", maxLength: 400, rows: 2 },
       {
         kind: "text",
@@ -241,6 +260,9 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         maxLength: 200,
         help: "Shown in small print under the figures, e.g. how they are counted.",
       },
+      { kind: "media", name: "image", label: "Image (Bento layout)" },
+      { kind: "text", name: "ctaLabel", label: "Link label", maxLength: 40 },
+      { kind: "url", name: "ctaHref", label: "Link" },
       {
         kind: "repeater",
         name: "items",
