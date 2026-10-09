@@ -176,6 +176,7 @@ model Staff {
   twoFactorSecret     TwoFactorSecret?
   recoveryCodes       RecoveryCode[]
   sessions            StaffSession[]
+  passwordResets      PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,6 +184,27 @@ model Staff {
   @@index([roleId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// A "forgot password" link. Only the SHA-256 of the token is stored, so a
+/// database read (or a backup) cannot be turned into a working link. Single
+/// use and short-lived; issuing a new one retires the old.
+model PasswordResetToken {
+  id      String @id @default(cuid())
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  /// Who asked, for the audit trail and the per-address limit.
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  @@index([staffId, createdAt])
+  @@index([expiresAt])
 }
 
 model Role {

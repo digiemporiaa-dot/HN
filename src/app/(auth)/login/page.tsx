@@ -22,6 +22,12 @@ const NOTICES = {
     tone: "success",
     message: "Your password has been updated. Sign in with your new password.",
   },
+  "password-reset": {
+    icon: CheckCircle2,
+    tone: "success",
+    message:
+      "Your password has been reset and every device was signed out. Sign in with your new password.",
+  },
   "site-restored": {
     icon: CheckCircle2,
     tone: "success",

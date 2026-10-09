@@ -215,3 +215,37 @@ export function assignmentNotification(input: {
     html,
   };
 }
+
+/**
+ * A "forgot password" link. Sent only to the address on the account; the
+ * address someone typed into the form is never the recipient.
+ */
+export function passwordResetMessage(input: {
+  name: string;
+  link: string;
+  minutes: number;
+  companyName: string;
+}): { subject: string; text: string; html: string } {
+  const text = [
+    `Hello ${input.name},`,
+    "",
+    `Someone asked to reset the password for your ${input.companyName} admin account.`,
+    `To choose a new password, open this link within ${input.minutes} minutes:`,
+    "",
+    input.link,
+    "",
+    "The link works once. If you did not ask for this, ignore this message: your password has not changed.",
+    "Two-factor authentication, if you use it, is still required when you sign in.",
+  ].join("\n");
+
+  const p = (body: string) => `<p style="font:14px/1.6 system-ui,sans-serif;margin:0 0 14px">${body}</p>`;
+  const html = [
+    p(`Hello ${escape(input.name)},`),
+    p(`Someone asked to reset the password for your ${escape(input.companyName)} admin account. To choose a new password, use the button below within ${input.minutes} minutes.`),
+    `<p style="margin:20px 0"><a href="${escape(input.link)}" style="display:inline-block;background:#0b0d0f;color:#ffffff;text-decoration:none;font:600 14px system-ui,sans-serif;padding:12px 20px;border-radius:999px">Choose a new password</a></p>`,
+    p(`Or paste this address into your browser:<br><span style="word-break:break-all;color:#45505a">${escape(input.link)}</span>`),
+    p("The link works once. If you did not ask for this, ignore this message: your password has not changed."),
+  ].join("");
+
+  return { subject: `Reset your ${input.companyName} admin password`, text, html };
+}

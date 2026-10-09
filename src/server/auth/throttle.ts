@@ -32,11 +32,23 @@ export async function checkLoginThrottle(
     select: { createdAt: true },
   });
 
+  // A password reset by email link also starts the count again: whoever
+  // reset it has proved they hold the mailbox, and should not stay locked out
+  // by the attempts that sent them to "forgot password".
+  const lastReset = await prisma.auditLog.findFirst({
+    where: { action: "AUTH_PASSWORD_RESET", actorEmail: email, createdAt: { gte: since } },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  const countFrom = [since, lastSuccess?.createdAt, lastReset?.createdAt]
+    .filter((date): date is Date => Boolean(date))
+    .reduce((latest, date) => (date > latest ? date : latest));
+
   const emailFailures = await prisma.loginAttempt.count({
     where: {
       email,
       successful: false,
-      createdAt: { gte: lastSuccess?.createdAt ?? since },
+      createdAt: { gte: countFrom },
     },
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { AlertCircle, ShieldCheck } from "lucide-react";
 
 import { Button, Field, Input } from "@/components/ui";
@@ -87,6 +88,17 @@ export function LoginForm() {
           />
         )}
       </Field>
+
+      {awaitingCode ? null : (
+        <div className="-mt-2 flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-body-sm text-primary font-medium underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+      )}
 
       <Field
         label="Authentication code"
