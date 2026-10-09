@@ -3,6 +3,7 @@ import { BrandTheme } from "@/components/site/brand-theme";
 import { SiteHeader } from "@/components/site/site-header";
 import { QuoteBasketProvider } from "@/components/site/quote-basket";
 import { SiteFooter } from "@/components/site/site-footer";
+import { PopupHost } from "@/components/site/popup-host";
 import { SiteAnalytics } from "@/components/site/analytics";
 import { GA4_ID, GTM_ID, validId } from "@/lib/seo/tracking";
 import { SiteLinksProvider } from "@/components/site/site-links";
@@ -49,6 +50,9 @@ export default async function SiteLayout({
           </main>
 
           <SiteFooter settings={settings} legalFallback={legal} />
+          {/* Fetches its own data at runtime, so cached pages and the
+              database-free build are unaffected. */}
+          <PopupHost />
           <SiteAnalytics
             ga4Id={validId(settings.analytics.ga4Id, GA4_ID)}
             gtmId={validId(settings.analytics.gtmId, GTM_ID)}

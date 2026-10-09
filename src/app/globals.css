@@ -793,3 +793,39 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Popup dialog (src/components/site/popup-host.tsx). Self-contained: these
+ * rules touch nothing else on the site.
+ * ------------------------------------------------------------------------- */
+.popup-dialog[open] {
+  animation: hn-popup-in 360ms var(--ease-out-expo) both;
+}
+
+.popup-dialog[open]::backdrop {
+  animation: hn-popup-backdrop 280ms ease-out both;
+}
+
+@keyframes hn-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hn-popup-backdrop {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-dialog[open],
+  .popup-dialog[open]::backdrop {
+    animation: none;
+  }
+}

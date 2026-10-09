@@ -5,7 +5,7 @@ import { variants } from "@/lib/utils/variants";
 import type { CardStyle } from "@/lib/design/section-options";
 
 const cardStyles = variants({
-  base: "relative flex flex-col rounded-xl",
+  base: "ui-card relative flex flex-col rounded-xl",
   variants: {
     appearance: {
       standard: "border border-line bg-surface",

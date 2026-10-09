@@ -14,6 +14,7 @@ import {
   type LucideIcon,
   MapPin,
   Newspaper,
+  PictureInPicture2,
   Route,
   ScrollText,
   Search,
@@ -188,6 +189,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         module: "SEO",
         available: true,
       },
+      {
+        label: "Popups",
+        href: "/admin/popups",
+        icon: PictureInPicture2,
+        module: "POPUPS",
+        available: true,
+      },
     ],
   },
   {
@@ -241,4 +249,55 @@ export const COMPANY_ICON = Building2;
 export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** The permission-filtered menu as the server sends it to the browser. */
+export type VisibleNav = Array<{
+  label: string;
+  items: Array<{ label: string; href: string; available: boolean }>;
+}>;
+
+export function iconForHref(href: string): LucideIcon | undefined {
+  return ADMIN_NAV.flatMap((group) => group.items).find((item) => item.href === href)?.icon;
+}
+
+/** "Create" entries for the top bar and the command palette. */
+export const QUICK_CREATE: Array<{
+  label: string;
+  href: string;
+  module: PermissionModule;
+}> = [
+  { label: "New product", href: "/admin/products/new", module: "PRODUCTS" },
+  { label: "New category", href: "/admin/categories/new", module: "CATEGORIES" },
+  { label: "New brand", href: "/admin/brands/new", module: "BRANDS" },
+  { label: "New page", href: "/admin/pages/new", module: "PAGES" },
+  { label: "New blog post", href: "/admin/blogs/new", module: "BLOGS" },
+  { label: "New form", href: "/admin/forms/new", module: "FORMS" },
+  { label: "New popup", href: "/admin/popups/new", module: "POPUPS" },
+  { label: "Upload media", href: "/admin/media", module: "MEDIA" },
+  { label: "New staff member", href: "/admin/staff/new", module: "STAFF" },
+];
+
+/**
+ * Where a path sits in the menu: its group and item, plus a last crumb for
+ * screens below an item ("New", "Details"). Drives the breadcrumbs.
+ */
+export function locateRoute(
+  pathname: string,
+  groups: VisibleNav,
+): { group: string | null; item: { label: string; href: string } | null; leaf: string | null } {
+  let best: { group: string; item: { label: string; href: string } } | null = null;
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (!isNavItemActive(item.href, pathname)) continue;
+      if (!best || item.href.length > best.item.href.length) best = { group: group.label, item };
+    }
+  }
+  if (!best) {
+    if (pathname.startsWith("/admin/profile")) return { group: null, item: { label: "My profile", href: "/admin/profile" }, leaf: null };
+    return { group: null, item: null, leaf: null };
+  }
+  const rest = pathname.slice(best.item.href.length).split("/").filter(Boolean);
+  const leaf = rest.length === 0 ? null : rest[rest.length - 1] === "new" ? "New" : "Details";
+  return { group: best.group === "Overview" ? null : best.group, item: best.item, leaf };
 }

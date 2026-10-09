@@ -112,6 +112,7 @@ export default async function ProfilePage({
         </CardContent>
       </Card>
 
+      <span id="security" aria-hidden="true" className="-mb-8 block scroll-mt-28" />
       <Card>
         <CardHeader>
           <CardTitle>Password</CardTitle>

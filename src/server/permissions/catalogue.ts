@@ -27,6 +27,8 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
   MEDIA: ["VIEW", "CREATE", "EDIT", "DELETE"],
   FORMS: ["VIEW", "CREATE", "EDIT", "DELETE", "EXPORT"],
   SEO: ["VIEW", "EDIT", "PUBLISH"],
+  // PUBLISH is activation: switching a popup on puts it in front of visitors.
+  POPUPS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
   STAFF: ["VIEW", "CREATE", "EDIT", "DELETE"],
   ROLES: ["VIEW", "CREATE", "EDIT", "DELETE"],
   BACKUPS: ["VIEW", "CREATE", "DELETE", "RESTORE", "EXPORT"],
@@ -51,6 +53,7 @@ export const MODULE_LABELS: Record<PermissionModule, string> = {
   MEDIA: "Media",
   FORMS: "Forms",
   SEO: "SEO",
+  POPUPS: "Popups",
   STAFF: "Staff",
   ROLES: "Roles & Permissions",
   BACKUPS: "Backups",
@@ -186,6 +189,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("SOLUTIONS", "VIEW", "CREATE", "EDIT", "PUBLISH"),
       ...everything("APPLICATIONS"),
       ...only("FORMS", "VIEW", "CREATE", "EDIT"),
+      ...everything("POPUPS"),
       // Deliberately view-only: location pages are the highest SEO risk surface
       // and publishing them belongs to the SEO Manager.
       ...only("LOCATIONS", "VIEW"),
@@ -211,6 +215,8 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("SOLUTIONS", "VIEW", "EDIT"),
       ...only("APPLICATIONS", "VIEW", "EDIT"),
       ...only("MEDIA", "VIEW"),
+      // Popups target pages, so the SEO team can see what covers them.
+      ...only("POPUPS", "VIEW"),
     ],
   },
   {

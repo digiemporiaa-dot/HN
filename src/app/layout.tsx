@@ -76,7 +76,8 @@ export default function RootLayout({
   return (
     // Font variables must sit on <html>: the `--font-sans` token is computed at
     // :root, so a reference defined lower down would be invalid at that point.
-    <html lang="en" className={jakarta.variable}>
+    // The admin sets data-admin-theme on <html> before hydration.
+    <html lang="en" className={jakarta.variable} suppressHydrationWarning>
       <body>
         <a href="#main" className="skip-link">
           Skip to main content

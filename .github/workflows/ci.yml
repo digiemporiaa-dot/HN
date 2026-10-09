@@ -27,6 +27,7 @@ jobs:
       - run: npm ci
       - run: npm run lint -- --max-warnings=0
       - run: npm run typecheck
+      - run: npm test
       # Built exactly as the image is: no database reachable.
       - run: npx next build
         env:

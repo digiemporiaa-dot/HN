@@ -61,6 +61,7 @@ enum PermissionModule {
   MEDIA
   FORMS
   SEO
+  POPUPS
   STAFF
   ROLES
   BACKUPS
@@ -452,6 +453,7 @@ model MediaAsset {
   productDocuments     ProductDocument[] @relation("ProductDocumentFile")
   cityHeroImages       City[]            @relation("CityHeroImage")
   seoOverrideImages    SeoOverride[]     @relation("SeoOverrideImage")
+  popupImages          Popup[]           @relation("PopupImage")
   blogPostCovers       BlogPost[]        @relation("BlogPostCover")
   applicationImages    Application[]     @relation("ApplicationImage")
 
@@ -1088,6 +1090,7 @@ model Product {
   points       ProductPoint[]
   leads        Lead[]
   rfqItems     RfqItem[]
+  popups       Popup[]
   cities       CityProduct[]
 
   /// Two sides of one table: what this product points at, and what points at
@@ -1468,6 +1471,7 @@ model Form {
 
   fields      FormField[]
   submissions FormSubmission[]
+  popups      Popup[]
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -2027,4 +2031,105 @@ model Backup {
 
   @@index([kind, startedAt])
   @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Popups
+// ---------------------------------------------------------------------------
+
+enum PopupType {
+  /// A published form (an enquiry) in the dialog.
+  ENQUIRY
+  /// A published product, with its image and a link to its page.
+  PRODUCT_SPOTLIGHT
+  /// A brochure, guide or page, behind a call to action.
+  RESOURCE
+  /// A short notice with an optional link.
+  ANNOUNCEMENT
+}
+
+enum PopupTrigger {
+  /// After the visitor has been on the page for `delaySeconds`.
+  DELAY
+  /// Once the visitor has scrolled `scrollPercent` of the page.
+  SCROLL
+  /// When the pointer leaves through the top of the window. Desktop only.
+  EXIT_INTENT
+  /// As soon as the page is ready.
+  IMMEDIATE
+}
+
+enum PopupDevice {
+  ALL
+  DESKTOP
+  MOBILE
+}
+
+enum PopupTargetMode {
+  /// Shown on every page except the rules (and the paths no popup may cover).
+  EXCLUDE
+  /// Shown only on pages matching a rule.
+  INCLUDE
+}
+
+/// A dialog shown to visitors of the public site.
+///
+/// Nothing here is shown until `active` is true, the schedule has started and
+/// not ended, and the page matches the targeting rules. Activation is its own
+/// permission (POPUPS:PUBLISH), and a new popup starts inactive.
+model Popup {
+  id String @id @default(cuid())
+
+  /// Staff-facing name. Never shown to visitors.
+  name String
+  type PopupType @default(ANNOUNCEMENT)
+
+  active Boolean @default(false)
+
+  eyebrow     String?
+  heading     String
+  description String?
+
+  imageId String?
+  image   MediaAsset? @relation("PopupImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  /// PRODUCT_SPOTLIGHT: the product shown. Only a published one is rendered.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  /// ENQUIRY: the form in the dialog. Only a published one is rendered.
+  formId String?
+  form   Form?   @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  ctaLabel String?
+  /// A site path ("/contact") or an https:// address. Nothing else.
+  ctaHref  String?
+
+  trigger       PopupTrigger @default(DELAY)
+  delaySeconds  Int          @default(8)
+  scrollPercent Int          @default(50)
+  device        PopupDevice  @default(ALL)
+
+  /// Days before a visitor who closed it sees it again. 0 means the next
+  /// visit (a new browser session), never the same one.
+  frequencyDays Int @default(7)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  targetMode  PopupTargetMode @default(EXCLUDE)
+  /// Normalised path patterns: "/contact" (exact) or "/products/*" (prefix).
+  targetRules Json            @default("[]")
+
+  /// Higher first when more than one popup could open on a page.
+  priority Int @default(0)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([active, deletedAt])
+  @@index([imageId])
+  @@index([productId])
+  @@index([formId])
 }
