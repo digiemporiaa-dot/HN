@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { AlertCircle, CheckCircle2, KeyRound } from "lucide-react";
 
 import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
+import { requiredFor } from "@/lib/permissions/registry";
 import {
   resetStaffPasswordAction,
   resetStaffTwoFactorAction,
@@ -260,6 +261,25 @@ export function StaffTwoFactorResetForm({
   );
 }
 
+/**
+ * Keeps a resource consistent: ticking any action ticks its View, and
+ * clearing View clears the rest — the server refuses anything else.
+ */
+function withDependencies(
+  current: Record<string, boolean>,
+  resourceKeys: string[],
+  key: string,
+  on: boolean,
+): Record<string, boolean> {
+  const next = { ...current, [key]: on };
+  const view = requiredFor(key);
+  if (on && view) next[view] = true;
+  if (!on && !view) {
+    for (const other of resourceKeys) if (requiredFor(other) === key) next[other] = false;
+  }
+  return next;
+}
+
 export function StaffOverridesForm({
   staffId,
   modules,
@@ -354,10 +374,9 @@ export function StaffOverridesForm({
                       checked={checked}
                       disabled={readOnly}
                       onChange={(event) =>
-                        setSelection((current) => ({
-                          ...current,
-                          [action.key]: event.target.checked,
-                        }))
+                        setSelection((current) =>
+                          withDependencies(current, group.actions.map((entry) => entry.key), action.key, event.target.checked),
+                        )
                       }
                     />
                     <span className={changed ? "text-ink font-medium" : ""}>

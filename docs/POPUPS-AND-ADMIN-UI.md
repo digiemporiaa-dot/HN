@@ -2,7 +2,7 @@
 
 ## Popups
 
-Admin → Growth → **Popups** (`/admin/popups`). One dialog at a time, shown to
+Admin → Content → **Popups** (`/admin/popups`). One dialog at a time, shown to
 visitors of the public site. Each popup has one of four types:
 
 | Type | Shows |
@@ -87,7 +87,7 @@ ignored.
 | SEO Manager, Viewer | view |
 | Sales Manager, Sales Executive | none |
 
-Every page and server action checks its own permission. Hiding a menu item
+Popups are the `content.popups` resource (see `docs/PERMISSIONS.md`). Every page and server action checks its own permission. Hiding a menu item
 only declutters the screen; it does not grant or deny access. Migration
 `…_popup_permissions` adds the rows and grants to existing databases, and
 individual overrides on a staff member apply to `POPUPS` like any other module.

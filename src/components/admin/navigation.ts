@@ -1,43 +1,25 @@
-import {
-  Archive,
-  BadgeCheck,
-  Blocks,
-  Boxes,
-  Building2,
-  ClipboardList,
-  Crosshair,
-  FileText,
-  FolderTree,
-  Gauge,
-  Image,
-  Layers,
-  type LucideIcon,
-  MapPin,
-  Newspaper,
-  PictureInPicture2,
-  Route,
-  ScrollText,
-  Search,
-  Settings,
-  ShieldCheck,
-  Stethoscope,
-  Tags,
-  Users,
-} from "lucide-react";
+import { Building2, type LucideIcon } from "lucide-react";
 
 import type { PermissionModule } from "@/generated/prisma/enums";
+import { MODULES, NAV_ENTRIES, resourceByKey } from "@/lib/permissions/registry";
 
+/**
+ * The admin menu, built from the permission registry
+ * (src/lib/permissions/registry.ts) so a route, its menu entry, its
+ * breadcrumb and its Create shortcut cannot drift apart.
+ *
+ * Visibility only decides what is offered. Every page and action checks its
+ * own permission on the server; a hidden link is never the access control.
+ */
 export type AdminNavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
-  /** VIEW on this module is required for the item to appear at all. */
+  /** VIEW on this module guards the entry's page. */
   module: PermissionModule;
-  /**
-   * False until the phase that builds the module lands. Unavailable items are
-   * rendered as inert rows rather than links, so the information architecture
-   * is visible without any navigation leading to a dead route.
-   */
+  /** VIEW on any of these shows the entry (usually just `module`). */
+  visibleWith: PermissionModule[];
+  /** Kept for screens not built yet: rendered inert, never as a link. */
   available: boolean;
 };
 
@@ -46,206 +28,27 @@ export type AdminNavGroup = {
   items: AdminNavItem[];
 };
 
-export const ADMIN_NAV: AdminNavGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      {
-        label: "Dashboard",
-        href: "/admin",
-        icon: Gauge,
-        module: "DASHBOARD",
-        available: true,
-      },
-    ],
-  },
-  {
-    label: "Sales",
-    items: [
-      {
-        label: "Leads",
-        href: "/admin/leads",
-        icon: ClipboardList,
-        module: "LEADS",
-        available: true,
-      },
-      {
-        label: "RFQs",
-        href: "/admin/rfqs",
-        icon: FileText,
-        module: "RFQ",
-        available: true,
-      },
-    ],
-  },
-  {
-    label: "Catalogue",
-    items: [
-      {
-        label: "Products",
-        href: "/admin/products",
-        icon: Boxes,
-        module: "PRODUCTS",
-        available: true,
-      },
-      {
-        label: "Categories",
-        href: "/admin/categories",
-        icon: Tags,
-        module: "CATEGORIES",
-        available: true,
-      },
-      {
-        label: "Subcategories",
-        href: "/admin/subcategories",
-        icon: FolderTree,
-        module: "CATEGORIES",
-        available: true,
-      },
-      {
-        label: "Brands",
-        href: "/admin/brands",
-        icon: BadgeCheck,
-        module: "BRANDS",
-        available: true,
-      },
-      {
-        label: "Specialties",
-        href: "/admin/specialties",
-        icon: Stethoscope,
-        module: "SPECIALTIES",
-        available: true,
-      },
-      {
-        label: "Solutions",
-        href: "/admin/solutions",
-        icon: Blocks,
-        module: "SOLUTIONS",
-        available: true,
-      },
-      {
-        label: "Applications",
-        href: "/admin/applications",
-        icon: Crosshair,
-        module: "APPLICATIONS",
-        available: true,
-      },
-    ],
-  },
-  {
-    label: "Content",
-    items: [
-      {
-        label: "Pages",
-        href: "/admin/pages",
-        icon: Layers,
-        module: "PAGES",
-        available: true,
-      },
-      {
-        label: "Blogs",
-        href: "/admin/blogs",
-        icon: Newspaper,
-        module: "BLOGS",
-        available: true,
-      },
-      {
-        label: "Navigation",
-        href: "/admin/navigation",
-        icon: Route,
-        module: "NAVIGATION",
-        available: true,
-      },
-      {
-        label: "Media",
-        href: "/admin/media",
-        icon: Image,
-        module: "MEDIA",
-        available: true,
-      },
-      {
-        label: "Forms",
-        href: "/admin/forms",
-        icon: ClipboardList,
-        module: "FORMS",
-        available: true,
-      },
-    ],
-  },
-  {
-    label: "Growth",
-    items: [
-      {
-        label: "Locations",
-        href: "/admin/locations",
-        icon: MapPin,
-        module: "LOCATIONS",
-        available: true,
-      },
-      {
-        label: "SEO",
-        href: "/admin/seo",
-        icon: Search,
-        module: "SEO",
-        available: true,
-      },
-      {
-        label: "Popups",
-        href: "/admin/popups",
-        icon: PictureInPicture2,
-        module: "POPUPS",
-        available: true,
-      },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      {
-        label: "Staff",
-        href: "/admin/staff",
-        icon: Users,
-        module: "STAFF",
-        available: true,
-      },
-      {
-        label: "Roles & Permissions",
-        href: "/admin/roles",
-        icon: ShieldCheck,
-        module: "ROLES",
-        available: true,
-      },
-      {
-        label: "Backups",
-        href: "/admin/backups",
-        icon: Archive,
-        module: "BACKUPS",
-        available: true,
-      },
-      {
-        label: "Audit Logs",
-        href: "/admin/audit-logs",
-        icon: ScrollText,
-        module: "AUDIT_LOGS",
-        available: true,
-      },
-      {
-        label: "Settings",
-        href: "/admin/settings",
-        icon: Settings,
-        module: "SETTINGS",
-        available: true,
-      },
-    ],
-  },
-];
+const moduleOf = (resourceKey: string): PermissionModule => {
+  const resource = resourceByKey(resourceKey);
+  if (!resource) throw new Error(`Unknown resource ${resourceKey}`);
+  return resource.module;
+};
 
-export const COMPANY_ICON = Building2;
+export const ADMIN_NAV: AdminNavGroup[] = MODULES.map((group) => ({
+  label: group.label,
+  items: group.nav.map((entry) => {
+    const visible = "visibleWithAny" in entry ? entry.visibleWithAny : [entry.resource];
+    return {
+      label: entry.label,
+      href: entry.href,
+      icon: entry.icon,
+      module: moduleOf(entry.resource),
+      visibleWith: visible.map(moduleOf),
+      available: true,
+    };
+  }),
+}));
 
-/**
- * Longest-match wins, so /admin/staff/new highlights Staff while /admin alone
- * does not swallow every other route.
- */
 export function isNavItemActive(href: string, pathname: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -266,17 +69,13 @@ export const QUICK_CREATE: Array<{
   label: string;
   href: string;
   module: PermissionModule;
-}> = [
-  { label: "New product", href: "/admin/products/new", module: "PRODUCTS" },
-  { label: "New category", href: "/admin/categories/new", module: "CATEGORIES" },
-  { label: "New brand", href: "/admin/brands/new", module: "BRANDS" },
-  { label: "New page", href: "/admin/pages/new", module: "PAGES" },
-  { label: "New blog post", href: "/admin/blogs/new", module: "BLOGS" },
-  { label: "New form", href: "/admin/forms/new", module: "FORMS" },
-  { label: "New popup", href: "/admin/popups/new", module: "POPUPS" },
-  { label: "Upload media", href: "/admin/media", module: "MEDIA" },
-  { label: "New staff member", href: "/admin/staff/new", module: "STAFF" },
-];
+}> = NAV_ENTRIES.flatMap((entry) =>
+  entry.createHref && entry.createLabel
+    ? [{ label: entry.createLabel, href: entry.createHref, module: moduleOf(entry.resource) }]
+    : [],
+);
+
+export const COMPANY_ICON = Building2;
 
 /**
  * Where a path sits in the menu: its group and item, plus a last crumb for

@@ -62,6 +62,10 @@ enum PermissionModule {
   FORMS
   SEO
   POPUPS
+  /// SEO split (see docs/PERMISSIONS.md): SEO itself now means page metadata.
+  SEO_REDIRECTS
+  SEO_NOT_FOUND
+  SEO_INDEXATION
   STAFF
   ROLES
   BACKUPS

@@ -13,7 +13,7 @@ import {
 } from "@/server/auth/guards";
 import { isTwoFactorEnabled } from "@/server/auth/two-factor";
 import { getSetting } from "@/server/settings/service";
-import { permissionKey, SUPER_ADMIN_ROLE_KEY } from "./catalogue";
+import { MODULE_ACTIONS, permissionKey, SUPER_ADMIN_ROLE_KEY } from "./catalogue";
 
 export { permissionKey } from "./catalogue";
 
@@ -56,13 +56,17 @@ export const getEffectivePermissions = cache(
 
     const effective = new Set<string>();
 
+    // Only pairs the registry defines count. A retired or unknown pair still
+    // sitting in the database grants nothing: fail closed.
     for (const entry of staff.role.permissions) {
+      if (!isGrantable(entry.permission.module, entry.permission.action)) continue;
       effective.add(
         permissionKey(entry.permission.module, entry.permission.action),
       );
     }
 
     for (const override of staff.permissionOverrides) {
+      if (!isGrantable(override.permission.module, override.permission.action)) continue;
       const key = permissionKey(
         override.permission.module,
         override.permission.action,
@@ -74,6 +78,10 @@ export const getEffectivePermissions = cache(
     return effective;
   },
 );
+
+export function isGrantable(module: PermissionModule, action: PermissionAction): boolean {
+  return MODULE_ACTIONS[module]?.includes(action) ?? false;
+}
 
 /** Sentinel meaning "every permission", used only for Super Admin. */
 const ALL_PERMISSIONS: ReadonlySet<string> = new Set<string>(["*"]);
@@ -186,6 +194,25 @@ export async function requirePermission(
   await enforceTwoFactor(staff.id, permissions);
 
   if (!grants(permissions, module, action)) {
+    redirect("/access-denied");
+  }
+
+  return staff;
+}
+
+/**
+ * The gate for a screen that brings several resources together (the SEO
+ * overview): any one of them lets the visitor in, and the screen then shows
+ * only the parts they may see.
+ */
+export async function requireAnyPermission(
+  pairs: ReadonlyArray<readonly [PermissionModule, PermissionAction]>,
+): Promise<CurrentStaff> {
+  const staff = await requireStaff();
+  const permissions = await getEffectivePermissions(staff.id);
+  await enforceTwoFactor(staff.id, permissions);
+
+  if (!pairs.some(([module, action]) => grants(permissions, module, action))) {
     redirect("/access-denied");
   }
 

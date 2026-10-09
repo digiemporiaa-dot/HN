@@ -11,10 +11,10 @@ import { disableTwoFactor } from "@/server/auth/two-factor";
 import {
   currentPermissions,
   getEffectivePermissions,
-  permissionKey,
   requirePermission,
 } from "@/server/permissions";
 import { SUPER_ADMIN_ROLE_KEY } from "@/server/permissions/catalogue";
+import { planOverrideChange } from "@/server/permissions/changes";
 import type {
   PermissionAction,
   PermissionModule,
@@ -437,46 +437,55 @@ export async function updateStaffOverridesAction(
   });
   if (blocked) return { error: blocked };
 
-  // Nobody may hand out authority they do not themselves hold.
-  if (actor.roleKey !== SUPER_ADMIN_ROLE_KEY) {
-    const actorPermissions = await getEffectivePermissions(actor.id);
-    const escalating = parsed.data.granted.filter(
-      (key) => !actorPermissions.has(key),
-    );
-    if (escalating.length > 0) {
-      return {
-        error:
-          "You cannot grant a permission you do not hold yourself: " +
-          escalating.slice(0, 3).join(", "),
-      };
-    }
-  }
-
-  const permissions = await prisma.permission.findMany({
-    select: { id: true, module: true, action: true },
-  });
-  const idByKey = new Map(
-    permissions.map((p) => [permissionKey(p.module, p.action), p.id]),
-  );
-
-  const rows = [
-    ...parsed.data.granted.map((key) => ({ key, effect: "GRANT" as const })),
-    ...parsed.data.revoked.map((key) => ({ key, effect: "REVOKE" as const })),
-  ]
-    .map(({ key, effect }) => {
-      const permissionId = idByKey.get(key);
-      return permissionId
-        ? { staffId: target.id, permissionId, effect }
-        : null;
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
-
-  await prisma.$transaction([
-    prisma.staffPermissionOverride.deleteMany({ where: { staffId: target.id } }),
-    ...(rows.length > 0
-      ? [prisma.staffPermissionOverride.createMany({ data: rows })]
-      : []),
+  const [roleRows, currentRows] = await Promise.all([
+    prisma.rolePermission.findMany({
+      where: { role: { staff: { some: { id: target.id } } } },
+      select: { permission: { select: { module: true, action: true } } },
+    }),
+    prisma.staffPermissionOverride.findMany({
+      where: { staffId: target.id },
+      select: { effect: true, permission: { select: { module: true, action: true } } },
+    }),
   ]);
+
+  // Registry-checked, contradiction-free, and nobody may change authority
+  // they do not hold themselves (src/server/permissions/changes.ts).
+  const actorIsSuperAdmin = actor.roleKey === SUPER_ADMIN_ROLE_KEY;
+  const plan = planOverrideChange({
+    role: roleRows.map((row) => row.permission),
+    current: currentRows.map((row) => ({ ...row.permission, effect: row.effect })),
+    granted: parsed.data.granted,
+    revoked: parsed.data.revoked,
+    roleIsSuperAdmin: target.role.key === SUPER_ADMIN_ROLE_KEY,
+    actor: {
+      isSuperAdmin: actorIsSuperAdmin,
+      permissions: actorIsSuperAdmin ? new Set(["*"]) : await getEffectivePermissions(actor.id),
+    },
+  });
+  if (!plan.ok) return { error: plan.error };
+
+  const pairs = plan.rows.map((row) => {
+    const [module, action] = row.storageKey.split(":") as [PermissionModule, PermissionAction];
+    return { module, action };
+  });
+
+  await prisma.$transaction(async (tx) => {
+    if (pairs.length > 0) await tx.permission.createMany({ data: pairs, skipDuplicates: true });
+    const permissions = pairs.length
+      ? await tx.permission.findMany({ where: { OR: pairs }, select: { id: true, module: true, action: true } })
+      : [];
+    const idByKey = new Map(permissions.map((p) => [`${p.module}:${p.action}`, p.id]));
+    await tx.staffPermissionOverride.deleteMany({ where: { staffId: target.id } });
+    if (plan.rows.length > 0) {
+      await tx.staffPermissionOverride.createMany({
+        data: plan.rows.map((row) => ({
+          staffId: target.id,
+          permissionId: idByKey.get(row.storageKey)!,
+          effect: row.effect,
+        })),
+      });
+    }
+  });
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -485,13 +494,16 @@ export async function updateStaffOverridesAction(
     module: "STAFF",
     entityType: "Staff",
     entityId: target.id,
-    summary: `Permission overrides updated for ${target.email}`,
+    summary: `Permission overrides updated for ${target.email}: ${plan.changed.length} changed`,
     metadata: {
-      granted: parsed.data.granted,
-      revoked: parsed.data.revoked,
+      changed: plan.changed,
+      granted: plan.rows.filter((row) => row.effect === "GRANT").map((row) => row.storageKey),
+      revoked: plan.rows.filter((row) => row.effect === "REVOKE").map((row) => row.storageKey),
+      retiredDropped: plan.retired,
     },
   });
 
+  revalidatePath("/admin", "layout");
   revalidatePath(`/admin/staff/${target.id}`);
 
   return { success: "Permission overrides saved." };

@@ -52,7 +52,7 @@ export default async function RedirectsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("SEO", "VIEW");
+  await requirePermission("SEO_REDIRECTS", "VIEW");
   const { can } = await currentPermissions();
 
   const params = await searchParams;
@@ -113,7 +113,7 @@ export default async function RedirectsPage({
         title="Redirects"
         description="Old addresses and where they now lead. A published page whose address changes gets one automatically, so links in search results and old quotations keep working."
         actions={
-          can("SEO", "EDIT") ? (
+          can("SEO_REDIRECTS", "CREATE") ? (
             <Link href="/admin/seo/redirects/new" className={buttonStyles()}>
               <Plus aria-hidden="true" className="size-4" />
               New redirect

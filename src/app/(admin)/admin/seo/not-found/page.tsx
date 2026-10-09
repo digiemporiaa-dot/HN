@@ -59,9 +59,10 @@ export default async function NotFoundLogPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("SEO", "VIEW");
+  await requirePermission("SEO_NOT_FOUND", "VIEW");
   const { can } = await currentPermissions();
-  const canEdit = can("SEO", "EDIT");
+  const canEdit = can("SEO_NOT_FOUND", "EDIT");
+  const canRedirect = can("SEO_REDIRECTS", "CREATE");
 
   const params = await searchParams;
   const page = readPageParam(params.page);
@@ -202,9 +203,9 @@ export default async function NotFoundLogPage({
             key: "actions",
             header: "",
             cell: (row) =>
-              canEdit ? (
+              canEdit || canRedirect ? (
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  {row.ignored ? null : (
+                  {row.ignored || !canRedirect ? null : (
                     <Link
                       href={`/admin/seo/redirects/new?from=${encodeURIComponent(row.path)}`}
                       className={buttonStyles({ size: "sm" })}
@@ -212,6 +213,7 @@ export default async function NotFoundLogPage({
                       Create redirect
                     </Link>
                   )}
+                  {canEdit ? (
                   <form action={setNotFoundIgnoredAction}>
                     <input type="hidden" name="id" value={row.id} />
                     <input
@@ -223,6 +225,7 @@ export default async function NotFoundLogPage({
                       {row.ignored ? "Restore" : "Dismiss"}
                     </Button>
                   </form>
+                  ) : null}
                 </div>
               ) : null,
           },

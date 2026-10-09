@@ -207,6 +207,12 @@ export default async function LeadPage({
     value ? [[label, value] as [string, string]] : [],
   );
 
+  // A quotation request also needs the RFQ permission for the same action
+  // (the server checks both; this only decides what to offer).
+  const isRfq = lead.source === "RFQ";
+  const mayEdit = can("LEADS", "EDIT") && (!isRfq || can("RFQ", "EDIT"));
+  const mayDelete = can("LEADS", "DELETE") && (!isRfq || can("RFQ", "DELETE"));
+
   return (
     <AdminPage>
       <AdminPageHeader
@@ -220,7 +226,7 @@ export default async function LeadPage({
               {LEAD_STATUSES.find((s) => s.value === lead.status)?.label ??
                 lead.status}
             </Badge>
-            {can("LEADS", "DELETE") ? (
+            {mayDelete ? (
               <form action={deleteLeadAction}>
                 <input type="hidden" name="leadId" value={lead.id} />
                 <Button type="submit" variant="outline" size="sm">
@@ -380,7 +386,7 @@ export default async function LeadPage({
               <CardTitle>Notes and comments</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {can("LEADS", "EDIT") ? (
+              {mayEdit ? (
                 <LeadNoteForm
                   leadId={lead.id}
                   action={addLeadNoteAction}
@@ -436,8 +442,8 @@ export default async function LeadPage({
                 version={lead.updatedAt.toISOString()}
                 staff={staff}
                 action={updateLeadAction}
-                readOnly={!can("LEADS", "EDIT")}
-                canAssign={can("LEADS", "ASSIGN")}
+                readOnly={!mayEdit}
+                canAssign={mayEdit && can("LEADS", "ASSIGN")}
               />
             </CardContent>
           </Card>

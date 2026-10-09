@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/server/db";
 import { recordAuditEvent } from "@/server/audit/log";
-import { requirePermission } from "@/server/permissions";
+import { hasPermission, requirePermission } from "@/server/permissions";
 import { fieldErrorsFrom } from "@/lib/validation/field-errors";
 import {
   CONSENT_TEXT,
@@ -53,6 +53,18 @@ export type EnquiryState = {
  * attempts were refused learns how to get past the check. And a rate-limited
  * person is told plainly, because they are a person.
  */
+/**
+ * A quotation request is a lead with source RFQ. Working one needs the
+ * Leads permission for the action and the matching RFQ permission, so the
+ * RFQ module's Edit and Delete mean what they say.
+ */
+async function requireRfqAccess(
+  source: string,
+  action: "EDIT" | "DELETE",
+): Promise<void> {
+  if (source === "RFQ") await requirePermission("RFQ", action);
+}
+
 export async function submitEnquiryAction(
   _previous: EnquiryState,
   formData: FormData,
@@ -293,6 +305,7 @@ export async function updateLeadAction(
     where: { id: parsed.data.leadId, deletedAt: null },
     select: {
       id: true,
+      source: true,
       reference: true,
       status: true,
       priority: true,
@@ -301,6 +314,7 @@ export async function updateLeadAction(
     },
   });
   if (!lead) return { error: "That enquiry no longer exists." };
+  await requireRfqAccess(lead.source, "EDIT");
 
   // Reassignment is its own permission: deciding who works a lead is a
   // management act, not an edit.
@@ -397,9 +411,10 @@ export async function addLeadNoteAction(
 
   const lead = await prisma.lead.findFirst({
     where: { id: parsed.data.leadId, deletedAt: null },
-    select: { id: true, reference: true },
+    select: { id: true, reference: true, source: true },
   });
   if (!lead) return { error: "That enquiry no longer exists." };
+  await requireRfqAccess(lead.source, "EDIT");
 
   await prisma.leadNote.create({
     data: {
@@ -513,9 +528,10 @@ export async function deleteLeadAction(formData: FormData): Promise<void> {
 
   const lead = await prisma.lead.findFirst({
     where: { id: parsed.data.leadId, deletedAt: null },
-    select: { id: true, reference: true },
+    select: { id: true, reference: true, source: true },
   });
   if (!lead) redirect("/admin/leads");
+  await requireRfqAccess(lead.source, "DELETE");
 
   await prisma.lead.update({
     where: { id: lead.id },
@@ -544,9 +560,10 @@ export async function restoreLeadAction(formData: FormData): Promise<void> {
 
   const lead = await prisma.lead.findFirst({
     where: { id: parsed.data.leadId, deletedAt: { not: null } },
-    select: { id: true, reference: true },
+    select: { id: true, reference: true, source: true },
   });
   if (!lead) return;
+  await requireRfqAccess(lead.source, "EDIT");
 
   await prisma.lead.update({
     where: { id: lead.id },
@@ -599,8 +616,15 @@ export async function bulkAssignLeadsAction(formData: FormData): Promise<void> {
 
   if (choice !== "none" && choice !== "mine" && !assignee) return;
 
+  // Quotation requests are reassigned only by someone who may edit RFQs;
+  // without that, they are left out of the batch rather than failing it.
+  const mayEditRfqs = await hasPermission("RFQ", "EDIT");
   const leads = await prisma.lead.findMany({
-    where: { id: { in: ids }, deletedAt: null },
+    where: {
+      id: { in: ids },
+      deletedAt: null,
+      ...(mayEditRfqs ? {} : { source: { not: "RFQ" as const } }),
+    },
     select: { id: true, reference: true, assignedToId: true },
   });
 

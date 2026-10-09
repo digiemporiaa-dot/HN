@@ -28,8 +28,11 @@ export const metadata: Metadata = {
 export default async function AdminDashboardPage() {
   const { staff, can } = await currentPermissions();
 
-  const showStaffMetrics = can("STAFF", "VIEW");
-  const showRoleMetrics = can("ROLES", "VIEW");
+  // The overview needs Dashboard View; each figure also needs its own
+  // module's View. Without Dashboard View the page is only a greeting.
+  const showOverview = can("DASHBOARD", "VIEW");
+  const showStaffMetrics = showOverview && can("STAFF", "VIEW");
+  const showRoleMetrics = showOverview && can("ROLES", "VIEW");
 
   const [staffCount, activeStaffCount, roleCount] = await Promise.all([
     showStaffMetrics ? prisma.staff.count() : Promise.resolve(null),
@@ -76,7 +79,7 @@ export default async function AdminDashboardPage() {
       ) : null}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {can("STAFF", "VIEW") ? (
+        {showStaffMetrics ? (
           <Card interactive>
             <CardHeader>
               <CardTitle>Staff</CardTitle>
@@ -97,7 +100,7 @@ export default async function AdminDashboardPage() {
           </Card>
         ) : null}
 
-        {can("ROLES", "VIEW") ? (
+        {showRoleMetrics ? (
           <Card interactive>
             <CardHeader>
               <CardTitle>Roles &amp; permissions</CardTitle>

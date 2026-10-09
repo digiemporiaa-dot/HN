@@ -14,14 +14,14 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
+import { SUPER_ADMIN_ROLE_KEY } from "@/server/permissions/catalogue";
 import {
   ACTION_LABELS,
-  MODULE_LABELS,
-  MODULE_ACTIONS,
-  MODULE_ORDER,
-  permissionKey,
-  SUPER_ADMIN_ROLE_KEY,
-} from "@/server/permissions/catalogue";
+  ACTION_ORDER,
+  idForStorage,
+  MODULES,
+  permissionId,
+} from "@/lib/permissions/registry";
 import { deleteStaffAction } from "@/server/staff/actions";
 import { getTwoFactorStatus } from "@/server/auth/two-factor";
 import {
@@ -95,26 +95,32 @@ export default async function StaffDetailPage({
 
   const twoFactor = await getTwoFactorStatus(staff.id);
 
-  const rolePermissions = staff.role.permissions.map((entry) =>
-    permissionKey(entry.permission.module, entry.permission.action),
-  );
+  // Hierarchical ids from the registry; retired pairs still in the database
+  // are left out, because they grant nothing.
+  const rolePermissions = staff.role.permissions.flatMap((entry) => {
+    const id = idForStorage(entry.permission.module, entry.permission.action);
+    return id ? [id] : [];
+  });
 
   const overrides: Record<string, "GRANT" | "REVOKE"> = {};
   for (const override of staff.permissionOverrides) {
-    overrides[
-      permissionKey(override.permission.module, override.permission.action)
-    ] = override.effect;
+    const id = idForStorage(override.permission.module, override.permission.action);
+    if (id) overrides[id] = override.effect;
   }
 
-  const modules = MODULE_ORDER.map((module) => ({
-    module,
-    label: MODULE_LABELS[module],
-    actions: MODULE_ACTIONS[module].map((action) => ({
-      action,
-      label: ACTION_LABELS[action],
-      key: permissionKey(module, action),
+  const modules = MODULES.flatMap((group) =>
+    group.resources.map((resource) => ({
+      module: resource.key,
+      label: `${group.label} › ${resource.label}`,
+      actions: ACTION_ORDER.filter((action) => (resource.actions as readonly string[]).includes(action)).map(
+        (action) => ({
+          action,
+          label: ACTION_LABELS[action],
+          key: permissionId(resource.key, action),
+        }),
+      ),
     })),
-  }));
+  );
 
   return (
     <AdminPage>

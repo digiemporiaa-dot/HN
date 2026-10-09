@@ -1,79 +1,31 @@
-import { PermissionAction, PermissionModule } from "@/generated/prisma/enums";
+import type { PermissionAction, PermissionModule } from "@/generated/prisma/enums";
+import {
+  ACTION_LABELS as REGISTRY_ACTION_LABELS,
+  MODULES,
+  RESOURCES,
+} from "@/lib/permissions/registry";
 
 /**
- * The authoritative definition of the permission surface.
- *
- * Seeding, the role editor and every authorisation check read from here, so a
- * module or action that is not listed simply does not exist anywhere in the
- * system. Not every module supports every action — granting DELETE on the
- * dashboard would be meaningless — so the valid pairs are enumerated rather
- * than produced by a cross-product.
+ * The permission surface in the shape the checks and the seed use, derived
+ * from the registry (src/lib/permissions/registry.ts) so there is one
+ * definition. A module or action that is not in the registry does not exist
+ * anywhere in the system: it cannot be granted, and checking it is always
+ * false for anyone but Super Admin.
  */
-export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
-  DASHBOARD: ["VIEW"],
-  LEADS: ["VIEW", "CREATE", "EDIT", "DELETE", "EXPORT", "ASSIGN"],
-  RFQ: ["VIEW", "EDIT", "DELETE", "EXPORT"],
-  PRODUCTS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH", "EXPORT"],
-  CATEGORIES: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  BRANDS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  SPECIALTIES: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  SOLUTIONS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  // No PUBLISH: an application is a label on a product, not a page of its own.
-  APPLICATIONS: ["VIEW", "CREATE", "EDIT", "DELETE"],
-  LOCATIONS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  PAGES: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  BLOGS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  NAVIGATION: ["VIEW", "EDIT"],
-  MEDIA: ["VIEW", "CREATE", "EDIT", "DELETE"],
-  FORMS: ["VIEW", "CREATE", "EDIT", "DELETE", "EXPORT"],
-  SEO: ["VIEW", "EDIT", "PUBLISH"],
-  // PUBLISH is activation: switching a popup on puts it in front of visitors.
-  POPUPS: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
-  STAFF: ["VIEW", "CREATE", "EDIT", "DELETE"],
-  ROLES: ["VIEW", "CREATE", "EDIT", "DELETE"],
-  BACKUPS: ["VIEW", "CREATE", "DELETE", "RESTORE", "EXPORT"],
-  AUDIT_LOGS: ["VIEW", "EXPORT"],
-  SETTINGS: ["VIEW", "MANAGE_SETTINGS"],
-};
+export const MODULE_ACTIONS = Object.fromEntries(
+  RESOURCES.map((resource) => [resource.module, [...resource.actions]]),
+) as Record<PermissionModule, PermissionAction[]>;
 
-export const MODULE_LABELS: Record<PermissionModule, string> = {
-  DASHBOARD: "Dashboard",
-  LEADS: "Leads",
-  RFQ: "RFQs",
-  PRODUCTS: "Products",
-  CATEGORIES: "Categories",
-  BRANDS: "Brands",
-  SPECIALTIES: "Specialties",
-  SOLUTIONS: "Solutions",
-  APPLICATIONS: "Applications",
-  LOCATIONS: "Locations",
-  PAGES: "Pages",
-  BLOGS: "Blogs",
-  NAVIGATION: "Navigation",
-  MEDIA: "Media",
-  FORMS: "Forms",
-  SEO: "SEO",
-  POPUPS: "Popups",
-  STAFF: "Staff",
-  ROLES: "Roles & Permissions",
-  BACKUPS: "Backups",
-  AUDIT_LOGS: "Audit Logs",
-  SETTINGS: "Settings",
-};
+const GROUP_LABELS = new Map<string, string>(MODULES.map((module) => [module.key, module.label]));
 
-export const ACTION_LABELS: Record<PermissionAction, string> = {
-  VIEW: "View",
-  CREATE: "Create",
-  EDIT: "Edit",
-  DELETE: "Delete",
-  PUBLISH: "Publish",
-  EXPORT: "Export",
-  ASSIGN: "Assign",
-  RESTORE: "Restore",
-  MANAGE_SETTINGS: "Manage settings",
-};
+/** "SEO › Redirects": the resource with its module, for lists such as the audit log. */
+export const MODULE_LABELS = Object.fromEntries(
+  RESOURCES.map((resource) => [resource.module, `${GROUP_LABELS.get(resource.moduleKey)} › ${resource.label}`]),
+) as Record<PermissionModule, string>;
 
-export const MODULE_ORDER = Object.keys(MODULE_ACTIONS) as PermissionModule[];
+export const ACTION_LABELS: Record<PermissionAction, string> = REGISTRY_ACTION_LABELS;
+
+export const MODULE_ORDER = RESOURCES.map((resource) => resource.module);
 
 /** Canonical string form used in permission sets and checks. */
 export function permissionKey(
@@ -144,7 +96,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("DASHBOARD", "VIEW"),
       ...everything("LEADS"),
       ...everything("RFQ"),
-      ...only("FORMS", "VIEW", "EXPORT"),
+      ...only("FORMS", "VIEW"),
       ...only("PRODUCTS", "VIEW"),
       ...only("CATEGORIES", "VIEW"),
       ...only("BRANDS", "VIEW"),
@@ -161,7 +113,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       "Works assigned leads and RFQs. Cannot delete, export or reassign.",
     permissions: [
       ...only("DASHBOARD", "VIEW"),
-      ...only("LEADS", "VIEW", "CREATE", "EDIT"),
+      ...only("LEADS", "VIEW", "EDIT"),
       ...only("RFQ", "VIEW", "EDIT"),
       ...only("PRODUCTS", "VIEW"),
       ...only("CATEGORIES", "VIEW"),
@@ -194,6 +146,9 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       // and publishing them belongs to the SEO Manager.
       ...only("LOCATIONS", "VIEW"),
       ...only("SEO", "VIEW"),
+      ...only("SEO_REDIRECTS", "VIEW"),
+      ...only("SEO_NOT_FOUND", "VIEW"),
+      ...only("SEO_INDEXATION", "VIEW"),
     ],
   },
   {
@@ -204,6 +159,9 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
     permissions: [
       ...only("DASHBOARD", "VIEW"),
       ...everything("SEO"),
+      ...everything("SEO_REDIRECTS"),
+      ...everything("SEO_NOT_FOUND"),
+      ...everything("SEO_INDEXATION"),
       ...everything("LOCATIONS"),
       ...only("PAGES", "VIEW", "EDIT"),
       ...only("BLOGS", "VIEW", "EDIT"),
