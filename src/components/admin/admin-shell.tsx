@@ -17,7 +17,9 @@ export async function AdminShell({ children }: { children: ReactNode }) {
   const [settings, { staff, can }] = await Promise.all([getSiteSettings(), navigationPermissions()]);
 
   const groups: VisibleNav = ADMIN_NAV.map((group) => ({
+    key: group.key,
     label: group.label,
+    nested: group.nested,
     items: group.items
       .filter((item) => item.visibleWith.some((module) => can(module, "VIEW")))
       .map((item) => ({ label: item.label, href: item.href, available: item.available })),
