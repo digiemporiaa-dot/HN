@@ -45,14 +45,17 @@ export const staffIdSchema = z.object({
 
 export const permissionOverrideSchema = z.object({
   staffId: z.string().min(1),
-  // "MODULE:ACTION" keys, split into explicit grants and revokes.
-  granted: z.array(z.string()).max(200),
-  revoked: z.array(z.string()).max(200),
+  // Hierarchical ids, split into explicit grants and revokes.
+  granted: z.array(z.string().max(80)).max(200),
+  revoked: z.array(z.string().max(80)).max(200),
 });
 
 export const rolePermissionsSchema = z.object({
-  roleId: z.string().min(1),
-  permissions: z.array(z.string()).max(400),
+  roleId: z.string().min(1).max(40),
+  /** The role's updatedAt when the editor loaded, for conflict detection. */
+  version: z.iso.datetime(),
+  // Hierarchical ids ("catalogue.products:edit"); checked against the registry.
+  permissions: z.array(z.string().max(80)).max(400),
 });
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;

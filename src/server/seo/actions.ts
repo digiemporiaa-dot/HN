@@ -128,7 +128,7 @@ export async function createRedirectAction(
   _previous: RedirectActionState,
   formData: FormData,
 ): Promise<RedirectActionState> {
-  const actor = await requirePermission("SEO", "EDIT");
+  const actor = await requirePermission("SEO_REDIRECTS", "CREATE");
 
   const { input, fieldErrors } = readForm(formData);
   if (!input) return refused(fieldErrors ?? {});
@@ -148,7 +148,7 @@ export async function createRedirectAction(
     actorId: actor.id,
     actorEmail: actor.email,
     action: "REDIRECT_CREATED",
-    module: "SEO",
+    module: "SEO_REDIRECTS",
     entityType: "Redirect",
     entityId: created.id,
     summary: `${input.fromPath} → ${target}`,
@@ -163,7 +163,7 @@ export async function updateRedirectAction(
   _previous: RedirectActionState,
   formData: FormData,
 ): Promise<RedirectActionState> {
-  const actor = await requirePermission("SEO", "EDIT");
+  const actor = await requirePermission("SEO_REDIRECTS", "EDIT");
 
   const id = String(formData.get("redirectId") ?? "");
   const existing = await prisma.redirect.findUnique({
@@ -190,7 +190,7 @@ export async function updateRedirectAction(
     actorId: actor.id,
     actorEmail: actor.email,
     action: "REDIRECT_UPDATED",
-    module: "SEO",
+    module: "SEO_REDIRECTS",
     entityType: "Redirect",
     entityId: existing.id,
     summary: `${input.fromPath} → ${target}`,
@@ -212,7 +212,7 @@ export async function updateRedirectAction(
 }
 
 export async function deleteRedirectAction(formData: FormData): Promise<void> {
-  const actor = await requirePermission("SEO", "EDIT");
+  const actor = await requirePermission("SEO_REDIRECTS", "DELETE");
 
   const id = String(formData.get("redirectId") ?? "");
   const existing = await prisma.redirect.findUnique({
@@ -228,7 +228,7 @@ export async function deleteRedirectAction(formData: FormData): Promise<void> {
     actorId: actor.id,
     actorEmail: actor.email,
     action: "REDIRECT_DELETED",
-    module: "SEO",
+    module: "SEO_REDIRECTS",
     entityType: "Redirect",
     entityId: existing.id,
     summary: `${existing.fromPath} → ${existing.toPath}`,

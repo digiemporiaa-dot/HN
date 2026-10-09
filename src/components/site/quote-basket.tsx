@@ -9,8 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import Link from "next/link";
-import { Check, ClipboardList, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 
 import { buttonStyles } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
@@ -198,30 +197,5 @@ export function AddToQuoteButton({
       {label}
       {productName ? <span className="sr-only">: {productName}</span> : null}
     </button>
-  );
-}
-
-/**
- * The header's link to the list.
- *
- * Renders nothing until storage has been read and nothing when the list is
- * empty: a quotation basket with no products in it is a control that explains
- * itself to nobody.
- */
-export function QuoteBasketLink() {
-  const { lines, ready } = useQuoteBasket();
-  if (!ready || lines.length === 0) return null;
-
-  return (
-    <Link
-      href="/rfq"
-      aria-label={`Quotation list, ${lines.length} product${lines.length === 1 ? "" : "s"}`}
-      className="text-ink-muted hover:text-ink hover:bg-surface-muted relative flex size-10 items-center justify-center rounded-md transition-colors"
-    >
-      <ClipboardList aria-hidden="true" className="size-[1.125rem]" />
-      <span className="bg-ink absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[9px] leading-none font-semibold text-white tabular-nums">
-        {lines.length}
-      </span>
-    </Link>
   );
 }

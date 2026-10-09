@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui";
 import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
-import { requirePermission } from "@/server/permissions";
+import { currentPermissions, requireAnyPermission } from "@/server/permissions";
 import { getSiteSettings } from "@/server/settings/service";
 
 export const metadata: Metadata = {
@@ -21,7 +21,13 @@ export const metadata: Metadata = {
 };
 
 export default async function SeoPage() {
-  await requirePermission("SEO", "VIEW");
+  await requireAnyPermission([
+    ["SEO", "VIEW"],
+    ["SEO_REDIRECTS", "VIEW"],
+    ["SEO_NOT_FOUND", "VIEW"],
+    ["SEO_INDEXATION", "VIEW"],
+  ]);
+  const { can } = await currentPermissions();
 
   const [redirects, unusedRedirects, overrides, noindexed, settings] =
     await Promise.all([
@@ -41,6 +47,7 @@ export default async function SeoPage() {
 
   const tools = [
     {
+      module: "SEO_INDEXATION" as const,
       href: "/admin/seo/indexation",
       icon: ScanSearch,
       title: "Indexation",
@@ -50,6 +57,7 @@ export default async function SeoPage() {
         : "Checked live on each visit",
     },
     {
+      module: "SEO_REDIRECTS" as const,
       href: "/admin/seo/redirects",
       icon: Route,
       title: "Redirects",
@@ -57,6 +65,7 @@ export default async function SeoPage() {
       stat: `${redirects} active${unusedRedirects > 0 ? `, ${unusedRedirects} never followed` : ""}`,
     },
     {
+      module: "SEO_NOT_FOUND" as const,
       href: "/admin/seo/not-found",
       icon: FileQuestion,
       title: "Not found",
@@ -67,13 +76,14 @@ export default async function SeoPage() {
           : `${missing} open, ${missingRequests._sum.hits ?? 0} requests`,
     },
     {
+      module: "SEO" as const,
       href: "/admin/seo/metadata",
       icon: FileSearch,
       title: "Page metadata",
       body: "Titles, descriptions, canonicals and indexation for particular pages.",
       stat: `${overrides} override${overrides === 1 ? "" : "s"}${noindexed > 0 ? `, ${noindexed} not indexed` : ""}`,
     },
-  ];
+  ].filter((tool) => can(tool.module, "VIEW"));
 
   return (
     <AdminPage>

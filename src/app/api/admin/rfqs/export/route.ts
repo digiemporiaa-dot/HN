@@ -5,7 +5,7 @@ import { recordAuditEvent } from "@/server/audit/log";
 import { clientIpFrom } from "@/server/http/client";
 import { requirePermission } from "@/server/permissions";
 import { readRfqFilters, rfqWhere } from "@/server/rfq/admin";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
+import { quoteStatusLabel } from "@/lib/quotes/status";
 import { csvDocument } from "@/lib/utils/csv";
 
 const COLUMNS = [
@@ -13,10 +13,12 @@ const COLUMNS = [
   "Received",
   "Status",
   "Name",
-  "Organisation",
+  "Company",
   "Email",
   "Phone",
-  "City",
+  "Country",
+  "Delivery location",
+  "Expected delivery",
   "Owner",
   "Product",
   "Model",
@@ -42,12 +44,13 @@ export async function GET(request: Request) {
     select: {
       reference: true,
       createdAt: true,
-      status: true,
       name: true,
       organisation: true,
       email: true,
       phone: true,
       city: true,
+      country: true,
+      quote: { select: { status: true, deliveryLocation: true, expectedDeliveryDate: true } },
       assignedTo: { select: { name: true } },
       items: {
         orderBy: { order: "asc" },
@@ -65,12 +68,14 @@ export async function GET(request: Request) {
     rfq.items.map((item) => [
       rfq.reference,
       rfq.createdAt,
-      LEAD_STATUSES.find((s) => s.value === rfq.status)?.label ?? rfq.status,
+      quoteStatusLabel(rfq.quote?.status ?? "NEW"),
       rfq.name,
       rfq.organisation ?? "",
       rfq.email,
       rfq.phone ?? "",
-      rfq.city ?? "",
+      rfq.country ?? "",
+      rfq.quote?.deliveryLocation ?? rfq.city ?? "",
+      rfq.quote?.expectedDeliveryDate?.toISOString().slice(0, 10) ?? "",
       rfq.assignedTo?.name ?? "",
       item.productName,
       item.modelNumber ?? "",

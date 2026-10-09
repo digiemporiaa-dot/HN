@@ -38,6 +38,7 @@ export const ALWAYS_EXCLUDED = [
   "/login/*",
   "/change-password/*",
   "/access-denied/*",
+  "/forgot-password/*",
   "/reset-password/*",
   "/api/*",
   "/rfq/*",

@@ -15,8 +15,11 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
-import { RFQ_STATUS_TONE } from "@/server/rfq/admin";
+import { LEAD_SOURCE_LABELS } from "@/lib/validation/leads";
+import { quoteStatusLabel, quoteStatusTone } from "@/lib/quotes/status";
+import { placementById } from "@/lib/cta/placements";
+import { assignableStaff } from "@/server/leads/service";
+import { QuoteAssignForm, QuoteNoteForm, QuoteStatusForm } from "./quote-manage-forms";
 
 export const metadata: Metadata = {
   title: "Quotation request",
@@ -30,9 +33,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
 });
 
 /**
- * One quotation request, laid out for pricing it: who is asking, and the list.
- * Stage, notes and assignment live on the lead, where the rest of the sales
- * work happens.
+ * One quotation request, laid out for pricing it: who is asking, the list,
+ * and the quotation's own status, owner and internal notes. The full lead
+ * (stage, priority, customer notes) stays one click away in Leads.
  */
 export default async function RfqPage({
   params,
@@ -42,6 +45,8 @@ export default async function RfqPage({
   await requirePermission("RFQ", "VIEW");
   const { can } = await currentPermissions();
   const { id } = await params;
+  // An id that is not even shaped like one is not looked up.
+  if (!/^[a-z0-9]{8,40}$/i.test(id)) notFound();
 
   const rfq = await prisma.lead.findFirst({
     where: { id, source: "RFQ", deletedAt: null },
@@ -54,9 +59,26 @@ export default async function RfqPage({
       organisation: true,
       city: true,
       message: true,
-      status: true,
+      country: true,
+      landingPage: true,
+      ctaKey: true,
+      ctaPlacement: true,
+      consentedAt: true,
       createdAt: true,
+      assignedToId: true,
       assignedTo: { select: { name: true } },
+      quote: { select: { status: true, deliveryLocation: true, expectedDeliveryDate: true, statusChangedAt: true } },
+      notes: {
+        where: { kind: "INTERNAL" },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: { id: true, body: true, authorName: true, createdAt: true },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: { id: true, summary: true, actorName: true, createdAt: true },
+      },
       items: {
         orderBy: { order: "asc" },
         select: {
@@ -72,10 +94,12 @@ export default async function RfqPage({
     },
   });
   if (!rfq) notFound();
+  const staff = can("RFQ", "ASSIGN") ? await assignableStaff() : [];
 
   const units = rfq.items.reduce((sum, item) => sum + item.quantity, 0);
-  const status =
-    LEAD_STATUSES.find((s) => s.value === rfq.status)?.label ?? rfq.status;
+  const quoteStatus = rfq.quote?.status ?? "NEW";
+  const status = quoteStatusLabel(quoteStatus);
+  const dayFormatter = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "UTC" });
 
   const facts: Array<[string, React.ReactNode]> = [
     ["Name", rfq.name],
@@ -96,9 +120,23 @@ export default async function RfqPage({
         "—"
       ),
     ],
-    ["City", rfq.city ?? "—"],
+    ["Country", rfq.country ?? "—"],
+    ["Delivery location", rfq.quote?.deliveryLocation ?? rfq.city ?? "—"],
+    [
+      "Expected delivery",
+      rfq.quote?.expectedDeliveryDate ? dayFormatter.format(rfq.quote.expectedDeliveryDate) : "—",
+    ],
     ["Received", dateFormatter.format(rfq.createdAt)],
     ["Owner", rfq.assignedTo?.name ?? "Unassigned"],
+    ["Consent", rfq.consentedAt ? `Given ${dateFormatter.format(rfq.consentedAt)}` : "—"],
+  ];
+
+  const placement = rfq.ctaPlacement ? placementById(rfq.ctaPlacement) : undefined;
+  const attribution: Array<[string, string]> = [
+    ["Source", LEAD_SOURCE_LABELS.RFQ],
+    ["Sent from", rfq.landingPage ?? "—"],
+    ["Button", placement?.label ?? rfq.ctaPlacement ?? "—"],
+    ["Popup configuration", rfq.ctaKey ?? "Built-in"],
   ];
 
   return (
@@ -107,18 +145,16 @@ export default async function RfqPage({
         title={`Quotation request ${rfq.reference}`}
         description={`${rfq.items.length} ${rfq.items.length === 1 ? "product" : "products"}, ${units} ${units === 1 ? "unit" : "units"}`}
         backHref="/admin/rfqs"
-        backLabel="Back to RFQs"
+        backLabel="Back to quotations"
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone={RFQ_STATUS_TONE[rfq.status] ?? "neutral"}>
-              {status}
-            </Badge>
+            <Badge tone={quoteStatusTone(quoteStatus)}>{status}</Badge>
             {can("LEADS", "VIEW") ? (
               <Link
                 href={`/admin/leads/${rfq.id}`}
                 className={buttonStyles({ size: "sm" })}
               >
-                Work on this in Leads
+                Open the lead
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             ) : null}
@@ -240,7 +276,7 @@ export default async function RfqPage({
             <CardTitle as="h2">Customer</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="text-body-sm grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2.5">
+            <dl className="text-body-sm grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2.5">
               {facts.map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-ink-muted">{label}</dt>
@@ -253,12 +289,85 @@ export default async function RfqPage({
 
         <Card>
           <CardHeader>
-            <CardTitle as="h2">Message</CardTitle>
+            <CardTitle as="h2">Additional requirements</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-body-sm text-ink break-words whitespace-pre-line">
-              {rfq.message || "No message."}
+              {rfq.message || "None given."}
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2">Manage</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <QuoteStatusForm leadId={rfq.id} status={quoteStatus} disabled={!can("RFQ", "EDIT")} />
+            {can("RFQ", "ASSIGN") ? (
+              <QuoteAssignForm leadId={rfq.id} assignedToId={rfq.assignedToId} staff={staff} />
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2">Where it came from</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="text-body-sm grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-2.5">
+              {attribution.map(([label, value]) => (
+                <div key={label} className="contents">
+                  <dt className="text-ink-muted">{label}</dt>
+                  <dd className="text-ink break-all">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2">Internal notes</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            {can("RFQ", "EDIT") ? <QuoteNoteForm leadId={rfq.id} /> : null}
+            {rfq.notes.length === 0 ? (
+              <p className="text-body-sm text-ink-muted">No internal notes yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-4">
+                {rfq.notes.map((note) => (
+                  <li key={note.id} className="border-line flex flex-col gap-1 border-t pt-3">
+                    <span className="text-caption text-ink-muted">
+                      {note.authorName} · {dateFormatter.format(note.createdAt)}
+                    </span>
+                    <p className="text-body-sm text-ink break-words whitespace-pre-line">{note.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2">History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="flex flex-col gap-3">
+              {rfq.activities.map((entry) => (
+                <li key={entry.id} className="text-body-sm flex flex-col gap-0.5">
+                  <span className="text-ink">{entry.summary}</span>
+                  <span className="text-caption text-ink-muted">
+                    {entry.actorName ?? "Website"} · {dateFormatter.format(entry.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ol>
           </CardContent>
         </Card>
       </div>

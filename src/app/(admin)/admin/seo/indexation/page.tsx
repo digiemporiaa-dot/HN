@@ -26,7 +26,7 @@ export const metadata: Metadata = {
  * use, so it describes what is served now rather than what was intended.
  */
 export default async function IndexationPage() {
-  await requirePermission("SEO", "VIEW");
+  await requirePermission("SEO_INDEXATION", "VIEW");
   const report = await indexationReport();
 
   const offered = report.types.reduce((sum, row) => sum + row.in, 0);

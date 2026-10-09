@@ -36,6 +36,8 @@ export function BuiltForm({
   form,
   action,
   popupId,
+  ctaKey,
+  ctaPlacement,
   onDone,
   compact,
 }: {
@@ -43,6 +45,9 @@ export function BuiltForm({
   action: SubmitAction;
   /** Sent with the submission; the server credits the popup only if it checks out. */
   popupId?: string;
+  /** A call-to-action configuration showing this form; credited only if it checks out. */
+  ctaKey?: string;
+  ctaPlacement?: string;
   /** Called once the server has stored the submission. */
   onDone?: () => void;
   /** One column whatever the viewport: for a narrow container such as a popup. */
@@ -96,6 +101,8 @@ export function BuiltForm({
       <input type="hidden" name="formKey" value={form.key} />
       <input type="hidden" name="startedAt" value={startedAt} />
       {popupId ? <input type="hidden" name="popupId" value={popupId} /> : null}
+      {ctaKey ? <input type="hidden" name="ctaKey" value={ctaKey} /> : null}
+      {ctaPlacement ? <input type="hidden" name="ctaPlacement" value={ctaPlacement} /> : null}
       <LeadContextFields />
 
       {/* A field no person ever sees. Hidden from assistive technology and out

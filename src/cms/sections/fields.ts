@@ -68,6 +68,18 @@ export type FieldSpec =
       help?: string;
     }
   | {
+      /**
+       * A call-to-action configuration, chosen from the ones that exist, for
+       * the button whose action is held in `actionField`. Blank means the
+       * default configuration for that action.
+       */
+      kind: "ctaConfig";
+      name: string;
+      label: string;
+      help?: string;
+      actionField: string;
+    }
+  | {
       kind: "select";
       name: string;
       label: string;
@@ -141,6 +153,15 @@ function schemaForField(field: FieldSpec): z.ZodTypeAny {
     case "formKey":
       // Blank is meaningful: it means the built-in enquiry form.
       return z.string().trim().max(60).default("");
+    case "ctaConfig":
+      // Blank means the action's default configuration. A key that names no
+      // configuration simply matches nothing and the default applies.
+      return z
+        .string()
+        .trim()
+        .max(60)
+        .refine((value) => value === "" || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value), "Choose a configuration from the list")
+        .default("");
     case "url":
       return field.required
         ? linkSchema.refine((v) => v.length > 0, `${field.label} is required`)

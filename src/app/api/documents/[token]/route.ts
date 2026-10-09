@@ -31,7 +31,7 @@ export async function GET(
   const grant = await resolveGrant(token);
   if (!grant) return new NextResponse("Not found", { status: 404 });
 
-  const storageKey = grant.document.media.storageKey;
+  const storageKey = grant.storageKey;
   const contentType = contentTypeForExtension(extensionOf(storageKey));
   if (!contentType) return new NextResponse("Not found", { status: 404 });
 
@@ -51,11 +51,11 @@ export async function GET(
     await recordLeadActivity({
       leadId: grant.leadId,
       kind: "DOCUMENT_DOWNLOADED",
-      summary: `Downloaded ${grant.document.title}`,
+      summary: `Downloaded ${grant.title}`,
     });
 
     const safeTitle =
-      grant.document.title.replace(/[^A-Za-z0-9 ._-]/g, "").trim() ||
+      grant.title.replace(/[^A-Za-z0-9 ._-]/g, "").trim() ||
       "document";
 
     return new NextResponse(stream as unknown as ReadableStream, {

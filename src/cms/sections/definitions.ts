@@ -19,6 +19,52 @@ export type SectionDefinition = {
   design?: Partial<SectionDesign>;
 };
 
+/**
+ * What a call-to-action button does, besides following its link: open one of
+ * the configurable popups. The configuration and the popup-or-direct choice
+ * are per button; the product the buttons act on is shared by the section.
+ */
+const CTA_ACTION_OPTIONS = [
+  { value: "LINK", label: "Follow the link" },
+  { value: "REQUEST_QUOTATION", label: "Request quotation" },
+  { value: "DOWNLOAD_BROCHURE", label: "Download brochure" },
+  { value: "DOWNLOAD_CATALOGUE", label: "Download catalogue" },
+  { value: "CONTACT_US", label: "Contact us" },
+  { value: "GET_PRICE", label: "Get price" },
+  { value: "REQUEST_DEMO", label: "Request a demo" },
+  { value: "ENQUIRE_NOW", label: "Enquire now" },
+  { value: "CUSTOM", label: "Custom popup" },
+];
+
+function ctaButtonFields(prefix: "primary" | "secondary", label: string): FieldSpec[] {
+  return [
+    {
+      kind: "select",
+      name: `${prefix}Action`,
+      label: `${label} button action`,
+      help: "Anything but Follow the link opens a popup configured under Content › CTA popups. The link stays the fallback.",
+      options: CTA_ACTION_OPTIONS,
+    },
+    {
+      kind: "ctaConfig",
+      name: `${prefix}Config`,
+      label: `${label} button popup configuration`,
+      actionField: `${prefix}Action`,
+    },
+    {
+      kind: "select",
+      name: `${prefix}Mode`,
+      label: `${label} button behaviour`,
+      help: "A gated document always asks for details first, whatever is chosen here.",
+      options: [
+        { value: "AUTO", label: "As the configuration says" },
+        { value: "POPUP", label: "Open the popup before acting" },
+        { value: "DIRECT", label: "Act straight away, no popup" },
+      ],
+    },
+  ];
+}
+
 const BASE_DESIGN: Array<keyof SectionDesign> = [
   "spacing",
   "container",
@@ -426,6 +472,17 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         maxLength: 40,
       },
       { kind: "url", name: "secondaryHref", label: "Secondary button link" },
+      ...ctaButtonFields("primary", "Primary"),
+      ...ctaButtonFields("secondary", "Secondary"),
+      {
+        kind: "entities",
+        name: "targetProduct",
+        label: "Product for the buttons",
+        entity: "product",
+        help: "Optional. Request quotation adds it to the visitor's list; Download brochure releases its brochure.",
+        max: 1,
+        withDocuments: true,
+      },
       {
         kind: "media",
         name: "image",
@@ -564,7 +621,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         name: "items",
         label: "Product",
         entity: "product",
-        help: "Documents marked as requiring contact details are not listed here — that gate belongs to the enquiry flow, which is not built yet.",
+        help: "Every document is listed. Ones marked as requiring contact details open a short form first and download once it is sent.",
         min: 1,
         max: 1,
         withDocuments: true,

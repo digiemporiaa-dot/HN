@@ -19,7 +19,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
   const groups: VisibleNav = ADMIN_NAV.map((group) => ({
     label: group.label,
     items: group.items
-      .filter((item) => can(item.module, "VIEW"))
+      .filter((item) => item.visibleWith.some((module) => can(module, "VIEW")))
       .map((item) => ({ label: item.label, href: item.href, available: item.available })),
   })).filter((group) => group.items.length > 0);
 

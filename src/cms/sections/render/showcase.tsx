@@ -16,11 +16,13 @@ import { buttonStyles } from "@/components/ui";
 import { AnimatedNumber } from "@/components/site/animated-number";
 import { SmartImage } from "@/components/site/media";
 import { AddToQuoteButton } from "@/components/site/quote-basket";
+import { CtaButton } from "@/components/site/cta/cta-button";
 import { cn } from "@/lib/utils/cn";
 import { SCENES, visualFor } from "@/lib/visuals";
 import type { ResolvedEntity } from "@/cms/sections/entities";
 import {
   AccentHeading,
+  ctaRequestFor,
   row,
   rows,
   text,
@@ -463,7 +465,7 @@ export function CategoryTiles({ content, entities }: RendererProps) {
 /* --------------------------------------------------------- image band -- */
 
 /** A campaign photograph: wide, immersive, one oversized line and one action. */
-export function ImageBand({ content, media }: RendererProps) {
+export function ImageBand({ content, media, entities }: RendererProps) {
   const image = media.image ?? SCENES.ctRoom;
   const heading = text(content, "heading");
   const body = text(content, "body");
@@ -471,6 +473,8 @@ export function ImageBand({ content, media }: RendererProps) {
   const primaryHref = text(content, "primaryHref");
   const label = primaryLabel || text(content, "secondaryLabel");
   const href = primaryHref || text(content, "secondaryHref");
+  const request = ctaRequestFor(content, entities, primaryLabel ? "primary" : "secondary");
+  const bandButton = cn(buttonStyles({ variant: "inverse", size: "md" }), "group shrink-0");
 
   return (
     <div className="surface-dark relative isolate flex min-h-[34rem] overflow-hidden rounded-xl sm:min-h-[30rem] lg:aspect-[2.1/1] lg:min-h-0">
@@ -488,8 +492,13 @@ export function ImageBand({ content, media }: RendererProps) {
         </h2>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           {body ? <p className="max-w-[46ch] text-[0.9375rem] text-white/75">{body}</p> : <span />}
-          {label && href ? (
-            <Link href={href} className={cn(buttonStyles({ variant: "inverse", size: "md" }), "group shrink-0")}>
+          {label && request ? (
+            <CtaButton request={request} className={bandButton}>
+              {label}
+              <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
+            </CtaButton>
+          ) : label && href ? (
+            <Link href={href} className={bandButton}>
               {label}
               <ArrowRight aria-hidden="true" className="arrow-nudge size-4" />
             </Link>

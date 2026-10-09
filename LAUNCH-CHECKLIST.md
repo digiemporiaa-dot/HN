@@ -37,7 +37,9 @@ section of `DEPLOYMENT.md` that explains it.
 ## In the admin
 
 - [ ] Settings → Company, Contact, Branding: real details only.
-- [ ] Settings → Email: SMTP, then **Send test email**.
+- [ ] Settings → Email: SMTP, then **Send test email**. "Forgot password?" on
+      the sign-in page sends its link through this, so without SMTP staff
+      cannot reset their own password (an administrator still can, from Staff).
 - [ ] Settings → SEO: search-engine indexing allowed; default title and
       description; Search Console / Bing verification.
 - [ ] Settings → Security: two-factor policy (default: privileged staff).

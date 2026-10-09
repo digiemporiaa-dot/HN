@@ -35,7 +35,7 @@ export default async function EditRedirectPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("SEO", "VIEW");
+  await requirePermission("SEO_REDIRECTS", "VIEW");
   const { can } = await currentPermissions();
   const { id } = await params;
   const { saved } = await searchParams;
@@ -59,7 +59,8 @@ export default async function EditRedirectPage({
   });
   if (!row) notFound();
 
-  const canEdit = can("SEO", "EDIT");
+  const canEdit = can("SEO_REDIRECTS", "EDIT");
+  const canDelete = can("SEO_REDIRECTS", "DELETE");
 
   return (
     <AdminPage width="narrow">
@@ -69,7 +70,7 @@ export default async function EditRedirectPage({
         backHref="/admin/seo/redirects"
         backLabel="Back to redirects"
         actions={
-          canEdit ? (
+          canDelete ? (
             <form action={deleteRedirectAction}>
               <input type="hidden" name="redirectId" value={row.id} />
               <Button type="submit" variant="outline" size="sm">

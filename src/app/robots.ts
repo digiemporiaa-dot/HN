@@ -18,6 +18,8 @@ const PRIVATE_PATHS = [
   "/logout",
   "/access-denied",
   "/change-password",
+  "/forgot-password",
+  "/reset-password",
   "/design-system",
   "/rfq",
 ];

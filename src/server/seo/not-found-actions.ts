@@ -11,7 +11,7 @@ import { invalidateMissingCache } from "./not-found-log";
 export async function setNotFoundIgnoredAction(
   formData: FormData,
 ): Promise<void> {
-  await requirePermission("SEO", "EDIT");
+  await requirePermission("SEO_NOT_FOUND", "EDIT");
   const id = String(formData.get("id") ?? "");
   const ignored = formData.get("ignored") === "true";
   await prisma.notFoundHit.updateMany({ where: { id }, data: { ignored } });
@@ -20,7 +20,7 @@ export async function setNotFoundIgnoredAction(
 
 /** Empties the dismissed addresses, so the log only holds what is open. */
 export async function clearIgnoredNotFoundAction(): Promise<void> {
-  const actor = await requirePermission("SEO", "EDIT");
+  const actor = await requirePermission("SEO_NOT_FOUND", "EDIT");
   const removed = await prisma.notFoundHit.deleteMany({
     where: { ignored: true },
   });
@@ -29,7 +29,7 @@ export async function clearIgnoredNotFoundAction(): Promise<void> {
     actorId: actor.id,
     actorEmail: actor.email,
     action: "NOT_FOUND_LOG_CLEARED",
-    module: "SEO",
+    module: "SEO_NOT_FOUND",
     entityType: "NotFoundHit",
     summary: `Cleared ${removed.count} dismissed not-found addresses`,
     metadata: { removed: removed.count },

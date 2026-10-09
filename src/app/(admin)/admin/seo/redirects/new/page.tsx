@@ -17,7 +17,7 @@ export default async function NewRedirectPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("SEO", "EDIT");
+  await requirePermission("SEO_REDIRECTS", "CREATE");
   // Prefilled from the not-found log's "Create redirect".
   const from = readStringParam((await searchParams).from) ?? "";
 

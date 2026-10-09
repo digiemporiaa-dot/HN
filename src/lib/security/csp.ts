@@ -90,7 +90,7 @@ export function staffPolicy(nonce: string): string {
   });
 }
 
-/** Paths rendered per request for staff: the admin and the sign-in screens. */
+/** Paths rendered per request for staff: the admin, sign-in and password screens. */
 export function isStaffPath(pathname: string): boolean {
-  return /^\/(admin|login|change-password|access-denied)(\/|$)/.test(pathname);
+  return /^\/(admin|login|change-password|forgot-password|reset-password|access-denied)(\/|$)/.test(pathname);
 }

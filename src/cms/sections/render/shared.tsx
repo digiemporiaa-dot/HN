@@ -9,6 +9,8 @@ import type { SectionDesign } from "@/lib/design/section-options";
 import type { ResolvedMedia } from "@/cms/render-page";
 import type { ResolvedEntity } from "@/cms/sections/entities";
 import type { ClientForm } from "@/server/forms/service";
+import { CtaButton, type CtaRequestProps } from "@/components/site/cta/cta-button";
+import { isCtaKind } from "@/lib/cta/kinds";
 
 export type LocationGroup = {
   id: string;
@@ -125,11 +127,45 @@ export function MixedWeight({ value }: { value: string }) {
 export const plainHeading = (value: string) =>
   value.replace(/\*\*/g, "").replace(/ \/ /g, " ");
 
+/**
+ * The popup a page-builder button opens, from its section's fields, or null
+ * for a plain link. The configuration itself is resolved by the controller
+ * at the moment the button is pressed.
+ */
+export function ctaRequestFor(
+  content: Record<string, unknown>,
+  entities: Record<string, ResolvedEntity[]>,
+  prefix: "primary" | "secondary",
+): CtaRequestProps | null {
+  const action = text(content, `${prefix}Action`);
+  if (!isCtaKind(action)) return null;
+  const product = (entities.targetProduct ?? [])[0];
+  const mode = text(content, `${prefix}Mode`);
+  const href = text(content, `${prefix}Href`) || null;
+  const brochure =
+    action === "DOWNLOAD_BROCHURE" && product
+      ? (product.documents.find((document) => document.kind === "BROCHURE") ?? product.documents[0] ?? null)
+      : null;
+  return {
+    kind: action,
+    placement: prefix === "primary" ? "cms.cta.primary" : "cms.cta.secondary",
+    configKey: text(content, `${prefix}Config`) || undefined,
+    mode: mode === "POPUP" || mode === "DIRECT" ? mode : undefined,
+    productId: product?.id,
+    productName: product?.name,
+    ...(brochure
+      ? { documentId: brochure.id, documentTitle: brochure.title, gated: brochure.gated, href: brochure.href ?? null }
+      : { href }),
+  };
+}
+
 export function Actions({
   primaryLabel,
   primaryHref,
   secondaryLabel,
   secondaryHref,
+  primaryRequest,
+  secondaryRequest,
   align,
   dark,
   size = "lg",
@@ -138,13 +174,32 @@ export function Actions({
   primaryHref: string;
   secondaryLabel: string;
   secondaryHref: string;
+  /** Set when the button opens a configurable popup rather than following its link. */
+  primaryRequest?: CtaRequestProps | null;
+  secondaryRequest?: CtaRequestProps | null;
   align?: string;
   dark?: boolean;
   size?: "md" | "lg" | "xl";
 }) {
-  const hasPrimary = primaryLabel && primaryHref;
-  const hasSecondary = secondaryLabel && secondaryHref;
+  const hasPrimary = primaryLabel && (primaryHref || primaryRequest);
+  const hasSecondary = secondaryLabel && (secondaryHref || secondaryRequest);
   if (!hasPrimary && !hasSecondary) return null;
+
+  const arrow = (
+    <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-[var(--duration-base)] group-hover/button:translate-x-0.5" />
+  );
+  const button = (label: string, href: string, request: CtaRequestProps | null | undefined, className: string) =>
+    request ? (
+      <CtaButton request={request} className={className}>
+        {label}
+        {arrow}
+      </CtaButton>
+    ) : (
+      <Link href={href} className={className}>
+        {label}
+        {arrow}
+      </Link>
+    );
 
   return (
     <div
@@ -153,24 +208,15 @@ export function Actions({
         align === "center" && "sm:justify-center",
       )}
     >
-      {hasPrimary ? (
-        <Link href={primaryHref} className={buttonStyles({ size })}>
-          {primaryLabel}
-          <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-[var(--duration-base)] group-hover/button:translate-x-0.5" />
-        </Link>
-      ) : null}
-      {hasSecondary ? (
-        <Link
-          href={secondaryHref}
-          className={buttonStyles({
-            variant: dark ? "outline-inverse" : "soft",
-            size,
-          })}
-        >
-          {secondaryLabel}
-          <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-[var(--duration-base)] group-hover/button:translate-x-0.5" />
-        </Link>
-      ) : null}
+      {hasPrimary ? button(primaryLabel, primaryHref, primaryRequest, buttonStyles({ size })) : null}
+      {hasSecondary
+        ? button(
+            secondaryLabel,
+            secondaryHref,
+            secondaryRequest,
+            buttonStyles({ variant: dark ? "outline-inverse" : "soft", size }),
+          )
+        : null}
     </div>
   );
 }

@@ -215,3 +215,102 @@ export function assignmentNotification(input: {
     html,
   };
 }
+
+/**
+ * A "forgot password" link. Sent only to the address on the account; the
+ * address someone typed into the form is never the recipient.
+ */
+export function passwordResetMessage(input: {
+  name: string;
+  link: string;
+  minutes: number;
+  companyName: string;
+}): { subject: string; text: string; html: string } {
+  const text = [
+    `Hello ${input.name},`,
+    "",
+    `Someone asked to reset the password for your ${input.companyName} admin account.`,
+    `To choose a new password, open this link within ${input.minutes} minutes:`,
+    "",
+    input.link,
+    "",
+    "The link works once. If you did not ask for this, ignore this message: your password has not changed.",
+    "Two-factor authentication, if you use it, is still required when you sign in.",
+  ].join("\n");
+
+  const p = (body: string) => `<p style="font:14px/1.6 system-ui,sans-serif;margin:0 0 14px">${body}</p>`;
+  const html = [
+    p(`Hello ${escape(input.name)},`),
+    p(`Someone asked to reset the password for your ${escape(input.companyName)} admin account. To choose a new password, use the button below within ${input.minutes} minutes.`),
+    `<p style="margin:20px 0"><a href="${escape(input.link)}" style="display:inline-block;background:#0b0d0f;color:#ffffff;text-decoration:none;font:600 14px system-ui,sans-serif;padding:12px 20px;border-radius:999px">Choose a new password</a></p>`,
+    p(`Or paste this address into your browser:<br><span style="word-break:break-all;color:#45505a">${escape(input.link)}</span>`),
+    p("The link works once. If you did not ask for this, ignore this message: your password has not changed."),
+  ].join("");
+
+  return { subject: `Reset your ${input.companyName} admin password`, text, html };
+}
+
+/**
+ * The acknowledgement a visitor receives: their reference and what happens
+ * next.
+ *
+ * The one place a visitor's own address is used as a recipient, because the
+ * message is for them. It has passed the same email validation as every lead
+ * address (no line breaks, one address), and nothing else they typed reaches
+ * a header: the subject and greeting use our wording and the reference.
+ */
+export function customerConfirmation(input: {
+  kind: "quotation" | "download" | "enquiry";
+  reference: string;
+  name: string;
+  companyName: string;
+  items?: Array<{ productName: string; quantity: number }>;
+  documentTitle?: string | null;
+}): { subject: string; text: string; html: string } {
+  const what =
+    input.kind === "quotation"
+      ? "quotation request"
+      : input.kind === "download"
+        ? "download request"
+        : "enquiry";
+  const subject = `We have received your ${what} — ${input.reference}`;
+  const items = input.items ?? [];
+
+  const text = [
+    `Hello ${input.name},`,
+    "",
+    `Thank you for your ${what}. Your reference is ${input.reference}; please quote it if you contact us about it.`,
+    ...(input.documentTitle ? ["", `Document: ${input.documentTitle}`] : []),
+    ...(items.length
+      ? ["", "Products on your request:", ...items.map((item) => `  ${item.quantity} × ${item.productName}`)]
+      : []),
+    "",
+    input.kind === "quotation"
+      ? "Our team will review your requirements and reply, normally within one working day. No order has been placed and nothing is charged."
+      : "Our team normally replies within one working day.",
+    "",
+    input.companyName,
+  ].join("\n");
+
+  const p = (body: string) => `<p style="font:14px/1.6 system-ui,sans-serif;margin:0 0 14px">${body}</p>`;
+  const html = [
+    p(`Hello ${escape(input.name)},`),
+    p(`Thank you for your ${what}. Your reference is <strong>${escape(input.reference)}</strong>; please quote it if you contact us about it.`),
+    ...(input.documentTitle ? [p(`Document: ${escape(input.documentTitle)}`)] : []),
+    ...(items.length
+      ? [
+          '<ul style="margin:0 0 14px;padding-left:20px;font:14px/1.6 system-ui,sans-serif">',
+          ...items.map((item) => `<li>${item.quantity} × ${escape(item.productName)}</li>`),
+          "</ul>",
+        ]
+      : []),
+    p(
+      input.kind === "quotation"
+        ? "Our team will review your requirements and reply, normally within one working day. No order has been placed and nothing is charged."
+        : "Our team normally replies within one working day.",
+    ),
+    p(escape(input.companyName)),
+  ].join("");
+
+  return { subject, text, html };
+}

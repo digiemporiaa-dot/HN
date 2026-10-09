@@ -36,3 +36,24 @@ export const storedBasketSchema = z.array(
     notes: z.string().max(500).catch(""),
   }),
 );
+
+/**
+ * One line per product, whatever was posted.
+ *
+ * The browser keeps one line per product already; this is the server's own
+ * guarantee for a request that did not come from our page. Duplicates are
+ * combined: quantities add up (to the maximum) and notes are kept, in order.
+ */
+export function mergeLines(lines: RfqLine[]): RfqLine[] {
+  const merged = new Map<string, RfqLine>();
+  for (const line of lines) {
+    const earlier = merged.get(line.productId);
+    if (!earlier) {
+      merged.set(line.productId, { ...line });
+      continue;
+    }
+    earlier.quantity = Math.min(MAX_QUANTITY, earlier.quantity + line.quantity);
+    earlier.notes = [earlier.notes, line.notes].filter(Boolean).join("; ").slice(0, 500);
+  }
+  return [...merged.values()];
+}
