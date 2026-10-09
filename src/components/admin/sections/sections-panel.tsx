@@ -2,6 +2,7 @@ import { EmptyState } from "@/components/ui";
 import { prisma } from "@/server/db";
 import { catalogueChoices } from "@/server/cms/catalogue-choices";
 import { embeddableForms } from "@/server/forms/service";
+import { ctaConfigChoices } from "@/server/cta/service";
 import { publicUrlForKey } from "@/server/storage/paths";
 import type { OwnerRef } from "@/server/cms/section-owner";
 import {
@@ -49,9 +50,10 @@ export async function SectionsPanel({
   canEdit: boolean;
   emptyDescription: string;
 }) {
-  const [catalogue, forms, assets] = await Promise.all([
+  const [catalogue, forms, ctaConfigs, assets] = await Promise.all([
     catalogueChoices(),
     embeddableForms(),
+    ctaConfigChoices(),
     prisma.mediaAsset.findMany({
       where: { deletedAt: null, kind: { in: [...PICKABLE_KINDS] } },
       orderBy: { createdAt: "desc" },
@@ -129,6 +131,7 @@ export async function SectionsPanel({
               mediaOptions={mediaOptions}
               catalogue={catalogue}
               forms={forms}
+              ctaConfigs={ctaConfigs}
               isFirst={index === 0}
               isLast={index === sections.length - 1}
               readOnly={!canEdit}

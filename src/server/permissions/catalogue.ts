@@ -110,7 +110,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
     key: "SALES_EXECUTIVE",
     name: "Sales Executive",
     description:
-      "Works assigned leads and RFQs. Cannot delete, export or reassign.",
+      "Works assigned leads and quotations. Cannot delete, export or reassign.",
     permissions: [
       ...only("DASHBOARD", "VIEW"),
       ...only("LEADS", "VIEW", "EDIT"),
@@ -142,6 +142,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...everything("APPLICATIONS"),
       ...only("FORMS", "VIEW", "CREATE", "EDIT"),
       ...everything("POPUPS"),
+      ...everything("CTA_POPUPS"),
       // Deliberately view-only: location pages are the highest SEO risk surface
       // and publishing them belongs to the SEO Manager.
       ...only("LOCATIONS", "VIEW"),
@@ -175,6 +176,7 @@ export const SYSTEM_ROLES: RoleDefinition[] = [
       ...only("MEDIA", "VIEW"),
       // Popups target pages, so the SEO team can see what covers them.
       ...only("POPUPS", "VIEW"),
+      ...only("CTA_POPUPS", "VIEW"),
     ],
   },
   {

@@ -21,6 +21,8 @@ import { leadFromAnswers } from "./lead";
 import { sendMail } from "@/server/mail/send";
 import { publicForm } from "./service";
 import { verifiedPopupForForm } from "@/server/popups/service";
+import { isCtaKey } from "@/lib/cta/kinds";
+import { isPlacementId } from "@/lib/cta/placements";
 import { collectAnswers } from "./answers";
 import { submissionNotification } from "./templates";
 
@@ -158,6 +160,23 @@ export async function submitFormAction(
   const postedPopup = String(formData.get("popupId") ?? "").slice(0, 64);
   const popup = postedPopup ? await verifiedPopupForForm(postedPopup, form.id) : null;
 
+  // The same for a call-to-action popup: credited only when a live
+  // configuration of type Custom form holds this form.
+  const postedCta = String(formData.get("ctaKey") ?? "");
+  const cta = isCtaKey(postedCta)
+    ? await prisma.ctaConfig.findFirst({
+        where: {
+          key: postedCta,
+          active: true,
+          deletedAt: null,
+          popupType: "CUSTOM_FORM",
+          formId: form.id,
+        },
+        select: { key: true },
+      })
+    : null;
+  const postedPlacement = String(formData.get("ctaPlacement") ?? "");
+
   const answers = { ...collected.answers };
   for (const file of stored) answers[file.fieldKey] = file.originalName;
 
@@ -187,6 +206,8 @@ export async function submitFormAction(
       message: mapped.message,
       source: "CUSTOM_FORM",
       formSubmissionId: submission.id,
+      ctaKey: cta?.key ?? null,
+      ctaPlacement: cta && isPlacementId(postedPlacement) ? postedPlacement : null,
       // The form's own consent wording is whatever question the administrator
       // wrote; the enquiry consent text would be a claim about an agreement
       // nobody was shown. Left unset rather than asserted.

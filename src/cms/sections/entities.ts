@@ -9,9 +9,12 @@ import type { ResolvedMedia } from "@/cms/render-page";
 import type { EntityKind } from "./entity-kinds";
 
 export type EntityDocument = {
+  id: string;
   title: string;
   kind: string;
-  href: string;
+  /** Null for a gated document: it is released only through the download form. */
+  href: string | null;
+  gated: boolean;
   sizeBytes: number;
 };
 
@@ -192,12 +195,13 @@ export async function resolveEntities(
 
       documentsFor.size
         ? prisma.productDocument.findMany({
-            // Gated documents are withheld: the gate is a download route that
-            // does not exist yet, and listing a file the site cannot actually
-            // protect would hand it out rather than trade it for an enquiry.
-            where: { productId: { in: [...documentsFor] }, gated: false },
+            // Gated documents are listed without an address: the download
+            // form is the only way to them.
+            where: { productId: { in: [...documentsFor] } },
             orderBy: { order: "asc" },
             select: {
+              id: true,
+              gated: true,
               productId: true,
               title: true,
               kind: true,
@@ -267,9 +271,11 @@ export async function resolveEntities(
     if (row.media.deletedAt) continue;
     const list = documentsByProduct.get(row.productId) ?? [];
     list.push({
+      id: row.id,
       title: row.title,
       kind: row.kind,
-      href: publicUrlForKey(row.media.storageKey),
+      href: row.gated ? null : publicUrlForKey(row.media.storageKey),
+      gated: row.gated,
       sizeBytes: row.media.sizeBytes,
     });
     documentsByProduct.set(row.productId, list);

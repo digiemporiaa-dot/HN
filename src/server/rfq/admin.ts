@@ -1,27 +1,22 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
+import { parseIsoDate, parseIstDateTime } from "@/lib/dates/ist";
+import { quoteStatusSchema, type QuoteStatus } from "@/lib/quotes/status";
 
-const STATUS_VALUES = new Set<string>(LEAD_STATUSES.map((s) => s.value));
-
-/** Badge colours for a request's stage, matching the Leads screen. */
-export const RFQ_STATUS_TONE: Record<
-  string,
-  "neutral" | "info" | "success" | "warning" | "danger"
-> = {
-  NEW: "info",
-  CONTACTED: "neutral",
-  QUALIFIED: "neutral",
-  QUOTATION_SENT: "warning",
-  NEGOTIATION: "warning",
-  WON: "success",
-  LOST: "danger",
-};
-
+/**
+ * Quotation requests: leads whose source is RFQ, with their quotation row.
+ * The same filters serve the screen and its export, so what is exported is
+ * what was on screen. Every filter is parsed here; nothing from the address
+ * bar reaches a query unchecked.
+ */
 export type RfqFilters = {
   q?: string;
-  status?: string;
-  owner?: "mine" | "none";
+  status?: QuoteStatus;
+  /** "mine", "none" or a staff id. */
+  owner?: string;
+  product?: string;
+  from?: string;
+  to?: string;
 };
 
 function single(value: string | string[] | undefined): string | undefined {
@@ -29,51 +24,70 @@ function single(value: string | string[] | undefined): string | undefined {
   return text ? text.slice(0, 200) : undefined;
 }
 
-export function readRfqFilters(
-  params: Record<string, string | string[] | undefined>,
-): RfqFilters {
-  const status = single(params.status);
+const ID = /^[a-z0-9]{8,40}$/i;
+
+export function readRfqFilters(params: Record<string, string | string[] | undefined>): RfqFilters {
+  const status = quoteStatusSchema.safeParse(single(params.status));
   const owner = single(params.owner);
+  const product = single(params.product);
+  const from = single(params.from);
+  const to = single(params.to);
   return {
     q: single(params.q),
-    status: status && STATUS_VALUES.has(status) ? status : undefined,
-    owner: owner === "mine" || owner === "none" ? owner : undefined,
+    status: status.success ? status.data : undefined,
+    owner: owner === "mine" || owner === "none" || (owner && ID.test(owner)) ? owner : undefined,
+    product: product && ID.test(product) ? product : undefined,
+    from: from && parseIsoDate(from) ? from : undefined,
+    to: to && parseIsoDate(to) ? to : undefined,
   };
 }
 
-/**
- * Quotation requests are leads from the basket. The same filters serve the
- * screen and its export, so what is exported is what was on screen.
- */
-export function rfqWhere(
-  filters: RfqFilters,
-  viewerId: string,
-): Prisma.LeadWhereInput {
+export function rfqWhere(filters: RfqFilters, viewerId: string): Prisma.LeadWhereInput {
+  // Whole days in India, as the date filter shows them.
+  const from = filters.from ? parseIstDateTime(`${filters.from}T00:00`) : null;
+  const toStart = filters.to ? parseIstDateTime(`${filters.to}T00:00`) : null;
+  const q = filters.q;
+
   return {
     source: "RFQ",
     deletedAt: null,
     ...(filters.status
-      ? { status: filters.status as Prisma.LeadWhereInput["status"] }
+      ? {
+          // Every request has a quotation row: new ones are created with it,
+          // older ones were given one by the migration.
+          quote: { is: { status: filters.status } },
+        }
       : {}),
-    ...(filters.owner === "none" ? { assignedToId: null } : {}),
-    ...(filters.owner === "mine" ? { assignedToId: viewerId } : {}),
-    ...(filters.q
+    ...(filters.owner === "none"
+      ? { assignedToId: null }
+      : filters.owner === "mine"
+        ? { assignedToId: viewerId }
+        : filters.owner
+          ? { assignedToId: filters.owner }
+          : {}),
+    ...(filters.product ? { items: { some: { productId: filters.product } } } : {}),
+    ...(from || toStart
+      ? {
+          createdAt: {
+            ...(from ? { gte: from } : {}),
+            ...(toStart ? { lt: new Date(toStart.getTime() + 86_400_000) } : {}),
+          },
+        }
+      : {}),
+    ...(q
       ? {
           OR: [
-            { reference: { contains: filters.q, mode: "insensitive" } },
-            { name: { contains: filters.q, mode: "insensitive" } },
-            { email: { contains: filters.q, mode: "insensitive" } },
-            { organisation: { contains: filters.q, mode: "insensitive" } },
+            { reference: { contains: q, mode: "insensitive" } },
+            { name: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+            { phone: { contains: q, mode: "insensitive" } },
+            { organisation: { contains: q, mode: "insensitive" } },
             {
               items: {
                 some: {
                   OR: [
-                    {
-                      productName: { contains: filters.q, mode: "insensitive" },
-                    },
-                    {
-                      modelNumber: { contains: filters.q, mode: "insensitive" },
-                    },
+                    { productName: { contains: q, mode: "insensitive" } },
+                    { modelNumber: { contains: q, mode: "insensitive" } },
                   ],
                 },
               },
@@ -96,16 +110,11 @@ export type RequestedProduct = {
  * over a recent window. Grouped by the name as requested: a product renamed
  * or withdrawn since still counts under what the customer asked for.
  */
-export async function mostRequestedProducts(
-  days: number,
-  limit = 10,
-): Promise<RequestedProduct[]> {
+export async function mostRequestedProducts(days: number, limit = 10): Promise<RequestedProduct[]> {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const groups = await prisma.rfqItem.groupBy({
     by: ["productName", "productId"],
-    where: {
-      lead: { deletedAt: null, source: "RFQ", createdAt: { gte: since } },
-    },
+    where: { lead: { deletedAt: null, source: "RFQ", createdAt: { gte: since } } },
     _count: { _all: true },
     _sum: { quantity: true },
     orderBy: [{ _count: { productName: "desc" } }, { productName: "asc" }],
@@ -117,4 +126,16 @@ export async function mostRequestedProducts(
     requests: group._count._all,
     units: group._sum.quantity ?? 0,
   }));
+}
+
+/** Products that appear on at least one request, for the product filter. */
+export async function requestedProductChoices() {
+  const rows = await prisma.rfqItem.findMany({
+    where: { productId: { not: null }, lead: { deletedAt: null, source: "RFQ" } },
+    distinct: ["productId"],
+    orderBy: { productName: "asc" },
+    take: 300,
+    select: { productId: true, productName: true },
+  });
+  return rows.flatMap((row) => (row.productId ? [{ value: row.productId, label: row.productName }] : []));
 }

@@ -12,6 +12,7 @@ import {
   Layers,
   type LucideIcon,
   MapPin,
+  MousePointerClick,
   Newspaper,
   PictureInPicture2,
   Route,
@@ -122,14 +123,15 @@ export const MODULES = [
       {
         key: "sales.rfqs",
         module: "RFQ",
-        label: "RFQs",
-        description: "Quotation requests. Working one also needs the matching Leads permission.",
-        actions: ["VIEW", "EDIT", "DELETE", "EXPORT"],
+        label: "Quotations",
+        description:
+          "Quotation requests: status, internal notes, owner and export. Editing, deleting or reassigning one from the Leads screen also needs the matching Leads permission.",
+        actions: ["VIEW", "EDIT", "DELETE", "ASSIGN", "EXPORT"],
       },
     ],
     nav: [
       { label: "Leads", href: "/admin/leads", icon: ClipboardList, resource: "sales.leads" },
-      { label: "RFQs", href: "/admin/rfqs", icon: FileText, resource: "sales.rfqs" },
+      { label: "Quotations", href: "/admin/rfqs", icon: FileText, resource: "sales.rfqs" },
     ],
   },
   {
@@ -240,6 +242,14 @@ export const MODULES = [
         description: "Site popups. Publish means switching one on.",
         actions: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
       },
+      {
+        key: "content.cta_popups",
+        module: "CTA_POPUPS",
+        label: "CTA popups",
+        description:
+          "What buttons such as Download brochure or Request quotation ask before they act. Publish means switching a configuration on.",
+        actions: ["VIEW", "CREATE", "EDIT", "DELETE", "PUBLISH"],
+      },
     ],
     nav: [
       { label: "Pages", href: "/admin/pages", icon: Layers, resource: "content.pages", createHref: "/admin/pages/new", createLabel: "New page" },
@@ -248,6 +258,7 @@ export const MODULES = [
       { label: "Media", href: "/admin/media", icon: Image, resource: "content.media", createHref: "/admin/media", createLabel: "Upload media" },
       { label: "Forms", href: "/admin/forms", icon: ClipboardList, resource: "content.forms", createHref: "/admin/forms/new", createLabel: "New form" },
       { label: "Popups", href: "/admin/popups", icon: PictureInPicture2, resource: "content.popups", createHref: "/admin/popups/new", createLabel: "New popup" },
+      { label: "CTA popups", href: "/admin/cta-popups", icon: MousePointerClick, resource: "content.cta_popups", createHref: "/admin/cta-popups/new", createLabel: "New CTA popup" },
     ],
   },
   {

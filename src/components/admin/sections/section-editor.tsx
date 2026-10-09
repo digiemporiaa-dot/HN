@@ -164,6 +164,7 @@ export function SectionEditor({
   mediaOptions,
   catalogue,
   forms,
+  ctaConfigs,
   isFirst,
   isLast,
   readOnly,
@@ -173,6 +174,8 @@ export function SectionEditor({
   catalogue: CatalogueChoices;
   /** Built forms an editor may embed. Published only: a draft has no page. */
   forms: Array<{ key: string; name: string }>;
+  /** Call-to-action configurations a button may use. */
+  ctaConfigs: Array<{ key: string; name: string; kind: string; active: boolean }>;
   isFirst: boolean;
   isLast: boolean;
   readOnly: boolean;
@@ -371,6 +374,39 @@ export function SectionEditor({
                     </Select>
                   )}
                 </Field>
+              ) : field.kind === "ctaConfig" ? (
+                (() => {
+                  // Only configurations for the action the button performs.
+                  const action = (values[field.actionField] as string) ?? "";
+                  if (!action || action === "LINK") return null;
+                  const options = ctaConfigs.filter((config) => config.kind === action);
+                  return (
+                    <Field
+                      key={field.name}
+                      label={field.label}
+                      help="Blank uses the default configuration for this action, or the built-in popup if there is none."
+                      error={state.fieldErrors?.[field.name]}
+                    >
+                      {(control) => (
+                        <Select
+                          name={field.name}
+                          value={(values[field.name] as string) ?? ""}
+                          disabled={readOnly}
+                          onChange={(event) => setValue(field.name, event.target.value)}
+                          {...control}
+                        >
+                          <option value="">Default for this action</option>
+                          {options.map((config) => (
+                            <option key={config.key} value={config.key}>
+                              {config.name}
+                              {config.active ? "" : " (inactive)"}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </Field>
+                  );
+                })()
               ) : field.kind === "repeater" ? (
                 <RepeaterField
                   key={field.name}

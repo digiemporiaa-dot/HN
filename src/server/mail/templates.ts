@@ -249,3 +249,68 @@ export function passwordResetMessage(input: {
 
   return { subject: `Reset your ${input.companyName} admin password`, text, html };
 }
+
+/**
+ * The acknowledgement a visitor receives: their reference and what happens
+ * next.
+ *
+ * The one place a visitor's own address is used as a recipient, because the
+ * message is for them. It has passed the same email validation as every lead
+ * address (no line breaks, one address), and nothing else they typed reaches
+ * a header: the subject and greeting use our wording and the reference.
+ */
+export function customerConfirmation(input: {
+  kind: "quotation" | "download" | "enquiry";
+  reference: string;
+  name: string;
+  companyName: string;
+  items?: Array<{ productName: string; quantity: number }>;
+  documentTitle?: string | null;
+}): { subject: string; text: string; html: string } {
+  const what =
+    input.kind === "quotation"
+      ? "quotation request"
+      : input.kind === "download"
+        ? "download request"
+        : "enquiry";
+  const subject = `We have received your ${what} — ${input.reference}`;
+  const items = input.items ?? [];
+
+  const text = [
+    `Hello ${input.name},`,
+    "",
+    `Thank you for your ${what}. Your reference is ${input.reference}; please quote it if you contact us about it.`,
+    ...(input.documentTitle ? ["", `Document: ${input.documentTitle}`] : []),
+    ...(items.length
+      ? ["", "Products on your request:", ...items.map((item) => `  ${item.quantity} × ${item.productName}`)]
+      : []),
+    "",
+    input.kind === "quotation"
+      ? "Our team will review your requirements and reply, normally within one working day. No order has been placed and nothing is charged."
+      : "Our team normally replies within one working day.",
+    "",
+    input.companyName,
+  ].join("\n");
+
+  const p = (body: string) => `<p style="font:14px/1.6 system-ui,sans-serif;margin:0 0 14px">${body}</p>`;
+  const html = [
+    p(`Hello ${escape(input.name)},`),
+    p(`Thank you for your ${what}. Your reference is <strong>${escape(input.reference)}</strong>; please quote it if you contact us about it.`),
+    ...(input.documentTitle ? [p(`Document: ${escape(input.documentTitle)}`)] : []),
+    ...(items.length
+      ? [
+          '<ul style="margin:0 0 14px;padding-left:20px;font:14px/1.6 system-ui,sans-serif">',
+          ...items.map((item) => `<li>${item.quantity} × ${escape(item.productName)}</li>`),
+          "</ul>",
+        ]
+      : []),
+    p(
+      input.kind === "quotation"
+        ? "Our team will review your requirements and reply, normally within one working day. No order has been placed and nothing is charged."
+        : "Our team normally replies within one working day.",
+    ),
+    p(escape(input.companyName)),
+  ].join("");
+
+  return { subject, text, html };
+}

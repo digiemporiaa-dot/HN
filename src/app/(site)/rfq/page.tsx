@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Section } from "@/components/ui";
 import { MetaChip, PageHero } from "@/components/site/page-hero";
-import { RfqComposer } from "@/components/site/rfq-composer";
+import { RfqPageFlow } from "@/components/site/cta/cta-button";
 import { withSeoOverride } from "@/server/seo/overrides";
 
 /**
@@ -21,7 +21,7 @@ const BASE_METADATA: Metadata = {
   robots: { index: false, follow: true },
 };
 
-const STEPS = ["Review quantities", "Add your details", "Receive a quotation"];
+const STEPS = ["Choose products", "Add your details", "Review and send"];
 
 /** The page's own metadata, with any override the SEO team has set for it. */
 export async function generateMetadata(): Promise<Metadata> {
@@ -49,7 +49,7 @@ export default function RfqPage() {
       />
 
       <Section spacing="normal" container="wide">
-        <RfqComposer />
+        <RfqPageFlow />
       </Section>
     </>
   );

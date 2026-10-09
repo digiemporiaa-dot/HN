@@ -30,11 +30,9 @@ import {
   requestContext,
 } from "./service";
 import { recordLeadActivity } from "./activity";
+import { notifyAssignee } from "./notify";
 import { sendMail } from "@/server/mail/send";
-import {
-  assignmentNotification,
-  leadNotification,
-} from "@/server/mail/templates";
+import { leadNotification } from "@/server/mail/templates";
 
 export type EnquiryState = {
   error?: string;
@@ -142,12 +140,20 @@ export async function submitEnquiryAction(
       })
     : null;
 
-  const document = documentId
-    ? await prisma.productDocument.findFirst({
-        where: { id: documentId, gated: true, media: { deletedAt: null } },
-        select: { id: true, title: true, productId: true },
-      })
-    : null;
+  // A document earns a grant only beside its own product: an id from another
+  // product's page, or one posted with no product at all, is ignored.
+  const document =
+    documentId && product
+      ? await prisma.productDocument.findFirst({
+          where: {
+            id: documentId,
+            productId: product.id,
+            gated: true,
+            media: { deletedAt: null },
+          },
+          select: { id: true, title: true, productId: true },
+        })
+      : null;
 
   // Derived from what the submission actually carries rather than from a field
   // the form could claim: a request with a gated document is a document
@@ -320,6 +326,8 @@ export async function updateLeadAction(
   // management act, not an edit.
   if (parsed.data.assignedToId !== (lead.assignedToId ?? "")) {
     await requirePermission("LEADS", "ASSIGN");
+    // A quotation request's owner is also the Quotations module's to decide.
+    if (lead.source === "RFQ") await requirePermission("RFQ", "ASSIGN");
   }
 
   const assignee = parsed.data.assignedToId
@@ -452,67 +460,6 @@ export async function addLeadNoteAction(
   return { success: internal ? "Comment added." : "Note added." };
 }
 
-/**
- * Tells a salesperson a lead is now theirs.
- *
- * Reads the lead again rather than taking what the caller has: the fields the
- * message carries are not the fields an update was about, and one query is
- * cheaper than threading six of them through every call site. Never throws —
- * the assignment is already saved, and losing that to a mail server's bad
- * afternoon would be the worse failure.
- */
-async function notifyAssignee(
-  leadId: string,
-  assigneeId: string,
-  assignedBy: string,
-): Promise<void> {
-  const [lead, assignee] = await Promise.all([
-    prisma.lead.findUnique({
-      where: { id: leadId },
-      select: {
-        reference: true,
-        name: true,
-        email: true,
-        phone: true,
-        organisation: true,
-        productName: true,
-        categoryName: true,
-        status: true,
-      },
-    }),
-    prisma.staff.findUnique({
-      where: { id: assigneeId },
-      select: { name: true, email: true, status: true },
-    }),
-  ]);
-
-  if (!lead || !assignee || assignee.status !== "ACTIVE") return;
-
-  const message = assignmentNotification({
-    reference: lead.reference,
-    leadId,
-    assigneeName: assignee.name,
-    assignedBy,
-    name: lead.name,
-    email: lead.email,
-    phone: lead.phone,
-    organisation: lead.organisation,
-    about: lead.productName ?? lead.categoryName,
-    stage: stageLabel(lead.status),
-  });
-
-  await sendMail({
-    kind: "lead.assigned",
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-    entityType: "Lead",
-    entityId: leadId,
-    // To the person it was assigned to, not to the enquiry list: this is a
-    // message for one colleague about their own work.
-    to: [assignee.email],
-  });
-}
 
 const stageLabel = (value: string) =>
   LEAD_STATUSES.find((entry) => entry.value === value)?.label ?? value;
@@ -616,9 +563,11 @@ export async function bulkAssignLeadsAction(formData: FormData): Promise<void> {
 
   if (choice !== "none" && choice !== "mine" && !assignee) return;
 
-  // Quotation requests are reassigned only by someone who may edit RFQs;
-  // without that, they are left out of the batch rather than failing it.
-  const mayEditRfqs = await hasPermission("RFQ", "EDIT");
+  // Quotation requests are reassigned only by someone who may edit and
+  // assign them; without that, they are left out of the batch rather than
+  // failing it.
+  const mayEditRfqs =
+    (await hasPermission("RFQ", "EDIT")) && (await hasPermission("RFQ", "ASSIGN"));
   const leads = await prisma.lead.findMany({
     where: {
       id: { in: ids },

@@ -13,7 +13,7 @@ import {
   type HeaderItem,
   type MegaKind,
 } from "./site-nav";
-import { QuoteBasketLink } from "./quote-basket";
+import { QuoteListButton } from "./cta/cta-button";
 import { BrandMark } from "./brand-mark";
 
 /**
@@ -100,7 +100,7 @@ export async function SiteHeader({ settings }: { settings: SiteSettings }) {
               </a>
             ) : null}
 
-            <QuoteBasketLink />
+            <QuoteListButton />
 
             <Link
               href={cta.href}

@@ -538,7 +538,10 @@ export default async function LeadPage({
                       />
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <span className="text-body-sm text-ink font-medium">
-                          {grant.document.title}
+                          {grant.document?.title ??
+                            grant.media?.title ??
+                            grant.media?.originalName ??
+                            "Document"}
                         </span>
                         <span className="text-caption text-ink-subtle">
                           {grant.downloadCount === 0

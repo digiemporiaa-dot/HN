@@ -10,6 +10,7 @@ const sizeClass = {
   sm: "max-w-md",
   md: "max-w-xl",
   lg: "max-w-3xl",
+  xl: "max-w-4xl",
 } as const;
 
 type ModalProps = {

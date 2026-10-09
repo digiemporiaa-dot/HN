@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Download,
   FileText,
+  Lock,
   Quote,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ import { ArrowLink } from "@/components/site/cards";
 import { SmartImage } from "@/components/site/media";
 import { EnquiryForm } from "@/components/site/enquiry-form";
 import { BuiltForm } from "@/components/site/built-form";
+import { CtaButton } from "@/components/site/cta/cta-button";
 import { RichText } from "@/cms/rich-text";
 import { parseVideoUrl } from "@/cms/video";
 import { featureIcon } from "@/lib/design/icons";
@@ -31,6 +33,7 @@ import {
 import {
   AccentHeading,
   Actions,
+  ctaRequestFor,
   gridCols,
   Intro,
   isDark,
@@ -458,7 +461,7 @@ const BLEED: Record<string, string> = {
   xl: "inset-y-[calc(var(--section-space-xl)*-1)]",
 };
 
-export function CallToAction({ content, design, media }: RendererProps) {
+export function CallToAction({ content, design, media, entities }: RendererProps) {
   const centered = design.align !== "left";
   const dark = isDark(design);
   const heading = text(content, "heading");
@@ -492,6 +495,8 @@ export function CallToAction({ content, design, media }: RendererProps) {
           primaryHref={text(content, "primaryHref")}
           secondaryLabel={text(content, "secondaryLabel")}
           secondaryHref={text(content, "secondaryHref")}
+          primaryRequest={ctaRequestFor(content, entities, "primary")}
+          secondaryRequest={ctaRequestFor(content, entities, "secondary")}
           align={centered ? "center" : "left"}
           dark={inverse}
         />
@@ -781,24 +786,32 @@ export function BrochureDownload({ content, entities }: RendererProps) {
       />
       <ul className="grid gap-3 sm:grid-cols-2">
         {product.documents.map((document) => (
-          <li key={document.href}>
-            <a
-              href={document.href}
-              target="_blank"
-              rel="noreferrer"
-              className="group border-line bg-surface hover:border-primary flex items-center gap-4 rounded-2xl border p-5 transition-colors"
+          <li key={document.id}>
+            <CtaButton
+              request={{
+                kind: "DOWNLOAD_BROCHURE",
+                placement: "cms.brochure.download",
+                productId: product.id,
+                productName: product.name,
+                documentId: document.id,
+                documentTitle: document.title,
+                gated: document.gated,
+                href: document.href,
+              }}
+              className="group border-line bg-surface hover:border-primary flex w-full items-center gap-4 rounded-2xl border p-5 text-left transition-colors"
             >
               <span className="bg-primary-subtle text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
-                <FileText aria-hidden="true" className="size-5" />
+                {document.gated ? <Lock aria-hidden="true" className="size-5" /> : <FileText aria-hidden="true" className="size-5" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="text-body-sm text-ink block font-semibold">{document.title}</span>
                 <span className="text-caption text-ink-subtle block">
-                  {DOCUMENT_LABELS[document.kind] ?? "Document"} · PDF · {fileSize(document.sizeBytes)}
+                  {DOCUMENT_LABELS[document.kind] ?? "Document"} · {fileSize(document.sizeBytes)}
+                  {document.gated ? " · sent after a short form" : ""}
                 </span>
               </span>
               <Download aria-hidden="true" className="text-ink-subtle group-hover:text-primary size-5 shrink-0 transition-colors" />
-            </a>
+            </CtaButton>
           </li>
         ))}
       </ul>

@@ -16,19 +16,21 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { DataTable } from "@/components/admin/data-table";
 import { TableFilter, TableSearch } from "@/components/admin/data-table-parts";
+import { DateRangeFilter } from "@/components/admin/date-range-filter";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
 import {
   mostRequestedProducts,
   readRfqFilters,
-  RFQ_STATUS_TONE,
+  requestedProductChoices,
   rfqWhere,
 } from "@/server/rfq/admin";
-import { LEAD_STATUSES } from "@/lib/validation/leads";
+import { assignableStaff } from "@/server/leads/service";
+import { QUOTE_STATUSES, quoteStatusLabel, quoteStatusTone } from "@/lib/quotes/status";
 import { buildQueryHref, readPageParam } from "@/lib/utils/query";
 
 export const metadata: Metadata = {
-  title: "RFQs",
+  title: "Quotations",
   robots: { index: false, follow: false },
 };
 
@@ -47,8 +49,10 @@ type Row = {
   name: string;
   organisation: string | null;
   city: string | null;
-  status: string;
+  phone: string | null;
+  email: string;
   createdAt: Date;
+  quote: { status: string } | null;
   assignedTo: { name: string } | null;
   items: Array<{ productName: string; quantity: number }>;
 };
@@ -71,7 +75,7 @@ export default async function RfqsPage({
   const filters = readRfqFilters(params);
   const where = rfqWhere(filters, staff.id);
 
-  const [total, rows, openCount, popular] = await Promise.all([
+  const [total, rows, openCount, popular, staffChoices, productChoices] = await Promise.all([
     prisma.lead.count({ where }),
     prisma.lead.findMany({
       where,
@@ -84,8 +88,10 @@ export default async function RfqsPage({
         name: true,
         organisation: true,
         city: true,
-        status: true,
+        phone: true,
+        email: true,
         createdAt: true,
+        quote: { select: { status: true } },
         assignedTo: { select: { name: true } },
         items: {
           orderBy: { order: "asc" },
@@ -97,23 +103,21 @@ export default async function RfqsPage({
       where: {
         source: "RFQ",
         deletedAt: null,
-        status: {
-          in: LEAD_STATUSES.filter((s) => s.open).map(
-            (s) => s.value,
-          ) as Array<"NEW">,
-        },
+        quote: { is: { status: { in: QUOTE_STATUSES.filter((s) => s.open).map((s) => s.value) } } },
       },
     }),
     mostRequestedProducts(WINDOW_DAYS),
+    assignableStaff(),
+    requestedProductChoices(),
   ]);
 
-  const filtered = Boolean(filters.q || filters.status || filters.owner);
+  const filtered = Object.values(filters).some(Boolean);
 
   return (
     <AdminPage>
       <AdminPageHeader
-        title="RFQs"
-        description={`Quotation requests from the website, newest first. ${openCount} still open.`}
+        title="Quotations"
+        description={`Quotation requests from the website, newest first. ${openCount} still open. Nothing here is an order: a request becomes a sale only through your own process.`}
         actions={
           can("RFQ", "EXPORT") ? (
             <a
@@ -137,18 +141,15 @@ export default async function RfqsPage({
         total={total}
         page={page}
         pageSize={PAGE_SIZE}
-        entityLabel="request"
+        entityLabel="quotation"
         toolbar={
           <>
-            <TableSearch placeholder="Search reference, customer or product" />
+            <TableSearch placeholder="Search reference, customer, email, phone, company or product" />
             <TableFilter
               paramName="status"
               label="Filter by status"
               allLabel="Any status"
-              options={LEAD_STATUSES.map((s) => ({
-                value: s.value,
-                label: s.label,
-              }))}
+              options={QUOTE_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
             />
             <TableFilter
               paramName="owner"
@@ -157,8 +158,13 @@ export default async function RfqsPage({
               options={[
                 { value: "mine", label: "Assigned to me" },
                 { value: "none", label: "Unassigned" },
+                ...staffChoices.map((person) => ({ value: person.id, label: person.name })),
               ]}
             />
+            {productChoices.length > 0 ? (
+              <TableFilter paramName="product" label="Filter by product" allLabel="Any product" options={productChoices} />
+            ) : null}
+            <DateRangeFilter label="Received" />
           </>
         }
         emptyState={
@@ -199,9 +205,9 @@ export default async function RfqsPage({
                     </span>
                   ) : null}
                 </span>
-                <span className="text-caption text-ink-muted">
-                  {row.reference}
-                  {row.city ? ` · ${row.city}` : ""}
+                <span className="text-caption text-ink-muted break-all">
+                  {row.reference} · {row.email}
+                  {row.phone ? ` · ${row.phone}` : ""}
                 </span>
               </div>
             ),
@@ -235,9 +241,8 @@ export default async function RfqsPage({
             key: "status",
             header: "Status",
             cell: (row) => (
-              <Badge tone={RFQ_STATUS_TONE[row.status] ?? "neutral"}>
-                {LEAD_STATUSES.find((s) => s.value === row.status)?.label ??
-                  row.status}
+              <Badge tone={quoteStatusTone(row.quote?.status ?? "NEW")}>
+                {quoteStatusLabel(row.quote?.status ?? "NEW")}
               </Badge>
             ),
           },

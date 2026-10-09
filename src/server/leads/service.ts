@@ -117,22 +117,69 @@ export async function createLeadWithReference(
   data: Omit<Prisma.LeadUncheckedCreateInput, "reference">,
   items?: Prisma.RfqItemCreateWithoutLeadInput[],
 ): Promise<{ id: string; reference: string } | null> {
+  const result = await storeLead({
+    ...data,
+    ...(items?.length ? { items: { create: items } } : {}),
+  });
+  return result ? { id: result.id, reference: result.reference } : null;
+}
+
+export type StoredLead = {
+  id: string;
+  reference: string;
+  /** True when the submission key had already been used: nothing new was written. */
+  replayed: boolean;
+};
+
+/**
+ * Stores a lead, and everything created with it, in one statement.
+ *
+ * Nested creates (line items, a quotation row, a download grant, the first
+ * activity entry) go in the same INSERT transaction as the lead, so a request
+ * is either recorded completely or not at all.
+ *
+ * With a submission key, a second submission carrying the same key returns the
+ * first lead instead of creating another: a double click, a retry after a
+ * timeout or a resent request all land on one record.
+ */
+export async function storeLead(
+  data: Omit<Prisma.LeadUncheckedCreateInput, "reference">,
+): Promise<StoredLead | null> {
+  const key = typeof data.submissionKey === "string" ? data.submissionKey : null;
+  const existing = async () =>
+    key
+      ? prisma.lead.findUnique({
+          where: { submissionKey: key },
+          select: { id: true, reference: true },
+        })
+      : null;
+
+  const earlier = await existing();
+  if (earlier) return { ...earlier, replayed: true };
+
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const reference = await nextLeadReference();
     try {
-      return await prisma.lead.create({
-        data: {
-          ...data,
-          reference,
-          ...(items?.length ? { items: { create: items } } : {}),
-        },
+      const lead = await prisma.lead.create({
+        data: { ...data, reference },
         select: { id: true, reference: true },
       });
+      return { ...lead, replayed: false };
     } catch {
-      // Taken in the moment between counting and inserting; count again.
+      // Either the reference was taken in the moment between counting and
+      // inserting (count again), or the same submission arrived twice at once
+      // and the other one won (answer with it).
+      const raced = await existing();
+      if (raced) return { ...raced, replayed: true };
     }
   }
   return null;
+}
+
+/** A browser-generated submission key: random, url-safe, bounded. */
+export function readSubmissionKey(formData: FormData): string | null {
+  const value = String(formData.get("submissionKey") ?? "");
+  return /^[A-Za-z0-9_-]{16,64}$/.test(value) ? value : null;
 }
 
 /** 32 bytes of randomness, url-safe: the whole of a download's authorisation. */
@@ -237,6 +284,7 @@ export async function findLead(id: string) {
           downloadCount: true,
           lastDownloadedAt: true,
           document: { select: { title: true, kind: true } },
+          media: { select: { title: true, originalName: true } },
         },
       },
     },
@@ -258,7 +306,12 @@ export async function assignableStaff() {
  * Expiry is checked here rather than by the caller so that no route can serve a
  * grant that has run out by forgetting to look.
  */
-export async function resolveGrant(token: string) {
+export async function resolveGrant(token: string): Promise<{
+  id: string;
+  leadId: string;
+  title: string;
+  storageKey: string;
+} | null> {
   const grant = await prisma.documentGrant.findUnique({
     where: { token },
     select: {
@@ -267,9 +320,18 @@ export async function resolveGrant(token: string) {
       leadId: true,
       document: {
         select: {
-          id: true,
           title: true,
           media: { select: { storageKey: true, deletedAt: true } },
+        },
+      },
+      // A file handed out by a call to action rather than attached to a
+      // product: the company catalogue, typically.
+      media: {
+        select: {
+          storageKey: true,
+          deletedAt: true,
+          title: true,
+          originalName: true,
         },
       },
     },
@@ -277,9 +339,27 @@ export async function resolveGrant(token: string) {
 
   if (!grant) return null;
   if (grant.expiresAt.getTime() < Date.now()) return null;
-  if (grant.document.media.deletedAt) return null;
 
-  return grant;
+  const file = grant.document
+    ? { title: grant.document.title, ...grant.document.media }
+    : grant.media
+      ? {
+          title:
+            grant.media.title ||
+            grant.media.originalName.replace(/\.[^.]+$/, "") ||
+            "Catalogue",
+          storageKey: grant.media.storageKey,
+          deletedAt: grant.media.deletedAt,
+        }
+      : null;
+  if (!file || file.deletedAt) return null;
+
+  return {
+    id: grant.id,
+    leadId: grant.leadId,
+    title: file.title,
+    storageKey: file.storageKey,
+  };
 }
 
 /**
@@ -291,9 +371,24 @@ export async function resolveGrant(token: string) {
  * pages that matter.
  */
 export async function isGatedStorageKey(storageKey: string): Promise<boolean> {
-  const gated = await prisma.productDocument.findFirst({
-    where: { gated: true, media: { storageKey } },
-    select: { id: true },
-  });
-  return gated !== null;
+  const [document, cta] = await Promise.all([
+    prisma.productDocument.findFirst({
+      where: { gated: true, media: { storageKey } },
+      select: { id: true },
+    }),
+    // A file a call to action releases only after its form: refused here for
+    // as long as any live configuration gates it, so the form cannot be
+    // skipped by guessing the file's address.
+    prisma.ctaConfig.findFirst({
+      where: {
+        file: { storageKey },
+        active: true,
+        deletedAt: null,
+        mode: "POPUP",
+        popupType: "GATED_DOWNLOAD",
+      },
+      select: { id: true },
+    }),
+  ]);
+  return document !== null || cta !== null;
 }

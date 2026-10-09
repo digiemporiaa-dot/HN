@@ -2,6 +2,7 @@ import { getSiteSettings } from "@/server/settings/service";
 import { BrandTheme } from "@/components/site/brand-theme";
 import { SiteHeader } from "@/components/site/site-header";
 import { QuoteBasketProvider } from "@/components/site/quote-basket";
+import { CtaProvider } from "@/components/site/cta/cta-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { PopupHost } from "@/components/site/popup-host";
 import { SiteAnalytics } from "@/components/site/analytics";
@@ -32,32 +33,34 @@ export default async function SiteLayout({
   return (
     <SiteLinksProvider value={{ privacyHref: legal.privacy?.href ?? null }}>
       <QuoteBasketProvider>
-        <div className="flex min-h-dvh flex-col">
-          <BrandTheme
-            primary={settings.primaryColor}
-            secondary={settings.secondaryColor}
-          />
+        <CtaProvider>
+          <div className="flex min-h-dvh flex-col">
+            <BrandTheme
+              primary={settings.primaryColor}
+              secondary={settings.secondaryColor}
+            />
 
-          {/* Site-wide structured data: who the company is, and that the catalogue
+            {/* Site-wide structured data: who the company is, and that the catalogue
           is searchable. Both are facts the settings already hold. */}
-          <JsonLd data={organizationJsonLd(settings)} />
-          <JsonLd data={websiteJsonLd(settings)} />
+            <JsonLd data={organizationJsonLd(settings)} />
+            <JsonLd data={websiteJsonLd(settings)} />
 
-          <SiteHeader settings={settings} />
+            <SiteHeader settings={settings} />
 
-          <main id="main" className="flex-1">
-            {children}
-          </main>
+            <main id="main" className="flex-1">
+              {children}
+            </main>
 
-          <SiteFooter settings={settings} legalFallback={legal} />
-          {/* Fetches its own data at runtime, so cached pages and the
+            <SiteFooter settings={settings} legalFallback={legal} />
+            {/* Fetches its own data at runtime, so cached pages and the
               database-free build are unaffected. */}
-          <PopupHost />
-          <SiteAnalytics
-            ga4Id={validId(settings.analytics.ga4Id, GA4_ID)}
-            gtmId={validId(settings.analytics.gtmId, GTM_ID)}
-          />
-        </div>
+            <PopupHost />
+            <SiteAnalytics
+              ga4Id={validId(settings.analytics.ga4Id, GA4_ID)}
+              gtmId={validId(settings.analytics.gtmId, GTM_ID)}
+            />
+          </div>
+        </CtaProvider>
       </QuoteBasketProvider>
     </SiteLinksProvider>
   );

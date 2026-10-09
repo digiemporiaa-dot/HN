@@ -34,7 +34,7 @@ The database still stores the `(PermissionModule, PermissionAction)` enum pair, 
 | --- | --- | --- | --- | --- |
 | Overview | Dashboard | `overview.dashboard` | `DASHBOARD` | View |
 | Sales | Leads | `sales.leads` | `LEADS` | View, Edit, Delete, Assign, Export |
-| Sales | RFQs | `sales.rfqs` | `RFQ` | View, Edit, Delete, Export |
+| Sales | Quotations | `sales.rfqs` | `RFQ` | View, Edit, Delete, Assign, Export |
 | Catalogue | Products | `catalogue.products` | `PRODUCTS` | View, Create, Edit, Delete, Publish |
 | Catalogue | Categories & subcategories | `catalogue.categories` | `CATEGORIES` | View, Create, Edit, Delete, Publish |
 | Catalogue | Brands | `catalogue.brands` | `BRANDS` | View, Create, Edit, Delete, Publish |
@@ -47,6 +47,7 @@ The database still stores the `(PermissionModule, PermissionAction)` enum pair, 
 | Content | Media | `content.media` | `MEDIA` | View, Create, Edit, Delete |
 | Content | Forms | `content.forms` | `FORMS` | View, Create, Edit, Delete |
 | Content | Popups | `content.popups` | `POPUPS` | View, Create, Edit, Delete, Publish |
+| Content | CTA popups | `content.cta_popups` | `CTA_POPUPS` | View, Create, Edit, Delete, Publish |
 | SEO | Page metadata | `seo.metadata` | `SEO` | View, Edit, Publish |
 | SEO | Redirects | `seo.redirects` | `SEO_REDIRECTS` | View, Create, Edit, Delete |
 | SEO | Not-found monitor | `seo.not_found` | `SEO_NOT_FOUND` | View, Edit |
@@ -61,7 +62,11 @@ The database still stores the `(PermissionModule, PermissionAction)` enum pair, 
 Notes on specific resources:
 
 - **Subcategories** is a menu entry on the categories resource. It is one tree shown on two screens, so it has no permission set of its own.
-- **RFQs** are leads whose source is RFQ. Editing, deleting or reassigning one needs the Leads action *and* the matching RFQ action. Both are checked on the server.
+- **Quotations** (stored as `RFQ`, id `sales.rfqs`) are leads whose source is RFQ.
+  - On the Quotations screen, the status and internal notes need RFQ Edit; the owner needs RFQ Assign; the CSV needs RFQ Export.
+  - From the Leads screen, editing, deleting or reassigning one needs the Leads action *and* the matching RFQ action (reassigning: Leads Assign and RFQ Assign).
+  - All of it is checked on the server.
+- **CTA popups** configure what buttons such as Download brochure or Request quotation ask before they act. Publish means switching a configuration on.
 - **Sitemap and structured data** are generated automatically, and nothing in the admin edits them. There is therefore no resource for them; one would be added with the screen.
 
 ## Resolution rules
@@ -139,6 +144,26 @@ They are no longer grantable and grant nothing. They stay in the database untouc
   Their grants and overrides cascade. The SEO rows were never touched.
 - The enum values can stay: unused enum values are harmless.
 - Reverting the code without running that delete is also safe. The old code checks `SEO:EDIT` for redirects, which every affected role still has.
+
+## Migrations for CTA popups and quotations
+
+1. `20261009140000_cta_popups_and_quotations` adds the `CTA_POPUPS` enum value and the new tables and columns (see `docs/CTA-POPUPS-AND-QUOTATIONS.md`).
+2. `20261009140001_cta_popups_and_quotations_backfill` adds the permission rows and grants them without changing anyone's access:
+
+   ```
+   POPUPS:<action>             -> CTA_POPUPS:<action>
+   LEADS:ASSIGN and RFQ:EDIT   -> RFQ:ASSIGN
+   ```
+
+   - Role grants follow these rules for every role.
+   - Staff overrides follow them on each person's effective permissions: someone who could reassign quotation requests before keeps that ability (a GRANT if their role does not now carry it), and someone who could not stays unable (a REVOKE if their role now carries it).
+   - It is additive and idempotent.
+
+Recovery:
+
+```sql
+DELETE FROM "Permission" WHERE "module" = 'CTA_POPUPS' OR ("module" = 'RFQ' AND "action" = 'ASSIGN');
+```
 
 ## Adding a module or resource
 

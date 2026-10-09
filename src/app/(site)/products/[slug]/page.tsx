@@ -37,10 +37,10 @@ import {
 import { productPath } from "@/server/products/service";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqPageJsonLd, productJsonLd } from "@/server/seo/structured-data";
-import { EnquiryDialog } from "@/components/site/enquiry-form";
+import { CtaButton } from "@/components/site/cta/cta-button";
+import type { CtaPlacementId } from "@/lib/cta/placements";
 import { AddToQuoteButton } from "@/components/site/quote-basket";
 import { StickyQuoteBar } from "@/components/site/sticky-quote-bar";
-import { submitEnquiryAction } from "@/server/leads/actions";
 import { withSeoOverride } from "@/server/seo/overrides";
 import { missingPage } from "@/server/seo/missing";
 import { canPreview } from "@/server/preview";
@@ -133,7 +133,10 @@ export default async function ProductPage({ params }: RouteParams) {
     { label: product.name },
   ];
 
-  const brochure = product.documents.find((document) => document.href);
+  // The brochure the top panel offers: the first one marked as a brochure,
+  // otherwise the first document. Gated or not, the controller decides.
+  const brochure =
+    product.documents.find((document) => document.kind === "BROCHURE") ?? product.documents[0] ?? null;
   const highlights = product.highlights.slice(0, 6);
 
   const sections = [
@@ -145,16 +148,15 @@ export default async function ProductPage({ params }: RouteParams) {
     { id: "faq", label: "FAQ", show: product.faqs.length > 0 },
   ].filter((section) => section.show);
 
-  const quoteDialog = (size: "sm" | "lg", label = "Request a quotation") => (
-    <EnquiryDialog
-      action={submitEnquiryAction}
-      productId={product.id}
-      triggerLabel={label}
-      triggerClassName={buttonStyles({ size })}
-      title={`Request a quotation — ${reference(product)}`}
-      description="Tell us the department, quantity and configuration. We reply within one working day."
-      submitLabel="Send enquiry"
-    />
+  // Every quotation button opens the centered quotation modal with this
+  // product on the list; each has its own placement so it can be configured.
+  const quoteButton = (size: "sm" | "lg", placement: CtaPlacementId, label = "Request a quotation") => (
+    <CtaButton
+      request={{ kind: "REQUEST_QUOTATION", placement, productId: product.id, productName: product.name }}
+      className={buttonStyles({ size })}
+    >
+      {label}
+    </CtaButton>
   );
 
   return (
@@ -219,8 +221,27 @@ export default async function ProductPage({ params }: RouteParams) {
               id="enquiry-panel"
               product={product}
               settings={settings}
-              quote={quoteDialog("lg")}
-              brochureHref={brochure?.href ?? null}
+              quote={quoteButton("lg", "product.hero.quote")}
+              brochure={
+                brochure ? (
+                  <CtaButton
+                    request={{
+                      kind: "DOWNLOAD_BROCHURE",
+                      placement: "product.hero.brochure",
+                      productId: product.id,
+                      productName: product.name,
+                      documentId: brochure.id,
+                      documentTitle: brochure.title,
+                      gated: brochure.gated,
+                      href: brochure.href,
+                    }}
+                    className="text-body-sm text-primary inline-flex items-center gap-2 font-semibold"
+                  >
+                    <Download aria-hidden="true" className="size-4" />
+                    Download brochure
+                  </CtaButton>
+                ) : null
+              }
             />
 
             <TaxonomyLinks product={product} />
@@ -277,7 +298,7 @@ export default async function ProductPage({ params }: RouteParams) {
                       </div>
                     ))}
                 </dl>
-                {quoteDialog("lg")}
+                {quoteButton("lg", "product.hero.quote")}
               </div>
             </aside>
           </div>
@@ -379,23 +400,23 @@ export default async function ProductPage({ params }: RouteParams) {
                     {document.gated ? " · sent after a short enquiry" : ""}
                   </span>
                 </span>
-                {document.href ? (
-                  <a href={document.href} target="_blank" rel="noreferrer" className={buttonStyles({ variant: "outline", size: "sm" })}>
-                    <Download aria-hidden="true" className="size-4" />
-                    Download
-                  </a>
-                ) : (
-                  <EnquiryDialog
-                    action={submitEnquiryAction}
-                    productId={product.id}
-                    documentId={document.id}
-                    triggerLabel="Request document"
-                    triggerClassName={buttonStyles({ variant: "outline", size: "sm" })}
-                    title={document.title}
-                    description="Tell us who you are and we will send it straight over."
-                    submitLabel="Send and download"
-                  />
-                )}
+                <CtaButton
+                  request={{
+                    kind: "DOWNLOAD_BROCHURE",
+                    placement: "product.documents.download",
+                    productId: product.id,
+                    productName: product.name,
+                    documentId: document.id,
+                    documentTitle: document.title,
+                    gated: document.gated,
+                    href: document.href,
+                  }}
+                  className={buttonStyles({ variant: "outline", size: "sm" })}
+                  aria-label={`${document.gated ? "Request" : "Download"} ${document.title}`}
+                >
+                  <Download aria-hidden="true" className="size-4" />
+                  {document.gated ? "Request document" : "Download"}
+                </CtaButton>
               </li>
             ))}
           </ul>
@@ -460,7 +481,7 @@ export default async function ProductPage({ params }: RouteParams) {
         background={product.related.length > 0 ? "pearl" : "default"}
         actions={
           <>
-            {quoteDialog("lg")}
+            {quoteButton("lg", "product.closing.quote")}
             <AddToQuoteButton productId={product.id} productName={product.name} size="lg" variant="outline-inverse" />
           </>
         }
@@ -478,7 +499,7 @@ export default async function ProductPage({ params }: RouteParams) {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <AddToQuoteButton productId={product.id} productName={product.name} size="sm" compact className="hidden sm:inline-flex" />
-          {quoteDialog("sm", "Request quote")}
+          {quoteButton("sm", "product.sticky.quote", "Request quote")}
         </div>
       </StickyQuoteBar>
     </>
@@ -523,7 +544,7 @@ function EnquiryPanel({
   product,
   settings,
   quote,
-  brochureHref,
+  brochure,
 }: {
   id?: string;
   product: PublicProduct;
@@ -533,7 +554,7 @@ function EnquiryPanel({
     whatsapp: string | null;
   };
   quote: React.ReactNode;
-  brochureHref: string | null;
+  brochure: React.ReactNode;
 }) {
   const name = reference(product);
 
@@ -567,14 +588,9 @@ function EnquiryPanel({
         <AddToQuoteButton productId={product.id} productName={product.name} size="lg" />
       </div>
 
-      {brochureHref || contacts.length > 0 ? (
+      {brochure || contacts.length > 0 ? (
         <div className="border-line flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4">
-          {brochureHref ? (
-            <a href={brochureHref} target="_blank" rel="noreferrer" className="text-body-sm text-primary inline-flex items-center gap-2 font-semibold">
-              <Download aria-hidden="true" className="size-4" />
-              Download brochure
-            </a>
-          ) : null}
+          {brochure}
           {contacts.map((contact) => {
             const Icon = contact.icon;
             return (

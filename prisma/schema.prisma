@@ -66,6 +66,9 @@ enum PermissionModule {
   SEO_REDIRECTS
   SEO_NOT_FOUND
   SEO_INDEXATION
+  /// Call-to-action popups: what a button such as "Download brochure" or
+  /// "Request quotation" asks before it acts.
+  CTA_POPUPS
   STAFF
   ROLES
   BACKUPS
@@ -181,6 +184,7 @@ model Staff {
   recoveryCodes       RecoveryCode[]
   sessions            StaffSession[]
   passwordResets      PasswordResetToken[]
+  ctaConfigsEdited    CtaConfig[]               @relation("CtaConfigEditor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -482,6 +486,8 @@ model MediaAsset {
   popupImages          Popup[]           @relation("PopupImage")
   blogPostCovers       BlogPost[]        @relation("BlogPostCover")
   applicationImages    Application[]     @relation("ApplicationImage")
+  ctaConfigFiles       CtaConfig[]       @relation("CtaConfigFile")
+  documentGrants       DocumentGrant[]   @relation("DocumentGrantMedia")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
   /// by published content is a genuine requirement.
@@ -1117,6 +1123,7 @@ model Product {
   leads        Lead[]
   rfqItems     RfqItem[]
   popups       Popup[]
+  ctaConfigs   CtaConfig[]
   cities       CityProduct[]
 
   /// Two sides of one table: what this product points at, and what points at
@@ -1200,6 +1207,8 @@ enum DocumentKind {
   MANUAL
   CERTIFICATE
   CASE_STUDY
+  /// A product catalogue: several products, or the whole range.
+  CATALOGUE
   OTHER
 }
 
@@ -1498,6 +1507,7 @@ model Form {
   fields      FormField[]
   submissions FormSubmission[]
   popups      Popup[]
+  ctaConfigs  CtaConfig[]
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -1704,6 +1714,24 @@ model Lead {
 
   priority LeadPriority @default(NORMAL)
 
+  /// The country the visitor gave, where the form asked for one.
+  country String?
+
+  /// Which call to action produced the lead: the configuration that was
+  /// applied (by its key) and the button it was attached to. Recorded from the
+  /// server's own resolution, never copied from the request.
+  ctaKey       String?
+  ctaPlacement String?
+
+  /// A random key the browser generates once per open form. Unique, so a
+  /// double click, a retry after a timeout or a resent request stores one lead
+  /// rather than two; the second submission is answered with the first's
+  /// reference.
+  submissionKey String? @unique
+
+  /// The quotation details, for a lead that is a quotation request.
+  quote QuoteRequest?
+
   /// Set when a built form produced this lead, so the answers to its own
   /// questions can be read alongside it.
   formSubmissionId String?         @unique
@@ -1744,6 +1772,48 @@ model Lead {
   @@index([priority, createdAt])
   @@index([deletedAt])
   @@index([createdAt])
+  @@index([ctaKey])
+}
+
+/// Where a quotation request stands, as the sales team prices it.
+///
+/// Separate from the lead's own stage on purpose: the lead pipeline describes
+/// the relationship, this describes the quotation. Moving a quotation to
+/// Quoted, Won or Lost moves the lead's stage with it; nothing ever turns a
+/// quotation into an order.
+enum QuoteStatus {
+  NEW
+  UNDER_REVIEW
+  QUOTED
+  WON
+  LOST
+  CLOSED
+}
+
+/// The quotation half of a quotation request. One per lead, and only for
+/// leads whose source is RFQ; the contact details, line items (RfqItem),
+/// notes, owner and history stay on the lead where the rest of sales work.
+model QuoteRequest {
+  id String @id @default(cuid())
+
+  leadId String @unique
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  status QuoteStatus @default(NEW)
+
+  /// Where the equipment is to be delivered, which is often not where the
+  /// buyer sits.
+  deliveryLocation     String?
+  /// A calendar date with no time of day, stored at midnight UTC.
+  expectedDeliveryDate DateTime? @db.Date
+
+  /// When the status last changed, so "stuck in review for a week" can be seen.
+  statusChangedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
 
 /// One thing that happened to a lead, in the order it happened.
@@ -1847,8 +1917,14 @@ model DocumentGrant {
   leadId String
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
-  documentId String
-  document   ProductDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// Exactly one of these is set (enforced by a check constraint): a document
+  /// attached to a product, or the file a call to action hands out, such as
+  /// the company catalogue.
+  documentId String?
+  document   ProductDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  mediaId String?
+  media   MediaAsset? @relation("DocumentGrantMedia", fields: [mediaId], references: [id], onDelete: Cascade)
 
   expiresAt        DateTime
   downloadCount    Int       @default(0)
@@ -1858,6 +1934,7 @@ model DocumentGrant {
 
   @@index([leadId])
   @@index([documentId])
+  @@index([mediaId])
   @@index([expiresAt])
 }
 
@@ -2157,5 +2234,135 @@ model Popup {
   @@index([active, deletedAt])
   @@index([imageId])
   @@index([productId])
+  @@index([formId])
+}
+
+// ---------------------------------------------------------------------------
+// Call-to-action popups
+// ---------------------------------------------------------------------------
+
+/// What kind of button a configuration is for. A button declares its kind in
+/// code (or in the page builder); the configuration decides what it asks.
+enum CtaKind {
+  DOWNLOAD_BROCHURE
+  DOWNLOAD_CATALOGUE
+  REQUEST_QUOTATION
+  CONTACT_US
+  GET_PRICE
+  REQUEST_DEMO
+  ENQUIRE_NOW
+  CUSTOM
+}
+
+/// What the popup is.
+enum CtaPopupType {
+  /// A short contact form that files a lead.
+  LEAD_CAPTURE
+  /// A contact form that releases a file once the lead is stored.
+  GATED_DOWNLOAD
+  /// The multi-product quotation request.
+  REQUEST_QUOTATION
+  /// A form an administrator built in Forms.
+  CUSTOM_FORM
+}
+
+/// Whether the button asks first or acts straight away.
+enum CtaMode {
+  POPUP
+  DIRECT
+}
+
+/// What happens once the popup has been submitted successfully.
+enum CtaAfterSubmit {
+  /// Show the success message (and the reference).
+  MESSAGE
+  /// Start the file download, with the success message as a fallback.
+  DOWNLOAD
+  /// Go to `redirectHref`.
+  REDIRECT
+}
+
+/// How a button behaves when pressed.
+///
+/// Resolution, most specific first (see src/lib/cta/resolve.ts): a
+/// configuration chosen explicitly by a page-builder button, then one listing
+/// the button's placement, then the default for the button's kind. Within
+/// each, one targeted at the product or page beats a general one. With none
+/// active, the button keeps its built-in behaviour, so nothing changes until an
+/// administrator configures it.
+model CtaConfig {
+  id String @id @default(cuid())
+
+  /// Stable identifier, chosen once: how the page builder and the lead
+  /// records refer to this configuration. Lower case, digits and dashes.
+  key  String @unique
+  /// Staff-facing name. Never shown to visitors.
+  name String
+
+  kind      CtaKind
+  /// The global default for its kind. At most one live default per kind,
+  /// enforced when saving.
+  isDefault Boolean @default(false)
+
+  /// Inactive configurations are ignored entirely. Switching one on is the
+  /// Publish permission; a new configuration starts inactive.
+  active Boolean @default(false)
+
+  mode      CtaMode      @default(POPUP)
+  popupType CtaPopupType @default(LEAD_CAPTURE)
+
+  heading        String
+  description    String?
+  submitLabel    String?
+  successMessage String?
+
+  /// Which form fields are shown and which are required, as
+  /// [{ "key": "phone", "enabled": true, "required": false }, ...]. Keys come
+  /// from a fixed list (src/lib/cta/fields.ts); name and email are always
+  /// shown and required.
+  fields Json @default("[]")
+
+  /// Blank means the site's standard consent wording.
+  consentText String?
+  /// A site path or https:// address. Blank means the site's privacy page.
+  privacyHref String?
+
+  afterSubmit  CtaAfterSubmit @default(MESSAGE)
+  /// REDIRECT only: a site path or https:// address.
+  redirectHref String?
+  /// DIRECT mode for link-type buttons: where the button goes.
+  directHref   String?
+
+  /// The button placements this configuration takes over, by their code
+  /// identifiers (src/lib/cta/placements.ts). Empty for a default or for one
+  /// used only from the page builder.
+  placements String[] @default([])
+
+  /// Restricts the configuration to one product's buttons.
+  targetProductId String?
+  targetProduct   Product? @relation(fields: [targetProductId], references: [id], onDelete: SetNull)
+  /// Restricts it to pages matching these path rules ("/products/*").
+  targetPaths     String[] @default([])
+
+  /// DOWNLOAD_CATALOGUE: the file handed out. Must be a document in the media
+  /// library; it is served only through a download grant while gated.
+  fileId String?
+  file   MediaAsset? @relation("CtaConfigFile", fields: [fileId], references: [id], onDelete: SetNull)
+
+  /// CUSTOM_FORM: the published form shown.
+  formId String?
+  form   Form?   @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  updatedById String?
+  updatedBy   Staff?  @relation("CtaConfigEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([kind, isDefault, active])
+  @@index([active, deletedAt])
+  @@index([targetProductId])
+  @@index([fileId])
   @@index([formId])
 }
