@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { PermissionModule } from "@/generated/prisma/enums";
+import { parseIsoDate, parseIstDateTime } from "@/lib/dates/ist";
 
 export const AUDIT_PERIODS = [
   { value: "1", label: "Last 24 hours" },
@@ -13,6 +14,9 @@ export type AuditFilters = {
   module?: string;
   action?: string;
   days?: string;
+  /** Calendar days in India, "YYYY-MM-DD", both inclusive. */
+  from?: string;
+  to?: string;
 };
 
 function single(value: string | string[] | undefined): string | undefined {
@@ -29,6 +33,8 @@ export function readAuditFilters(
     module: single(params.module),
     action: single(params.action),
     days: single(params.days),
+    from: single(params.from),
+    to: single(params.to),
   };
 }
 
@@ -42,8 +48,17 @@ export function auditWhere(filters: AuditFilters): Prisma.AuditLogWhereInput {
   if (filters.action && /^[A-Z0-9_]+$/.test(filters.action)) {
     where.action = filters.action;
   }
+  // A chosen range is whole days in India: from 00:00 IST on the first day
+  // to the end of the last, never shifted by the server's time zone.
+  const from = filters.from && parseIsoDate(filters.from) ? parseIstDateTime(`${filters.from}T00:00`) : null;
+  const toStart = filters.to && parseIsoDate(filters.to) ? parseIstDateTime(`${filters.to}T00:00`) : null;
   const days = AUDIT_PERIODS.find((period) => period.value === filters.days);
-  if (days) {
+  if (from || toStart) {
+    where.createdAt = {
+      ...(from ? { gte: from } : {}),
+      ...(toStart ? { lt: new Date(toStart.getTime() + 24 * 60 * 60 * 1000) } : {}),
+    };
+  } else if (days) {
     where.createdAt = {
       gte: new Date(Date.now() - Number(days.value) * 24 * 60 * 60 * 1000),
     };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 
 import {
@@ -13,7 +13,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import type { FormSubmitState } from "@/server/forms/submit";
-import type { PublicForm, PublicFormField } from "@/server/forms/service";
+import type { ClientForm, ClientFormField } from "@/server/forms/service";
 import { LeadContextFields } from "./lead-context";
 
 type SubmitAction = (
@@ -35,9 +35,18 @@ const INITIAL: FormSubmitState = {};
 export function BuiltForm({
   form,
   action,
+  popupId,
+  onDone,
+  compact,
 }: {
-  form: PublicForm;
+  form: ClientForm;
   action: SubmitAction;
+  /** Sent with the submission; the server credits the popup only if it checks out. */
+  popupId?: string;
+  /** Called once the server has stored the submission. */
+  onDone?: () => void;
+  /** One column whatever the viewport: for a narrow container such as a popup. */
+  compact?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const [startedAt] = useState(() => String(Date.now()));
@@ -52,6 +61,16 @@ export function BuiltForm({
 
   const set = (key: string, value: string | boolean) =>
     setValues((current) => ({ ...current, [key]: value }));
+
+  // Read through a ref so a parent re-rendering with a new callback does not
+  // report the same success twice.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  useEffect(() => {
+    if (state.done) onDoneRef.current?.();
+  }, [state.done]);
 
   if (state.done) {
     return (
@@ -70,12 +89,13 @@ export function BuiltForm({
     <form
       action={formAction}
       className="flex flex-col gap-5"
+      // No encType: with a function as the action React posts the FormData
+      // itself, files included, and refuses an explicit encType.
       noValidate
-      // Set so a file input actually submits its bytes rather than its name.
-      encType="multipart/form-data"
     >
       <input type="hidden" name="formKey" value={form.key} />
       <input type="hidden" name="startedAt" value={startedAt} />
+      {popupId ? <input type="hidden" name="popupId" value={popupId} /> : null}
       <LeadContextFields />
 
       {/* A field no person ever sees. Hidden from assistive technology and out
@@ -109,7 +129,9 @@ export function BuiltForm({
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Compact is a column rather than a one-track grid: the full-width
+          fields' column spans would otherwise add a second track. */}
+      <div className={compact ? "flex flex-col gap-4" : "grid gap-4 sm:grid-cols-2"}>
         {form.fields.map((field) => (
           <BuiltField
             key={field.id}
@@ -140,7 +162,7 @@ function BuiltField({
   error,
   onChange,
 }: {
-  field: PublicFormField;
+  field: ClientFormField;
   value: string | boolean | undefined;
   error?: string;
   onChange: (value: string | boolean) => void;
@@ -283,7 +305,7 @@ function BuiltField({
   );
 }
 
-function inputType(type: PublicFormField["type"]): string {
+function inputType(type: ClientFormField["type"]): string {
   switch (type) {
     case "EMAIL":
       return "email";

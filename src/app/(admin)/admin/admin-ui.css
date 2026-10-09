@@ -1,0 +1,556 @@
+/*
+ * Admin interface: themes, glass and control styling.
+ *
+ * Imported only by the admin layout, and every selector is scoped to
+ * `.admin-ui` (the shell's root and, for portals, <body> while the admin is
+ * mounted), so nothing here can reach the public site. A unit test enforces
+ * the scope (tests/admin-ui-css.test.ts).
+ *
+ * No second token system: the admin re-points the site's own semantic tokens
+ * (--color-surface, --color-ink, --color-line, --color-primary …) inside the
+ * scope, so every existing admin screen and shared component follows the
+ * theme without a class changing. Admin-only values are prefixed --admin-
+ * so they never collide with Tailwind's theme namespaces.
+ *
+ * Kept outside any @layer, so these rules win over utilities without
+ * !important. Light is the default; `<html data-admin-theme="dark">` (set
+ * before paint by the inline script in the admin layout) switches to dark.
+ */
+
+/* ------------------------------------------------------------ light -- */
+
+.admin-ui,
+.admin-ui .surface-reset {
+  --color-canvas: #f3f5f6;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f7f9fa;
+  --color-surface-muted: #eef1f3;
+  --color-surface-panel: #f1f4f5;
+  --color-ink: #0b0d0f;
+  --color-ink-muted: #5b6469;
+  --color-ink-subtle: #646d72;
+  --color-line: #e2e6e9;
+  --color-line-strong: #cdd4d8;
+  --color-ring: #00819d;
+
+  --admin-workspace: 243 245 246;
+  --admin-glass-tint: 255 255 255;
+  --admin-shadow-ink: 11 13 15;
+  --admin-glass-alpha-bar: 0.72;
+  --admin-glass-alpha-rail: 0.72;
+  --admin-glass-alpha-card: 0.74;
+  --admin-glass-alpha-menu: 0.9;
+  --admin-glass-blur: 20px;
+  --admin-glass-blur-menu: 18px;
+  --admin-glass-edge: rgb(255 255 255 / 0.75);
+  --admin-glass-highlight: rgb(255 255 255 / 0.85);
+  --admin-control-fill: 118 124 130;
+  --admin-control-alpha: 0.12;
+  --admin-segment-thumb: 255 255 255;
+  --admin-nav-hover: rgb(11 13 15 / 0.05);
+  --admin-nav-active: rgb(0 129 157 / 0.1);
+  --admin-accent: 0 129 157;
+  --admin-focus: 0 129 157;
+  --admin-radius-shell: 22px;
+  --admin-radius-card: 16px;
+  --admin-radius-control: 10px;
+  --admin-radius-menu: 14px;
+  --admin-radius-dialog: 20px;
+  --admin-motion-fast: 150ms;
+  --admin-motion-base: 200ms;
+  --admin-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --admin-shadow-sm: 0 1px 2px rgb(11 13 15 / 0.04), 0 1px 3px rgb(11 13 15 / 0.03);
+  --admin-shadow-md: 0 2px 6px rgb(11 13 15 / 0.04), 0 10px 28px rgb(11 13 15 / 0.07);
+  --admin-shadow-lg: 0 6px 16px rgb(11 13 15 / 0.06), 0 28px 64px rgb(11 13 15 / 0.14);
+}
+
+.admin-ui {
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+body.admin-ui {
+  background-color: rgb(var(--admin-workspace));
+}
+
+/* ------------------------------------------------------------- dark -- */
+
+:root[data-admin-theme="dark"] .admin-ui,
+:root[data-admin-theme="dark"] .admin-ui .surface-reset {
+  color-scheme: dark;
+  --color-canvas: #0c1012;
+  --color-surface: #151a1d;
+  --color-surface-subtle: #1a2023;
+  --color-surface-muted: #222a2e;
+  --color-surface-panel: #1d2427;
+  --color-ink: #eceff1;
+  --color-ink-muted: #a6b0b5;
+  --color-ink-subtle: #919ba0;
+  --color-line: #283034;
+  --color-line-strong: #38434a;
+  --color-ring: #3cc0dc;
+
+  --color-primary: #2db3d0;
+  --color-primary-hover: #5fcbe2;
+  --color-primary-active: #94dcec;
+  --color-primary-ink: #04161b;
+  --color-primary-subtle: rgb(45 179 208 / 0.14);
+  --color-secondary: #eceff1;
+  --color-secondary-hover: #cdd4d8;
+  --color-secondary-ink: #0b0d0f;
+  --color-accent: #3cc0dc;
+
+  --color-success-50: rgb(74 222 128 / 0.12);
+  --color-success-100: rgb(74 222 128 / 0.26);
+  --color-success-600: #4ade80;
+  --color-success-700: #86efac;
+  --color-warning-50: rgb(251 191 36 / 0.12);
+  --color-warning-100: rgb(251 191 36 / 0.26);
+  --color-warning-600: #fbbf24;
+  --color-warning-700: #fcd34d;
+  --color-danger-50: rgb(248 113 113 / 0.13);
+  --color-danger-100: rgb(248 113 113 / 0.28);
+  --color-danger-600: #f87171;
+  --color-danger-700: #fca5a5;
+  --color-info-50: rgb(96 165 250 / 0.13);
+  --color-info-100: rgb(96 165 250 / 0.28);
+  --color-info-600: #60a5fa;
+  --color-info-700: #93c5fd;
+
+  --admin-workspace: 11 14 16;
+  --admin-glass-tint: 26 32 35;
+  --admin-shadow-ink: 0 0 0;
+  --admin-glass-alpha-bar: 0.74;
+  --admin-glass-alpha-rail: 0.74;
+  --admin-glass-alpha-card: 0.7;
+  --admin-glass-alpha-menu: 0.92;
+  --admin-glass-edge: rgb(255 255 255 / 0.08);
+  --admin-glass-highlight: rgb(255 255 255 / 0.05);
+  --admin-control-alpha: 0.24;
+  --admin-segment-thumb: 60 70 76;
+  --admin-nav-hover: rgb(255 255 255 / 0.06);
+  --admin-nav-active: rgb(60 192 220 / 0.14);
+  --admin-accent: 60 192 220;
+  --admin-focus: 60 192 220;
+  --admin-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --admin-shadow-md: 0 2px 6px rgb(0 0 0 / 0.35), 0 10px 28px rgb(0 0 0 / 0.4);
+  --admin-shadow-lg: 0 6px 16px rgb(0 0 0 / 0.4), 0 28px 64px rgb(0 0 0 / 0.55);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.45);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 24px 56px rgb(0 0 0 / 0.55);
+  --shadow-float: 0 18px 44px -18px rgb(0 0 0 / 0.7);
+}
+
+/* White chips and inputs follow the surface; the switch knob does not. */
+:root[data-admin-theme="dark"] .admin-ui .bg-white:not(.ui-switch-knob):not(.ui-keep-white) {
+  background-color: var(--color-surface);
+}
+
+/* Native controls: date and select popups, scrollbars. */
+:root[data-admin-theme="dark"] .admin-ui :is(input, select, textarea) {
+  color-scheme: dark;
+}
+
+/*
+ * The popup preview shows the public site's popup as visitors see it,
+ * whatever the admin theme: the public tokens again, inside the preview.
+ */
+.admin-ui .public-preview {
+  color-scheme: light;
+  --color-canvas: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f7f9fa;
+  --color-surface-muted: #f1f4f5;
+  --color-surface-panel: #f1f4f5;
+  --color-ink: #0b0d0f;
+  --color-ink-muted: #60696e;
+  --color-ink-subtle: #646d72;
+  --color-line: #e4e8ea;
+  --color-line-strong: #d2d8db;
+  --color-ring: #00819d;
+  --color-primary: #00819d;
+  --color-primary-hover: #006f88;
+  --color-primary-active: #005c71;
+  --color-primary-ink: #ffffff;
+  --color-primary-subtle: #e8f6f9;
+  --color-secondary: #0b0d0f;
+  --color-secondary-hover: #2d3336;
+  --color-secondary-ink: #ffffff;
+  --color-accent: #0ba8c7;
+  --color-danger-50: #fef3f2;
+  --color-danger-100: #fee4e2;
+  --color-danger-600: #c3352b;
+  --color-danger-700: #9f2a22;
+  --color-success-50: #eefbf3;
+  --color-success-100: #d6f5e2;
+  --color-success-700: #0c603b;
+  color: var(--color-ink);
+}
+
+/* ------------------------------------------------------------ glass -- */
+/*
+ * Glass only where it helps orientation: the rail, the top bar's backing
+ * layer, menus and the search panel, and compact metric tiles. Never on
+ * tables, forms or editors, and never glass inside glass.
+ */
+
+.admin-ui .glass-rail,
+.admin-ui .glass-bar {
+  background: rgb(var(--admin-glass-tint) / var(--admin-glass-alpha-rail));
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(170%);
+  border: 1px solid var(--admin-glass-edge);
+  box-shadow:
+    0 1px 2px rgb(var(--admin-shadow-ink) / 0.04),
+    0 12px 32px rgb(var(--admin-shadow-ink) / 0.06),
+    inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-ui .glass-bar {
+  background: rgb(var(--admin-glass-tint) / var(--admin-glass-alpha-bar));
+}
+
+.admin-ui .glass-menu {
+  background: rgb(var(--admin-glass-tint) / var(--admin-glass-alpha-menu));
+  backdrop-filter: blur(var(--admin-glass-blur-menu)) saturate(170%);
+  border: 1px solid var(--color-line);
+  border-radius: var(--admin-radius-menu);
+  box-shadow: var(--admin-shadow-lg), inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-ui .glass-card {
+  background: rgb(var(--admin-glass-tint) / var(--admin-glass-alpha-card));
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--admin-glass-edge);
+  border-radius: var(--admin-radius-card);
+  box-shadow: var(--admin-shadow-sm), inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-ui .admin-scrim {
+  background-color: rgb(var(--admin-shadow-ink) / 0.36);
+  backdrop-filter: blur(4px);
+}
+
+:root[data-admin-theme="dark"] .admin-ui :is(.glass-rail, .glass-bar, .glass-card) {
+  border-color: rgb(255 255 255 / 0.07);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 12px 32px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+/* A faint clinical wash behind the workspace, so the glass has something to
+   sit over. Cyan and teal only, and very quiet. */
+.admin-ui .admin-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 30rem at 8% 0%, rgb(var(--admin-accent) / 0.1), transparent 65%),
+    radial-gradient(36rem 26rem at 96% 12%, rgb(19 165 142 / 0.07), transparent 65%);
+}
+
+:root[data-admin-theme="dark"] .admin-ui .admin-ambient {
+  opacity: 0.75;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .admin-ui .glass-rail,
+  .admin-ui .glass-bar,
+  .admin-ui .glass-menu,
+  .admin-ui .glass-card {
+    background: rgb(var(--admin-glass-tint) / 0.97);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-ui .glass-rail,
+  .admin-ui .glass-bar,
+  .admin-ui .glass-menu,
+  .admin-ui .glass-card,
+  .admin-ui .admin-scrim {
+    background: rgb(var(--admin-glass-tint) / 0.98);
+    backdrop-filter: none;
+  }
+
+  .admin-ui .admin-scrim {
+    background: rgb(var(--admin-shadow-ink) / 0.55);
+  }
+
+  .admin-ui .admin-ambient {
+    display: none;
+  }
+}
+
+/* Under the sticky bar: content fades out rather than sliding under a hard edge. */
+.admin-ui .topbar-fade {
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--admin-workspace)) 0%,
+    rgb(var(--admin-workspace) / 0.85) 60%,
+    rgb(var(--admin-workspace) / 0) 100%
+  );
+}
+
+/* ------------------------------------------------------- navigation -- */
+
+.admin-ui .nav-item {
+  transition:
+    background-color var(--admin-motion-fast) var(--admin-ease),
+    color var(--admin-motion-fast) var(--admin-ease);
+}
+
+.admin-ui .nav-item:hover {
+  background-color: var(--admin-nav-hover);
+}
+
+.admin-ui .nav-item[data-active="true"] {
+  background-color: var(--admin-nav-active);
+  color: var(--color-ink);
+}
+
+.admin-ui .admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--admin-control-fill) / 0.3) transparent;
+}
+
+.admin-ui .scroll-x {
+  position: relative;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.admin-ui .admin-focus-ring:focus-visible,
+.admin-ui .nav-item:focus-visible {
+  outline: 2px solid rgb(var(--admin-focus));
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------- controls -- */
+
+.admin-ui .ui-switch[data-state="off"] {
+  background-color: rgb(var(--admin-control-fill) / calc(var(--admin-control-alpha) + 0.12));
+  box-shadow: inset 0 0 0 1px rgb(var(--admin-control-fill) / 0.35);
+}
+
+.admin-ui .ui-switch-knob {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.18),
+    0 2px 6px rgb(0 0 0 / 0.12);
+}
+
+.admin-ui .ui-switch:focus-visible {
+  outline: 2px solid rgb(var(--admin-focus));
+  outline-offset: 2px;
+}
+
+.admin-ui .ui-segmented {
+  background-color: rgb(var(--admin-control-fill) / var(--admin-control-alpha));
+}
+
+.admin-ui .ui-segmented-thumb {
+  background-color: rgb(var(--admin-segment-thumb));
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 0 0 0.5px rgb(0 0 0 / 0.04);
+}
+
+.admin-ui .ui-segmented-badge {
+  background-color: rgb(var(--admin-control-fill) / 0.16);
+  color: var(--color-ink-muted);
+}
+
+.admin-ui [data-selected] > .ui-segmented-badge {
+  background-color: rgb(var(--admin-accent) / 0.14);
+  color: var(--color-primary);
+}
+
+.admin-ui .search-field {
+  background-color: rgb(var(--admin-control-fill) / var(--admin-control-alpha));
+  box-shadow: inset 0 0 0 1px rgb(var(--admin-control-fill) / 0.06);
+  transition:
+    background-color var(--admin-motion-fast) var(--admin-ease),
+    box-shadow var(--admin-motion-fast) var(--admin-ease);
+}
+
+.admin-ui .search-field:hover {
+  background-color: rgb(var(--admin-control-fill) / calc(var(--admin-control-alpha) + 0.05));
+}
+
+.admin-ui .search-option-active {
+  background-color: rgb(var(--admin-accent) / 0.1);
+}
+
+.admin-ui .search-kbd {
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-surface);
+  padding: 0.0625rem 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1rem;
+  color: var(--color-ink-muted);
+  box-shadow: 0 1px 0 var(--color-line);
+}
+
+/* Theme switch: its position is drawn from <html data-admin-theme>, so the
+   first paint is already right and nothing flips on hydration. */
+.admin-ui .theme-switch {
+  background-color: rgb(var(--admin-control-fill) / var(--admin-control-alpha));
+  box-shadow: inset 0 0 0 1px rgb(var(--admin-control-fill) / 0.12);
+  color: var(--color-ink-muted);
+}
+
+.admin-ui .theme-switch:hover {
+  background-color: rgb(var(--admin-control-fill) / calc(var(--admin-control-alpha) + 0.06));
+}
+
+.admin-ui .theme-switch-thumb {
+  background-color: #ffffff;
+  color: #d97706;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.16),
+    0 3px 8px rgb(0 0 0 / 0.1);
+  transition:
+    transform var(--admin-motion-base) var(--admin-ease),
+    background-color var(--admin-motion-base) var(--admin-ease);
+}
+
+.admin-ui .theme-switch-moon {
+  display: none;
+}
+
+:root[data-admin-theme="dark"] .admin-ui .theme-switch-thumb {
+  transform: translateX(1.75rem);
+  background-color: #3a444a;
+  color: #e2e8f0;
+}
+
+:root[data-admin-theme="dark"] .admin-ui .theme-switch-sun {
+  display: none;
+}
+
+:root[data-admin-theme="dark"] .admin-ui .theme-switch-moon {
+  display: block;
+}
+
+/* Calendar */
+.admin-ui .ui-calendar-day[data-today]:not([data-selected]) {
+  color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px rgb(var(--admin-accent) / 0.45);
+}
+
+.admin-ui .ui-calendar-day[data-selected] {
+  background-color: var(--color-primary);
+  color: var(--color-primary-ink);
+  font-weight: 600;
+}
+
+.admin-ui .ui-calendar-day:focus-visible {
+  outline: 2px solid rgb(var(--admin-focus));
+  outline-offset: 1px;
+}
+
+.admin-ui .ui-calendar-range {
+  background-color: rgb(var(--admin-accent) / 0.12);
+}
+
+.admin-ui .ui-calendar-range-start {
+  border-radius: 999px 0 0 999px;
+}
+
+.admin-ui .ui-calendar-range-end {
+  border-radius: 0 999px 999px 0;
+}
+
+.admin-ui .ui-calendar-range-start.ui-calendar-range-end {
+  border-radius: 999px;
+}
+
+.admin-ui .ui-calendar-month[aria-pressed="true"] {
+  background-color: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.admin-ui .ui-popover-sheet {
+  box-shadow: var(--admin-shadow-lg);
+}
+
+.admin-ui fieldset {
+  min-inline-size: 0;
+}
+
+/* ----------------------------------------------------------- motion -- */
+
+.admin-ui .admin-pop-in {
+  animation: admin-pop-in 160ms var(--admin-ease) both;
+}
+
+.admin-ui .admin-fade-in {
+  animation: admin-fade-in 200ms ease-out both;
+}
+
+.admin-ui .admin-slide-up {
+  animation: admin-slide-up 240ms var(--admin-ease) both;
+}
+
+@keyframes admin-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+}
+
+@keyframes admin-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-ui .admin-pop-in,
+  .admin-ui .admin-fade-in,
+  .admin-ui .admin-slide-up {
+    animation: none;
+  }
+
+  .admin-ui *,
+  .admin-ui *::before,
+  .admin-ui *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The theme cross-fade (View Transitions), admin only. */
+html:has(body.admin-ui)::view-transition-old(root),
+html:has(body.admin-ui)::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+/* ------------------------------------------------- shared primitives -- */
+
+.admin-ui .ui-card:not(.glass-card) {
+  border-radius: var(--admin-radius-card);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-ui dialog.surface-reset {
+  border: 1px solid var(--color-line);
+  border-radius: var(--admin-radius-dialog);
+  box-shadow: var(--admin-shadow-lg);
+}
+
+/* The phone drawer sits over the page itself: denser glass, for reading. */
+.admin-ui .glass-rail[aria-modal="true"] {
+  background: rgb(var(--admin-glass-tint) / 0.94);
+}

@@ -29,7 +29,7 @@ import {
   type RendererProps,
 } from "./sections/renderers";
 import { locationsIndex } from "@/server/locations/public";
-import { publicForm, type PublicForm } from "@/server/forms/service";
+import { clientForm, publicForm, type ClientForm } from "@/server/forms/service";
 
 export type StoredSection = {
   id: string;
@@ -185,7 +185,7 @@ function entityRequests(sections: StoredSection[]): EntityRequest[] {
  */
 async function resolveForms(
   sections: StoredSection[],
-): Promise<Map<string, PublicForm>> {
+): Promise<Map<string, ClientForm>> {
   const keys = new Set<string>();
   for (const section of sections) {
     const definition = getSectionDefinition(section.type);
@@ -199,11 +199,12 @@ async function resolveForms(
     }
   }
 
-  const resolved = new Map<string, PublicForm>();
+  const resolved = new Map<string, ClientForm>();
   await Promise.all(
     [...keys].map(async (key) => {
       const form = await publicForm(key);
-      if (form) resolved.set(key, form);
+      // Only what the browser needs: the recipient address stays here.
+      if (form) resolved.set(key, clientForm(form));
     }),
   );
   return resolved;
@@ -301,7 +302,7 @@ export async function RenderedSections({
         // A built form that has since been unpublished or deleted resolves to
         // nothing, and the section falls back to the enquiry form rather than
         // rendering a gap where a form used to be.
-        const forms: Record<string, PublicForm | null> = {};
+        const forms: Record<string, ClientForm | null> = {};
         for (const field of definition.fields) {
           if (field.kind !== "formKey") continue;
           const key = content[field.name];

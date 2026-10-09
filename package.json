@@ -16,7 +16,8 @@
     "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:states": "tsx scripts/seed-states.ts",
-    "db:seed:demo": "tsx scripts/seed-demo.ts"
+    "db:seed:demo": "tsx scripts/seed-demo.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -52,7 +53,8 @@
     "prisma": "^7.10.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "next-auth": {

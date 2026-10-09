@@ -76,6 +76,8 @@ type Manifest = {
   cities: string[];
   states: string[];
   menuItems: string[];
+  /** Demo popups. Always created switched off. */
+  popups: string[];
   /** Settings this script filled, with the value they had before. */
   settings: Record<string, string | null>;
 };
@@ -85,6 +87,7 @@ const EMPTY_MANIFEST: Manifest = {
   cities: [],
   states: [],
   menuItems: [],
+  popups: [],
   settings: {},
 };
 
@@ -919,6 +922,45 @@ async function add(): Promise<void> {
     }
   }
 
+  // ---- popup. Created switched off and never switched on here: a demo must
+  // not put a dialog in front of visitors of a live site. Staff try it from
+  // Popups in the admin.
+  const keptPopup = manifest.popups.length
+    ? await prisma.popup.findFirst({ where: { id: { in: manifest.popups }, deletedAt: null }, select: { id: true } })
+    : null;
+  if (!keptPopup) {
+    const form = await prisma.form.findFirst({
+      where: { status: "PUBLISHED", deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    const popup = await prisma.popup.create({
+      data: {
+        name: "Demo – ICU / OT project enquiry",
+        type: form ? "ENQUIRY" : "ANNOUNCEMENT",
+        active: false,
+        eyebrow: "Project enquiry",
+        heading: "Planning an ICU or OT upgrade?",
+        description:
+          "Share your equipment requirements and speak with our team about a suitable equipment shortlist.",
+        imageId: await scene("icu", "Intensive care unit with patient monitoring at each bed"),
+        formId: form?.id ?? null,
+        ctaLabel: form ? null : "Discuss your requirement",
+        ctaHref: form ? null : "/contact",
+        trigger: "DELAY",
+        delaySeconds: 12,
+        device: "ALL",
+        frequencyDays: 7,
+        targetMode: "EXCLUDE",
+        targetRules: ["/blog/*"],
+        priority: 0,
+      },
+      select: { id: true },
+    });
+    manifest.popups.push(popup.id);
+    created += 1;
+  }
+
   // Demo content must not end up in search results.
   await prisma.setting.upsert({
     where: { key: "seo.noindex" },
@@ -979,6 +1021,8 @@ async function remove(): Promise<void> {
     },
   });
   await prisma.navigationItem.deleteMany({ where: { id: { in: manifest.menuItems } } });
+  // Only the popups this script created, by id: a popup staff made is never touched.
+  const popups = await prisma.popup.deleteMany({ where: { id: { in: manifest.popups ?? [] } } });
 
   // Settings go back to what they were — unless someone has changed them since.
   for (const [key, previous] of Object.entries(manifest.settings)) {
@@ -997,7 +1041,7 @@ async function remove(): Promise<void> {
   await prisma.setting.deleteMany({ where: { key: MANIFEST_KEY } });
 
   console.log(
-    `Demo content removed: ${removedProducts.count} products, ${parents.count + subcategories.count} categories, ${brands.count} brands, ${specialties.count} specialties, ${solutions.count} solutions, ${applications.count} applications, ${posts.count} articles, ${cities.count} cities, ${pages.count} pages, ${assets.length} files.`,
+    `Demo content removed: ${removedProducts.count} products, ${parents.count + subcategories.count} categories, ${brands.count} brands, ${specialties.count} specialties, ${solutions.count} solutions, ${applications.count} applications, ${posts.count} articles, ${cities.count} cities, ${pages.count} pages, ${popups.count} popups, ${assets.length} files.`,
   );
   console.log(
     'When the real content is in, switch off "Ask search engines not to index this site" in Settings → SEO, then restart the application.',

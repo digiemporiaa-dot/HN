@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import type { SectionDesign } from "@/lib/design/section-options";
 import type { ResolvedMedia } from "@/cms/render-page";
 import type { ResolvedEntity } from "@/cms/sections/entities";
-import type { PublicForm } from "@/server/forms/service";
+import type { ClientForm } from "@/server/forms/service";
 
 export type LocationGroup = {
   id: string;
@@ -30,7 +30,7 @@ export type RendererProps = {
   entities: Record<string, ResolvedEntity[]>;
   /** Built forms for FORMKEY fields, keyed by field name. Null means the
    *  enquiry form, either by choice or because the chosen one is gone. */
-  forms: Record<string, PublicForm | null>;
+  forms: Record<string, ClientForm | null>;
   /** Published cities by state, for the locations section. */
   locations: LocationGroup[];
   /** True for the first section on the page — it may sit under the header. */

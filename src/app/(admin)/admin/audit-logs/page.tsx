@@ -7,6 +7,7 @@ import { AdminPage } from "@/components/admin/admin-page";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { DataTable } from "@/components/admin/data-table";
 import { TableFilter, TableSearch } from "@/components/admin/data-table-parts";
+import { DateRangeFilter } from "@/components/admin/date-range-filter";
 import type { PermissionModule } from "@/generated/prisma/enums";
 import { prisma } from "@/server/db";
 import { currentPermissions, requirePermission } from "@/server/permissions";
@@ -129,6 +130,7 @@ export default async function AuditLogPage({
               allLabel="All time"
               options={AUDIT_PERIODS.map((period) => ({ ...period }))}
             />
+            <DateRangeFilter label="Date range" />
             <TableFilter
               paramName="module"
               label="Area"

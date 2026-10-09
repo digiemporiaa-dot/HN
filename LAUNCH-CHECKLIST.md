@@ -50,6 +50,9 @@ section of `DEPLOYMENT.md` that explains it.
       `node ops/seed-demo.mjs --remove`, or every "Partner …" brand, `demo-`
       product and post, and the homepage's indicative figures replaced with
       real, verified ones (the homepage statistics note says so until edited).
+- [ ] Popups (optional): none is active after a deploy. Create one, check the
+      preview, then switch it on (see `docs/POPUPS-AND-ADMIN-UI.md`). A demo
+      popup, if demo content was loaded, stays off and goes with `--remove`.
 - [ ] Blog (optional): publish articles, then add a "Blog" link (`/blog`) to
       the header or footer under Navigation.
 - [ ] SEO → Redirects: one per address on the old site.

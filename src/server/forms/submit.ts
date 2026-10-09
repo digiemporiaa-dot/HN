@@ -20,6 +20,7 @@ import { recordLeadActivity } from "@/server/leads/activity";
 import { leadFromAnswers } from "./lead";
 import { sendMail } from "@/server/mail/send";
 import { publicForm } from "./service";
+import { verifiedPopupForForm } from "@/server/popups/service";
 import { collectAnswers } from "./answers";
 import { submissionNotification } from "./templates";
 
@@ -151,6 +152,12 @@ export async function submitFormAction(
     });
   }
 
+  // A popup is credited only when it is live, is an enquiry popup and holds
+  // this very form. A posted id that fails any of that is ignored, not
+  // trusted and not reported back.
+  const postedPopup = String(formData.get("popupId") ?? "").slice(0, 64);
+  const popup = postedPopup ? await verifiedPopupForForm(postedPopup, form.id) : null;
+
   const answers = { ...collected.answers };
   for (const file of stored) answers[file.fieldKey] = file.originalName;
 
@@ -192,7 +199,9 @@ export async function submitFormAction(
       await recordLeadActivity({
         leadId: lead.id,
         kind: "CREATED",
-        summary: `Submitted through ${form.name}`,
+        summary: popup
+          ? `Submitted through ${form.name} (popup: ${popup.name})`
+          : `Submitted through ${form.name}`,
       });
     }
   }
@@ -203,7 +212,11 @@ export async function submitFormAction(
     entityType: "Form",
     entityId: form.id,
     summary: `${form.name} submitted`,
-    metadata: { submissionId: submission.id, files: stored.length },
+    metadata: {
+      submissionId: submission.id,
+      files: stored.length,
+      ...(popup ? { popupId: popup.id } : {}),
+    },
     ...context,
   });
 
