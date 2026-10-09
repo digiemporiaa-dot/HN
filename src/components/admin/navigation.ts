@@ -24,7 +24,16 @@ export type AdminNavItem = {
 };
 
 export type AdminNavGroup = {
+  /** The registry module's stable key ("sales"). */
+  key: string;
   label: string;
+  icon: LucideIcon;
+  /**
+   * Whether the module opens as a dropdown of its entries. Decided by the
+   * registry (a module defining more than one entry), not by what one person
+   * may see, so the menu's shape does not change from role to role.
+   */
+  nested: boolean;
   items: AdminNavItem[];
 };
 
@@ -35,7 +44,10 @@ const moduleOf = (resourceKey: string): PermissionModule => {
 };
 
 export const ADMIN_NAV: AdminNavGroup[] = MODULES.map((group) => ({
+  key: group.key,
   label: group.label,
+  icon: group.icon,
+  nested: group.nav.length > 1,
   items: group.nav.map((entry) => {
     const visible = "visibleWithAny" in entry ? entry.visibleWithAny : [entry.resource];
     return {
@@ -54,14 +66,44 @@ export function isNavItemActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** The permission-filtered menu as the server sends it to the browser. */
+/**
+ * The permission-filtered menu as the server sends it to the browser. Icons
+ * are components and cannot cross that boundary, so the browser looks them
+ * up by module key and href (moduleIcon, iconForHref).
+ */
 export type VisibleNav = Array<{
+  key: string;
   label: string;
+  nested: boolean;
   items: Array<{ label: string; href: string; available: boolean }>;
 }>;
 
 export function iconForHref(href: string): LucideIcon | undefined {
   return ADMIN_NAV.flatMap((group) => group.items).find((item) => item.href === href)?.icon;
+}
+
+export function moduleIcon(key: string): LucideIcon | undefined {
+  return ADMIN_NAV.find((group) => group.key === key)?.icon;
+}
+
+/**
+ * The menu entry a path belongs to: the longest href that matches, so a
+ * screen several levels down still lights up its own entry and module.
+ */
+export function activeNavEntry(
+  pathname: string,
+  groups: VisibleNav,
+): { groupKey: string; groupLabel: string; item: { label: string; href: string } } | null {
+  let best: { groupKey: string; groupLabel: string; item: { label: string; href: string } } | null = null;
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (!isNavItemActive(item.href, pathname)) continue;
+      if (!best || item.href.length > best.item.href.length) {
+        best = { groupKey: group.key, groupLabel: group.label, item };
+      }
+    }
+  }
+  return best;
 }
 
 /** "Create" entries for the top bar and the command palette. */
@@ -85,13 +127,8 @@ export function locateRoute(
   pathname: string,
   groups: VisibleNav,
 ): { group: string | null; item: { label: string; href: string } | null; leaf: string | null } {
-  let best: { group: string; item: { label: string; href: string } } | null = null;
-  for (const group of groups) {
-    for (const item of group.items) {
-      if (!isNavItemActive(item.href, pathname)) continue;
-      if (!best || item.href.length > best.item.href.length) best = { group: group.label, item };
-    }
-  }
+  const found = activeNavEntry(pathname, groups);
+  const best = found ? { group: found.groupLabel, item: found.item } : null;
   if (!best) {
     if (pathname.startsWith("/admin/profile")) return { group: null, item: { label: "My profile", href: "/admin/profile" }, leaf: null };
     return { group: null, item: null, leaf: null };
