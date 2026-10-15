@@ -17,6 +17,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:states": "tsx scripts/seed-states.ts",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
+    "db:seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "test": "vitest run"
   },
   "dependencies": {

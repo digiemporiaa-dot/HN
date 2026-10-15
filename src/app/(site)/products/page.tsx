@@ -35,7 +35,7 @@ const PAGE_SIZE = 12;
 const BASE_METADATA: Metadata = {
   title: "Products",
   description:
-    "Medical, surgical and hospital equipment supplied, installed and serviced for healthcare institutions.",
+    "Laparoscopy and open surgery instruments, gynaecology instruments, portable endoscopy systems and sterilization trays from HN Medical System.",
   alternates: { canonical: "/products" },
 };
 
@@ -137,10 +137,10 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
         eyebrow="Equipment catalogue"
         title={
           <>
-            Medical technology for every <strong className="font-semibold">clinical environment.</strong>
+            Instruments for open and <strong className="font-semibold">laparoscopic surgery.</strong>
           </>
         }
-        description="Monitoring, critical care, imaging, operation theatre, neonatal and emergency equipment — every product quoted to your requirement."
+        description="Clip applicators, graspers, needle holders, trocars, endoscopy systems and sterilization trays — every product quoted to your requirement."
         aside={<HeroMosaic />}
         size="lg"
       >
@@ -300,19 +300,19 @@ export default async function ProductsIndex({ searchParams }: RouteParams) {
   );
 }
 
-/** A group shot on the stage surface: equipment arranged like a campaign. */
+/** A group shot on the stage surface: catalogue pictures arranged like a campaign. */
 function HeroMosaic() {
   return (
     <div className="stage-surface relative hidden aspect-[5/4] overflow-hidden rounded-[1.75rem] lg:block">
       <span aria-hidden="true" className="absolute bottom-[7%] left-[12%] h-[8%] w-[76%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(11_13_15/0.14),transparent)] blur-md" />
       <div className="absolute top-[10%] right-[6%] bottom-[8%] w-[36%]">
-        <SmartImage src={`${HOUSE}/products/icu-ventilator.webp`} alt="ICU ventilator" sizes="16vw" fit="contain" priority />
+        <SmartImage src={`${HOUSE}/catalogue/zms-ps046a.webp`} alt="Portable HD endoscopy unit" sizes="16vw" fit="contain" priority />
       </div>
       <div className="absolute top-[22%] bottom-[8%] left-[30%] w-[30%]">
-        <SmartImage src={`${HOUSE}/products/ultrasound.webp`} alt="Ultrasound system" sizes="14vw" fit="contain" />
+        <SmartImage src={`${HOUSE}/catalogue/trocar-magnetic.webp`} alt="Magnetic trocar" sizes="14vw" fit="contain" />
       </div>
       <div className="absolute bottom-[9%] left-[6%] h-[42%] w-[38%]">
-        <SmartImage src={`${HOUSE}/products/patient-monitor.webp`} alt="Patient monitor" sizes="16vw" fit="contain" />
+        <SmartImage src={`${HOUSE}/catalogue/sy-gwg200.webp`} alt="Irrigation pump" sizes="16vw" fit="contain" />
       </div>
     </div>
   );

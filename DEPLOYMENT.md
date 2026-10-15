@@ -250,6 +250,28 @@ After either command, **restart the application** in Coolify so cached
 pages are rebuilt. When the real content is in and the demo is removed,
 switch indexing back on in **Settings → SEO**.
 
+### The HN Medical System catalogue
+
+The real product range, transcribed from the HN Medical System catalogue
+(open and laparoscopy instruments, gynaecology instruments, portable
+endoscopy systems and sterilization trays), is loaded with its own command:
+55 products in four categories, each with its catalogue codes, sizes,
+highlights and pictures (`public/images/hn/catalogue`, copied into the media
+library). The data lives in `scripts/catalogue/hn-catalogue.ts`.
+
+```bash
+node ops/seed-catalogue.mjs --dry-run   # list what would change
+node ops/seed-catalogue.mjs             # load it
+```
+
+Loading it also moves **every product that is not in the catalogue** to the
+bin — demo products and any added by hand — and then any category left
+empty, the same soft delete as **Delete** in the admin, so each can be
+restored from Products (as a draft). Homepage sections that featured a
+removed product or category are pointed at catalogue ones. A product or
+category that already exists under the same address is never overwritten,
+so the command is safe to run again. Restart the application afterwards.
+
 ---
 
 ## Persistent volumes
