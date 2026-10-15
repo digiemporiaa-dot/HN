@@ -47,7 +47,9 @@ section of `DEPLOYMENT.md` that explains it.
       keep 14).
 - [ ] Pages: homepage, About, Privacy policy, Terms — placeholders filled,
       published.
-- [ ] Catalogue: categories, products, brands published.
+- [ ] Catalogue: `node ops/seed-catalogue.mjs` loads the HN Medical System
+      range and takes every other product off the site (run it with
+      `--dry-run` first); then check categories, products and brands.
 - [ ] Demo content, if it was loaded: removed with
       `node ops/seed-demo.mjs --remove`, or every "Partner …" brand, `demo-`
       product and post, and the homepage's indicative figures replaced with

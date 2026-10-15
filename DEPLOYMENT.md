@@ -250,6 +250,43 @@ After either command, **restart the application** in Coolify so cached
 pages are rebuilt. When the real content is in and the demo is removed,
 switch indexing back on in **Settings → SEO**.
 
+### The HN Medical System catalogue
+
+The real product range, transcribed from the HN Medical System catalogue
+(open and laparoscopy instruments, gynaecology instruments, portable
+endoscopy systems and sterilization trays), is loaded with its own command:
+55 products in four categories, each with its catalogue codes, sizes,
+highlights and pictures (`public/images/hn/catalogue`, copied into the media
+library). The data lives in `scripts/catalogue/hn-catalogue.ts`.
+
+```bash
+node ops/seed-catalogue.mjs --dry-run   # list what would change
+node ops/seed-catalogue.mjs             # load it
+```
+
+Loading it also moves **every product that is not in the catalogue** to the
+bin — demo products and any added by hand — and then any category left
+empty, the same soft delete as **Delete** in the admin, so each can be
+restored from Products (as a draft). Homepage sections that featured a
+removed product or category are pointed at catalogue ones. A product or
+category that already exists under the same address is never overwritten,
+so the command is safe to run again.
+
+The same command publishes the HN Medical System homepage, About, Support,
+Privacy policy and Terms of use pages (`scripts/catalogue/hn-homepage.ts`,
+`scripts/catalogue/hn-pages.ts`). The privacy policy describes what the site
+actually collects; have both legal pages reviewed before launch. Each page
+it replaces is kept in **Pages** as a draft called `<slug>-previous-<date>`
+(for example `home-previous-…`), so nothing is lost. This happens once per page;
+after that the page belongs to the editors and later runs leave it alone.
+If the header menu is still the demo's, it becomes Home, Products, About and
+Contact. The demo's specialties, solutions, "Partner" brands, city pages and
+articles are switched to draft (not deleted), so the header and footer stop
+linking to them. It also fills in the company name, tagline,
+description, phone, email, address and default page titles from the
+catalogue, but only where a setting is blank or still holds the demo
+placeholder. Restart the application afterwards.
+
 ---
 
 ## Persistent volumes

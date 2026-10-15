@@ -157,9 +157,9 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
   const [categoryCount, productCount, specialtyCount, cityCount] = counts;
 
   const figures = [
-    categoryCount > 0 ? { value: String(categoryCount), label: "Equipment categories", detail: "From critical care to hospital furniture" } : null,
+    categoryCount > 0 ? { value: String(categoryCount), label: "Product categories", detail: "From instruments to endoscopy systems" } : null,
     productCount > 0 ? { value: String(productCount), label: "Products in the catalogue", detail: "Each quoted to your requirement" } : null,
-    specialtyCount > 0 ? { value: String(specialtyCount), label: "Clinical specialties", detail: "Departments we equip" } : null,
+    specialtyCount > 0 ? { value: String(specialtyCount), label: "Clinical specialties", detail: "Departments we supply" } : null,
     cityCount > 0 ? { value: String(cityCount), label: "Cities with local pages", detail: "Supply and service across India" } : null,
   ].filter((row): row is { value: string; label: string; detail: string } => row !== null);
 
@@ -181,20 +181,20 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
     section(
       "HERO",
       {
-        overline: "Medical equipment & healthcare technology",
-        heading: "**Precision** equipment, / designed for **care**",
+        overline: "Surgical & laparoscopy instruments",
+        heading: "**Surgical** instruments, / made for **precision**",
         subheading:
           settings.description ??
-          "Medical equipment and healthcare technology for hospitals, clinics, diagnostic centres and healthcare institutions across India.",
-        primaryLabel: "Explore equipment",
+          "Open and laparoscopy instruments, endoscopy systems and sterilization trays for hospitals and surgeons.",
+        primaryLabel: "Explore the catalogue",
         primaryHref: "/products",
-        secondaryLabel: "Our solutions",
-        secondaryHref: "/solutions",
+        secondaryLabel: "Request a quote",
+        secondaryHref: "/rfq",
         points: cards,
         statValue: productCount > 0 ? String(productCount) : "",
         statLabel: productCount > 0 ? "Products in the catalogue" : "",
         statDetail: productCount > 0
-          ? "Each one quoted to your requirement, with installation and support coordinated by our team."
+          ? "Each one quoted to your requirement, singly or as a complete set."
           : "",
       },
       { layout: "editorial", background: "default", spacing: "compact", container: "wide" },
@@ -210,7 +210,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       ? section(
           "CATEGORY_GRID",
           {
-            overline: "Equipment categories",
+            overline: "Our range",
             heading: "Explore by **category**.",
             intro: "",
             items: ids(categories),
@@ -226,7 +226,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
           {
             overline: `Why ${settings.companyName}`,
             heading:
-              "Every department we equip gets the same promise: **dependable technology**, clear guidance and support that lasts beyond installation.",
+              "Every instrument in the catalogue carries its own code, so an order is **a list of codes** — quoted to your requirement.",
             intro: "",
             note: "Figures are counted from the live catalogue.",
             ctaLabel: "Talk to our team",
@@ -253,10 +253,10 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       "CTA",
       {
         overline: "",
-        heading: "Innovation, in service of **care**.",
-        body: "From imaging suites to intensive care, we help hospitals bring dependable technology into every clinical space.",
-        primaryLabel: "Discover our solutions",
-        primaryHref: "/solutions",
+        heading: "Precision, in service of **surgery**.",
+        body: "From a single instrument to a complete laparoscopy set, ordered by catalogue code.",
+        primaryLabel: "Explore the catalogue",
+        primaryHref: "/products",
         secondaryLabel: "",
         secondaryHref: "",
       },
@@ -281,7 +281,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
           "PRODUCT_GRID",
           {
             overline: "Featured",
-            heading: "Featured medical **technology**.",
+            heading: "Featured **instruments**.",
             items: ids(featured),
             ctaLabel: "",
             ctaHref: "",
@@ -294,8 +294,8 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
           "SPECIALTY_GRID",
           {
             overline: "Clinical specialties",
-            heading: "Equipment for every **department**.",
-            intro: "Browse the equipment typically specified for each clinical department.",
+            heading: "Instruments for every **specialty**.",
+            intro: "Browse the instruments typically specified for each specialty.",
             items: ids(specialties),
             ctaLabel: "All specialties",
             ctaHref: "/specialties",
@@ -310,11 +310,10 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
         heading: "From requirement to **installation**.",
         intro: "",
         items: [
-          { title: "Understand", body: "We learn the department, the clinical need and the timeline." },
-          { title: "Recommend", body: "Our team shortlists configurations that fit the brief and budget." },
-          { title: "Quote", body: "A detailed quotation, with specifications and delivery terms." },
-          { title: "Deliver", body: "Coordinated delivery, installation and commissioning on site." },
-          { title: "Support", body: "User orientation and service coordination after handover." },
+          { title: "Choose", body: "Pick the instruments and their codes from the catalogue." },
+          { title: "Send", body: "Send the codes and quantities through the quotation form, by phone or by email." },
+          { title: "Quote", body: "We confirm the configuration and send you a quotation." },
+          { title: "Deliver", body: "Your instruments are packed and dispatched." },
         ],
       },
       { background: "default", spacing: "large", container: "wide" },
@@ -324,9 +323,9 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
           "RELATED_LOCATIONS",
           {
             overline: "Pan-India",
-            heading: "Medical technology, / closer to **care**.",
+            heading: "Surgical instruments, / closer to **you**.",
             intro:
-              "Supporting healthcare institutions across India with equipment sourcing, procurement assistance and installation.",
+              "Supplying hospitals and surgeons across India with instruments and complete sets.",
             ctaLabel: "All locations",
             ctaHref: "/locations",
           },
@@ -348,8 +347,8 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       "CTA",
       {
         overline: "Start a conversation",
-        heading: "Building better healthcare **environments**?",
-        body: "Talk to our team about your equipment requirement — from a single device to a complete department.",
+        heading: "Send us your **code list**.",
+        body: "A single instrument, replacement inserts or a complete set — tell us the codes and quantities and we will prepare your quotation.",
         primaryLabel: "Request a quote",
         primaryHref: "/rfq",
         secondaryLabel: "Talk to our team",

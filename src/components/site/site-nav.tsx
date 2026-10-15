@@ -116,7 +116,7 @@ function CataloguePanel({ data, href }: { data: MegaMenuData; href: string }) {
     <div className="grid gap-10 py-8 lg:grid-cols-12">
       <div className="lg:col-span-8">
         <div className="mb-5 flex items-center justify-between">
-          <p className="eyebrow">Equipment categories</p>
+          <p className="eyebrow">Product categories</p>
           <PanelLink href={href}>View all products</PanelLink>
         </div>
         <ul className="grid grid-cols-2 gap-x-6 gap-y-1 xl:grid-cols-3">

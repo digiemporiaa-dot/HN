@@ -28,7 +28,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # public/ holds the house imagery (public/images/hn) the site falls back to
-# and the demo seeder copies into the media library. Created here as well so
+# and the demo and catalogue seeders copy into the media library. Created here as well so
 # the runtime stage's copy never fails on a checkout without it.
 RUN mkdir -p public
 RUN npx prisma generate \
@@ -36,7 +36,7 @@ RUN npx prisma generate \
 # The operational scripts, bundled with everything they import, so they
 # run in the slim runtime image without the source tree or dev dependencies.
 RUN mkdir -p ops \
- && for script in bootstrap-admin seed-states seed-demo check-env; do \
+ && for script in bootstrap-admin seed-states seed-demo seed-catalogue check-env; do \
       node_modules/.bin/esbuild "scripts/${script}.ts" --bundle --platform=node \
         --format=esm --target=node22 --outfile="ops/${script}.mjs" --log-level=warning \
         --banner:js='import { createRequire as __cr } from "node:module"; const require = __cr(import.meta.url);'; \

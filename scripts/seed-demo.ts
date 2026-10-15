@@ -6,10 +6,7 @@ import type { Prisma } from "../src/generated/prisma/client";
 import { DEFAULT_SECTION_DESIGN } from "../src/lib/design/section-options";
 import type { StorageFolder } from "../src/server/storage/config";
 import { prisma } from "../src/server/db";
-import {
-  buildStorageKey,
-  resolveStoragePath,
-} from "../src/server/storage/paths";
+import { resolveStoragePath } from "../src/server/storage/paths";
 import { SETTINGS_BY_KEY } from "../src/server/settings/registry";
 import { starterHomeSections } from "../src/server/cms/homepage";
 import {
@@ -23,6 +20,7 @@ import {
   type DemoProduct,
 } from "./demo/catalogue";
 import { ABOUT, CITIES, CITY_FAQS, POLICY, POSTS } from "./demo/editorial";
+import { storeFile, webpSize } from "./lib/media";
 
 /**
  * Demo content for the whole public site, to present it fully populated
@@ -121,62 +119,6 @@ const IMAGES = path.resolve(process.cwd(), "public/images/hn");
 const DIMENSIONS: Record<string, [number, number]> = {
   brands: [240, 60],
 };
-
-async function storeFile(params: {
-  originalName: string;
-  bytes: Buffer;
-  folder: StorageFolder;
-  extension: string;
-  mimeType: string;
-  kind: "IMAGE" | "VECTOR" | "DOCUMENT";
-  title: string;
-  altText?: string;
-  width?: number;
-  height?: number;
-}): Promise<string> {
-  const existing = await prisma.mediaAsset.findFirst({
-    where: { originalName: params.originalName, deletedAt: null },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-
-  const storageKey = buildStorageKey({ folder: params.folder, extension: params.extension });
-  const file = resolveStoragePath(storageKey);
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, params.bytes, { mode: 0o640 });
-
-  const asset = await prisma.mediaAsset.create({
-    data: {
-      storageKey,
-      originalName: params.originalName,
-      mimeType: params.mimeType,
-      kind: params.kind,
-      sizeBytes: params.bytes.length,
-      width: params.width,
-      height: params.height,
-      title: params.title,
-      altText: params.altText,
-    },
-    select: { id: true },
-  });
-  return asset.id;
-}
-
-/**
- * Width and height from a WebP header, without an image library (the bundled
- * ops script runs where native modules are not available).
- */
-function webpSize(bytes: Buffer): [number, number] | null {
-  if (bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WEBP") return null;
-  const chunk = bytes.toString("ascii", 12, 16);
-  if (chunk === "VP8X") return [1 + bytes.readUIntLE(24, 3), 1 + bytes.readUIntLE(27, 3)];
-  if (chunk === "VP8 ") return [bytes.readUInt16LE(26) & 0x3fff, bytes.readUInt16LE(28) & 0x3fff];
-  if (chunk === "VP8L") {
-    const bits = bytes.readUInt32LE(21);
-    return [1 + (bits & 0x3fff), 1 + ((bits >> 14) & 0x3fff)];
-  }
-  return null;
-}
 
 /** A house image from public/images/hn, as a media library asset. */
 async function image(
