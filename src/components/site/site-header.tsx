@@ -23,9 +23,7 @@ import { BrandMark } from "./brand-mark";
 const DEFAULT_ITEMS: Array<{ label: string; href: string }> = [
   { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
-  { label: "Solutions", href: "/solutions" },
-  { label: "Specialties", href: "/specialties" },
-  { label: "Locations", href: "/locations" },
+  { label: "Categories", href: "/categories" },
   { label: "Contact", href: "/contact" },
 ];
 

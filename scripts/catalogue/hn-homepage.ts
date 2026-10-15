@@ -231,3 +231,124 @@ export const DEMO_SETTING_VALUES: Record<string, string> = {
   "seo.defaultTitle": "HN Medical — Medical Equipment & Healthcare Infrastructure",
   "seo.titleTemplate": "%s | HN Medical",
 };
+
+/** The header menu, in place of the demo seeder's. */
+export const HEADER_ITEMS: Array<[string, string]> = [
+  ["Home", "/"],
+  ["Products", "/products"],
+  ["About", "/about"],
+  ["Contact", "/contact"],
+];
+
+/** The demo seeder's header menu, recognised so only that one is replaced. */
+export const DEMO_HEADER_ITEMS: Array<[string, string]> = [
+  ["Home", "/"],
+  ["Products", "/products"],
+  ["Solutions", "/solutions"],
+  ["About", "/about"],
+  ["Support", "/support"],
+  ["Contact", "/contact"],
+];
+
+/** Catalogue pictures the About page uses. */
+export const ABOUT_IMAGES = {
+  hero: "sterilization-tray",
+  range: "laparoscopy-set",
+};
+
+/** The About page: who HN Medical System is and what it supplies, from the catalogue. */
+export function hnAboutSections(input: { heroImage: string; rangeImage: string; productCount: number }): HomeSection[] {
+  return [
+    {
+      type: "HERO",
+      content: {
+        overline: "About HN Medical System",
+        heading: "A **surgical house** / in Rohtak",
+        subheading:
+          "HN Medical System supplies open and laparoscopy instruments, gynaecology instruments, portable endoscopy systems and sterilization trays to hospitals and surgeons.",
+        primaryLabel: "Explore the catalogue",
+        primaryHref: "/products",
+        secondaryLabel: "Contact us",
+        secondaryHref: "/contact",
+        image: input.heroImage,
+        note: "",
+        points: [],
+      },
+      design: { layout: "standard", background: "default", spacing: "large", container: "wide" },
+    },
+    {
+      type: "IMAGE_TEXT",
+      content: {
+        image: input.rangeImage,
+        overline: "What we supply",
+        heading: "Instruments for open and **laparoscopic** surgery.",
+        body:
+          `Our catalogue lists ${input.productCount > 0 ? `${input.productCount} products` : "our products"} by code: clip applicators and ligation, grasping and dissecting forceps, scissors, needle holders, trocars and access, suction and irrigation, electrosurgery, retractors and complete instrument sets in Φ3, Φ5 and Φ10 mm.\n\nAlongside the instruments we supply uterine manipulators and gynaecology forceps, portable HD and Full HD endoscopy units, a camera system, an irrigation pump, and perforated sterilization trays to keep each set together.`,
+        points: [
+          { title: "Laparoscopy instruments" },
+          { title: "Gynaecology instruments" },
+          { title: "Endoscopy systems" },
+          { title: "Sterilization trays" },
+        ],
+        ctaLabel: "View all products",
+        ctaHref: "/products",
+      },
+      design: { layout: "editorial", imagePosition: "right", background: "default", spacing: "large", container: "wide" },
+    },
+    {
+      type: "ICON_CARDS",
+      content: {
+        overline: "Working with us",
+        heading: "Built around the **catalogue code**.",
+        intro: "",
+        image: "",
+        ctaLabel: "",
+        ctaHref: "",
+        items: [
+          {
+            title: "Order by code",
+            body: "Each item carries the code printed in our catalogue, so a list of codes and quantities is all we need to quote.",
+            icon: "documents",
+            linkLabel: "",
+            linkHref: "",
+          },
+          {
+            title: "Spares and replacement parts",
+            body: "Sealing caps and rings, reducers, handles and inserts are listed separately, so a set can be kept in service.",
+            icon: "configuration",
+            linkLabel: "",
+            linkHref: "",
+          },
+          {
+            title: "Complete sets",
+            body: "5 and 10 mm, 3 mm and short 200–250 mm laparoscopy sets, and a single-port system.",
+            icon: "portfolio",
+            linkLabel: "",
+            linkHref: "",
+          },
+          {
+            title: "Endoscopy systems",
+            body: "Portable units that combine an HD camera, LED light source, monitor and recorder.",
+            icon: "clinical",
+            linkLabel: "",
+            linkHref: "",
+          },
+        ],
+      },
+      design: { columns: "4", cardStyle: "standard", background: "pearl", spacing: "large", container: "wide" },
+    },
+    {
+      type: "CTA",
+      content: {
+        overline: "Get in touch",
+        heading: "Talk to **HN Medical System**.",
+        body: "Call +91 98180 39441, write to info@hnmedicalsystem.com, or send your code list for a quotation. Office no. 6, Ground floor, Mansarover Colony, Rohtak, Haryana 124001.",
+        primaryLabel: "Request a quote",
+        primaryHref: "/rfq",
+        secondaryLabel: "Contact us",
+        secondaryHref: "/contact",
+      },
+      design: { background: "dark", align: "left", spacing: "xl", container: "wide" },
+    },
+  ];
+}

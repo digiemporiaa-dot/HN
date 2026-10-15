@@ -9,10 +9,14 @@ import { recordAuditEvent } from "../src/server/audit/log";
 import { SETTINGS_BY_KEY } from "../src/server/settings/registry";
 import { HN_CATALOGUE, type CatalogueProduct } from "./catalogue/hn-catalogue";
 import {
+  ABOUT_IMAGES,
   COMPANY_SETTINGS,
+  DEMO_HEADER_ITEMS,
   DEMO_SETTING_VALUES,
+  HEADER_ITEMS,
   HOME_IMAGES,
   HOME_PRODUCTS,
+  hnAboutSections,
   hnHomeSections,
 } from "./catalogue/hn-homepage";
 import { storeFile, webpSize } from "./lib/media";
@@ -37,10 +41,16 @@ import { storeFile, webpSize } from "./lib/media";
  *     admin), and then any category left with nothing live in it;
  *   - points page sections that featured a removed product or category at
  *     catalogue ones instead, so no card links to a page that has gone;
- *   - publishes the HN Medical System homepage (scripts/catalogue/hn-homepage.ts).
- *     The homepage it replaces is kept as a draft page, "home-previous-…", in
- *     Pages. It does this once: after that the homepage is the editors', and
- *     running the script again leaves it alone;
+ *   - publishes the HN Medical System homepage and About page
+ *     (scripts/catalogue/hn-homepage.ts). The page each replaces is kept as a
+ *     draft, "home-previous-…" or "about-previous-…", in Pages. It does this
+ *     once per page: after that the page is the editors', and running the
+ *     script again leaves it alone;
+ *   - sets the header menu to Home, Products, About and Contact, if it is
+ *     still the demo seeder's menu;
+ *   - switches the demo seeder's specialties, solutions, placeholder brands,
+ *     city pages and articles to draft, so the header and footer stop linking
+ *     to hospital-equipment content. Nothing is deleted;
  *   - fills in the company name, description, contact details and default
  *     titles from the catalogue where they are blank or still hold the demo
  *     seeder's placeholders. Anything an administrator typed is kept.
@@ -56,6 +66,7 @@ const DEMO_HERO_IMAGE = "demo-hero-ct-scanner.webp";
 const HERO_IMAGE = HOME_IMAGES.hero;
 /** Records the homepage this script published, so it is only done once. */
 const HOME_MARKER = "catalogue.homepage";
+const ABOUT_MARKER = "catalogue.about";
 const DEMO_MANIFEST = "demo.manifest";
 
 const slugify = (name: string) =>
@@ -418,52 +429,33 @@ async function repointPages(removed: Removed): Promise<number> {
   return changed;
 }
 
-/* ------------------------------------------------------------- homepage -- */
+/* ---------------------------------------------------------------- pages -- */
 
-type HomeResult = "published" | "already" | "would publish";
+type PageResult = { result: "published" | "already" | "would publish"; previous: string | null };
+type SectionRows = Array<{ type: string; content: Record<string, unknown>; design: Record<string, unknown> }>;
 
-async function setUpHomepage(): Promise<{ result: HomeResult; previous: string | null }> {
-  const marker = await prisma.setting.findUnique({ where: { key: HOME_MARKER }, select: { jsonValue: true } });
+/**
+ * Publishes one of the HN Medical System pages at `slug`, once. The page it
+ * replaces stays in Pages as a draft under a slug of its own, and a marker
+ * setting records that it was done, so later runs leave the editors' page
+ * alone.
+ */
+async function publishPage(params: {
+  slug: string;
+  title: string;
+  marker: string;
+  label: string;
+  build: () => Promise<SectionRows>;
+}): Promise<PageResult> {
+  const marker = await prisma.setting.findUnique({ where: { key: params.marker }, select: { key: true } });
   if (marker) return { result: "already", previous: null };
 
-  const current = await prisma.page.findUnique({ where: { slug: "home" }, select: { id: true, title: true } });
-  const previousSlug = `home-previous-${new Date().toISOString().slice(0, 10)}`;
+  const current = await prisma.page.findUnique({ where: { slug: params.slug }, select: { id: true, title: true } });
+  const previousSlug = `${params.slug}-previous-${new Date().toISOString().slice(0, 10)}`;
   if (DRY_RUN) return { result: "would publish", previous: current ? previousSlug : null };
 
-  const products = await prisma.product.findMany({
-    where: { slug: { in: [...catalogueSlugs] }, deletedAt: null, status: "PUBLISHED" },
-    select: { id: true, name: true, slug: true, shortDescription: true, primaryImageId: true },
-  });
-  const byName = new Map(products.map((product) => [product.name, product]));
-  const pick = (names: string[]) => names.map((name) => byName.get(name)).filter((row) => row !== undefined);
+  const sections = await params.build();
 
-  const categories = await prisma.category.findMany({
-    where: { slug: { in: HN_CATALOGUE.map((category) => slugify(category.name)) }, parentId: null, deletedAt: null },
-    orderBy: { order: "asc" },
-    select: { id: true },
-  });
-  const productCount = await prisma.product.count({ where: { deletedAt: null, status: "PUBLISHED" } });
-  const setsCategory = HN_CATALOGUE.find((category) => category.subs.some((sub) => sub.name === "Laparoscopy Sets & Systems"));
-
-  const sections = hnHomeSections({
-    heroImage: await image(HOME_IMAGES.hero, "Polymer clip applicators, gold, purple and green"),
-    setsImage: await image(HOME_IMAGES.sets, "Laparoscopy instruments: trocars, graspers and a needle holder"),
-    cards: pick(HOME_PRODUCTS.cards).map((product) => ({
-      title: product.name,
-      detail: product.shortDescription?.split(/[.,:]/)[0]?.slice(0, 80) ?? "",
-      image: product.primaryImageId ?? "",
-      href: `/products/${product.slug}`,
-    })),
-    categories: categories.map((category) => category.id),
-    bento: pick(HOME_PRODUCTS.bento).map((product) => product.id),
-    endoscopy: pick(HOME_PRODUCTS.endoscopy).map((product) => product.id),
-    productCount,
-    setsHref: setsCategory
-      ? `/categories/${slugify(setsCategory.name)}/${slugify("Laparoscopy Sets & Systems")}`
-      : "/products",
-  });
-
-  // The homepage it replaces stays in Pages as a draft, under a slug of its own.
   let previous: string | null = null;
   if (current) {
     previous = previousSlug;
@@ -478,8 +470,8 @@ async function setUpHomepage(): Promise<{ result: HomeResult; previous: string |
 
   const page = await prisma.page.create({
     data: {
-      slug: "home",
-      title: "Homepage",
+      slug: params.slug,
+      title: params.title,
       ...live(),
       sections: {
         create: sections.map((section, order) => ({
@@ -496,11 +488,11 @@ async function setUpHomepage(): Promise<{ result: HomeResult; previous: string |
 
   await prisma.setting.create({
     data: {
-      key: HOME_MARKER,
+      key: params.marker,
       group: "system",
       type: "JSON",
-      label: "Catalogue homepage",
-      description: "Written by the catalogue seeder once it has published the HN Medical System homepage.",
+      label: `Catalogue ${params.label}`,
+      description: `Written by the catalogue seeder once it has published the HN Medical System ${params.label}.`,
       jsonValue: json({ pageId: page.id, previous }),
     },
   });
@@ -510,11 +502,130 @@ async function setUpHomepage(): Promise<{ result: HomeResult; previous: string |
     entityType: "Page",
     entityId: page.id,
     summary: previous
-      ? `Published the HN Medical System homepage; the previous one is kept as the draft /${previous}`
-      : "Published the HN Medical System homepage",
+      ? `Published the HN Medical System ${params.label}; the previous one is kept as the draft /${previous}`
+      : `Published the HN Medical System ${params.label}`,
     metadata: { source: "seed-catalogue" },
   });
   return { result: "published", previous };
+}
+
+const liveProductCount = () => prisma.product.count({ where: { deletedAt: null, status: "PUBLISHED" } });
+
+async function buildHomepage(): Promise<SectionRows> {
+  const products = await prisma.product.findMany({
+    where: { slug: { in: [...catalogueSlugs] }, deletedAt: null, status: "PUBLISHED" },
+    select: { id: true, name: true, slug: true, shortDescription: true, primaryImageId: true },
+  });
+  const byName = new Map(products.map((product) => [product.name, product]));
+  const pick = (names: string[]) => names.map((name) => byName.get(name)).filter((row) => row !== undefined);
+
+  const categories = await prisma.category.findMany({
+    where: { slug: { in: HN_CATALOGUE.map((category) => slugify(category.name)) }, parentId: null, deletedAt: null },
+    orderBy: { order: "asc" },
+    select: { id: true },
+  });
+  const setsCategory = HN_CATALOGUE.find((category) => category.subs.some((sub) => sub.name === "Laparoscopy Sets & Systems"));
+
+  return hnHomeSections({
+    heroImage: await image(HOME_IMAGES.hero, "Polymer clip applicators, gold, purple and green"),
+    setsImage: await image(HOME_IMAGES.sets, "Laparoscopy instruments: trocars, graspers and a needle holder"),
+    cards: pick(HOME_PRODUCTS.cards).map((product) => ({
+      title: product.name,
+      detail: product.shortDescription?.split(/[.,:]/)[0]?.slice(0, 80) ?? "",
+      image: product.primaryImageId ?? "",
+      href: `/products/${product.slug}`,
+    })),
+    categories: categories.map((category) => category.id),
+    bento: pick(HOME_PRODUCTS.bento).map((product) => product.id),
+    endoscopy: pick(HOME_PRODUCTS.endoscopy).map((product) => product.id),
+    productCount: await liveProductCount(),
+    setsHref: setsCategory
+      ? `/categories/${slugify(setsCategory.name)}/${slugify("Laparoscopy Sets & Systems")}`
+      : "/products",
+  });
+}
+
+async function buildAbout(): Promise<SectionRows> {
+  return hnAboutSections({
+    heroImage: await image(ABOUT_IMAGES.hero, "Perforated sterilization tray with lid and silicone instrument holders"),
+    rangeImage: await image(ABOUT_IMAGES.range, "Laparoscopy instruments: trocars, graspers and a needle holder"),
+    productCount: await liveProductCount(),
+  });
+}
+
+/* --------------------------------------------------------------- header -- */
+
+/**
+ * Replaces the header menu, but only while it is still exactly the demo
+ * seeder's: a menu an administrator has edited is left alone.
+ */
+async function replaceDemoHeader(): Promise<boolean> {
+  const menu = await prisma.navigationMenu.findUnique({
+    where: { key: "HEADER" },
+    select: { id: true, items: { orderBy: { order: "asc" }, select: { id: true, label: true, href: true, parentId: true } } },
+  });
+  if (!menu) return false;
+  const current = menu.items.map((item) => [item.label, item.href ?? ""]);
+  const isDemo =
+    current.length === DEMO_HEADER_ITEMS.length &&
+    menu.items.every((item) => item.parentId === null) &&
+    current.every(([label, href], index) => label === DEMO_HEADER_ITEMS[index][0] && href === DEMO_HEADER_ITEMS[index][1]);
+  if (!isDemo) return false;
+  if (DRY_RUN) return true;
+
+  await prisma.navigationItem.deleteMany({ where: { id: { in: menu.items.map((item) => item.id) } } });
+  for (const [order, [label, href]] of HEADER_ITEMS.entries()) {
+    await prisma.navigationItem.create({ data: { menuId: menu.id, label, href, order } });
+  }
+  await recordAuditEvent({
+    action: "NAVIGATION_ITEM_UPDATED",
+    module: "NAVIGATION",
+    summary: `Header menu set to ${HEADER_ITEMS.map(([label]) => label).join(", ")} for HN Medical System`,
+    metadata: { source: "seed-catalogue" },
+  });
+  return true;
+}
+
+/* ------------------------------------------------------------ demo pages -- */
+
+/**
+ * The demo seeder's hospital-equipment content — specialties, solutions,
+ * placeholder brands, city pages and articles — taken off the site by
+ * switching it to draft. Nothing is deleted: each can be published again, and
+ * `seed-demo --remove` still removes it all.
+ */
+async function unpublishDemoContent(): Promise<Record<string, number>> {
+  const demo = { startsWith: "demo-" };
+  const manifest = await prisma.setting.findUnique({ where: { key: DEMO_MANIFEST }, select: { jsonValue: true } });
+  const cityIds = ((manifest?.jsonValue as { cities?: string[] } | null)?.cities ?? []).filter(Boolean);
+  const draft = { status: "DRAFT" as const, publishedAt: null };
+  const published = { status: "PUBLISHED" as const };
+
+  if (DRY_RUN) {
+    const [specialties, solutions, brands, cities, posts] = await Promise.all([
+      prisma.specialty.count({ where: { slug: demo, ...published } }),
+      prisma.solution.count({ where: { slug: demo, ...published } }),
+      prisma.brand.count({ where: { slug: demo, ...published } }),
+      prisma.city.count({ where: { id: { in: cityIds }, ...published } }),
+      prisma.blogPost.count({ where: { slug: demo, ...published } }),
+    ]);
+    return { specialties, solutions, brands, cities, posts };
+  }
+
+  const [specialties, solutions, brands, cities, posts] = await Promise.all([
+    prisma.specialty.updateMany({ where: { slug: demo, ...published }, data: draft }),
+    prisma.solution.updateMany({ where: { slug: demo, ...published }, data: draft }),
+    prisma.brand.updateMany({ where: { slug: demo, ...published }, data: draft }),
+    prisma.city.updateMany({ where: { id: { in: cityIds }, ...published }, data: draft }),
+    prisma.blogPost.updateMany({ where: { slug: demo, ...published }, data: draft }),
+  ]);
+  return {
+    specialties: specialties.count,
+    solutions: solutions.count,
+    brands: brands.count,
+    cities: cities.count,
+    posts: posts.count,
+  };
 }
 
 /* ------------------------------------------------------------- settings -- */
@@ -574,7 +685,10 @@ async function run(): Promise<void> {
   const added = await add();
   const removed = await remove();
   const pages = await repointPages(removed);
-  const home = await setUpHomepage();
+  const home = await publishPage({ slug: "home", title: "Homepage", marker: HOME_MARKER, label: "homepage", build: buildHomepage });
+  const about = await publishPage({ slug: "about", title: "About us", marker: ABOUT_MARKER, label: "About page", build: buildAbout });
+  const header = await replaceDemoHeader();
+  const demo = await unpublishDemoContent();
   const settings = await fillCompanySettings();
 
   const verb = DRY_RUN ? "Would add" : "Added";
@@ -587,12 +701,25 @@ async function run(): Promise<void> {
   );
   for (const product of removed.products) console.log(`  - ${product.name}`);
   console.log(`${DRY_RUN ? "Would update" : "Updated"} ${pages} page sections that pointed at them.`);
-  if (home.result === "already") console.log("The HN Medical System homepage was published on an earlier run; left as it is.");
-  else
-    console.log(
-      `${home.result === "published" ? "Published" : "Would publish"} the HN Medical System homepage` +
-        (home.previous ? `; the previous homepage is kept as the draft page "${home.previous}".` : "."),
-    );
+  for (const [label, page] of [["homepage", home], ["About page", about]] as const) {
+    if (page.result === "already") console.log(`The HN Medical System ${label} was published on an earlier run; left as it is.`);
+    else
+      console.log(
+        `${page.result === "published" ? "Published" : "Would publish"} the HN Medical System ${label}` +
+          (page.previous ? `; the previous one is kept as the draft page "${page.previous}".` : "."),
+      );
+  }
+  console.log(
+    header
+      ? `${DRY_RUN ? "Would set" : "Set"} the header menu to ${HEADER_ITEMS.map(([label]) => label).join(", ")}.`
+      : "Header menu is not the demo one; left as it is.",
+  );
+  const unpublished = Object.entries(demo).filter(([, count]) => count > 0);
+  console.log(
+    unpublished.length
+      ? `${DRY_RUN ? "Would switch" : "Switched"} demo content to draft: ${unpublished.map(([kind, count]) => `${count} ${kind}`).join(", ")}.`
+      : "No published demo specialties, solutions, brands, cities or articles.",
+  );
   console.log(
     settings.length
       ? `${DRY_RUN ? "Would fill" : "Filled"} from the catalogue: ${settings.join(", ")}.`

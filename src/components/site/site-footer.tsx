@@ -38,7 +38,7 @@ const SOCIAL_ICONS: Record<string, string> = {
  * complete default built from the catalogue when it does not.
  */
 async function columnsFor(): Promise<FooterColumn[]> {
-  const [menu, mega, states, about] = await Promise.all([
+  const [menu, mega, states, about, published] = await Promise.all([
     getMenuTree("FOOTER"),
     getMegaMenuData(),
     locationsIndex().catch(() => []),
@@ -48,7 +48,19 @@ async function columnsFor(): Promise<FooterColumn[]> {
         select: { title: true },
       })
       .catch(() => null),
+    // Which listings have anything in them, so the default columns never link
+    // to an empty index.
+    Promise.all([
+      prisma.solution.count({ where: { status: "PUBLISHED" } }),
+      prisma.specialty.count({ where: { status: "PUBLISHED" } }),
+      prisma.brand.count({ where: { status: "PUBLISHED" } }),
+      prisma.blogPost.count({ where: { status: "PUBLISHED", deletedAt: null } }),
+      prisma.application.count({
+        where: { products: { some: { product: { deletedAt: null, status: "PUBLISHED" } } } },
+      }),
+    ]).catch(() => [0, 0, 0, 0, 0]),
   ]);
+  const [solutionCount, specialtyCount, brandCount, postCount, applicationCount] = published;
 
   const configured = menu
     .filter((column) => column.children.length > 0)
@@ -107,9 +119,9 @@ async function columnsFor(): Promise<FooterColumn[]> {
     label: "Company",
     links: [
       ...(about ? [{ id: "about", label: "About us", href: "/about" }] : []),
-      { id: "solutions", label: "Solutions", href: "/solutions" },
-      { id: "specialties", label: "Specialties", href: "/specialties" },
-      { id: "brands", label: "Brands", href: "/brands" },
+      ...(solutionCount ? [{ id: "solutions", label: "Solutions", href: "/solutions" }] : []),
+      ...(specialtyCount ? [{ id: "specialties", label: "Specialties", href: "/specialties" }] : []),
+      ...(brandCount ? [{ id: "brands", label: "Brands", href: "/brands" }] : []),
       { id: "contact", label: "Contact", href: "/contact" },
     ],
   };
@@ -118,9 +130,11 @@ async function columnsFor(): Promise<FooterColumn[]> {
     id: "auto-resources",
     label: "Resources",
     links: [
-      { id: "blog", label: "Insights & guides", href: "/blog" },
-      { id: "applications", label: "Clinical applications", href: "/applications" },
-      { id: "categories", label: "Equipment categories", href: "/categories" },
+      ...(postCount ? [{ id: "blog", label: "Insights & guides", href: "/blog" }] : []),
+      ...(applicationCount
+        ? [{ id: "applications", label: "Clinical applications", href: "/applications" }]
+        : []),
+      { id: "categories", label: "Product categories", href: "/categories" },
       { id: "rfq", label: "Request a quote", href: "/rfq" },
     ],
   };
@@ -166,7 +180,7 @@ export async function SiteFooter({
 
   const description =
     settings.description ??
-    "Medical equipment and healthcare infrastructure solutions for hospitals, clinics, diagnostic centres and healthcare institutions across India.";
+    "Open and laparoscopy instruments, endoscopy systems and sterilization trays for hospitals and surgeons.";
 
   return (
     <footer className="surface-dark relative overflow-hidden border-t border-white/10 bg-navy-975">
