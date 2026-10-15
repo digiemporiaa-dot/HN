@@ -3,9 +3,18 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import type { Prisma } from "../src/generated/prisma/client";
+import { DEFAULT_SECTION_DESIGN } from "../src/lib/design/section-options";
 import { prisma } from "../src/server/db";
 import { recordAuditEvent } from "../src/server/audit/log";
+import { SETTINGS_BY_KEY } from "../src/server/settings/registry";
 import { HN_CATALOGUE, type CatalogueProduct } from "./catalogue/hn-catalogue";
+import {
+  COMPANY_SETTINGS,
+  DEMO_SETTING_VALUES,
+  HOME_IMAGES,
+  HOME_PRODUCTS,
+  hnHomeSections,
+} from "./catalogue/hn-homepage";
 import { storeFile, webpSize } from "./lib/media";
 
 /**
@@ -26,8 +35,15 @@ import { storeFile, webpSize } from "./lib/media";
  *   - moves every product that is not in the catalogue to the bin (the same
  *     soft delete as Products → Delete, so each can still be restored from the
  *     admin), and then any category left with nothing live in it;
- *   - points homepage sections that featured a removed product or category at
- *     catalogue ones instead, so no card links to a page that has gone.
+ *   - points page sections that featured a removed product or category at
+ *     catalogue ones instead, so no card links to a page that has gone;
+ *   - publishes the HN Medical System homepage (scripts/catalogue/hn-homepage.ts).
+ *     The homepage it replaces is kept as a draft page, "home-previous-…", in
+ *     Pages. It does this once: after that the homepage is the editors', and
+ *     running the script again leaves it alone;
+ *   - fills in the company name, description, contact details and default
+ *     titles from the catalogue where they are blank or still hold the demo
+ *     seeder's placeholders. Anything an administrator typed is kept.
  *
  * Nothing runs automatically. After running it, restart the application so
  * cached pages are rebuilt.
@@ -37,7 +53,10 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const IMAGES = path.resolve(process.cwd(), "public/images/hn/catalogue");
 /** The demo seeder's homepage object, swapped for a catalogue picture. */
 const DEMO_HERO_IMAGE = "demo-hero-ct-scanner.webp";
-const HERO_IMAGE = "polymer-clip-applicator";
+const HERO_IMAGE = HOME_IMAGES.hero;
+/** Records the homepage this script published, so it is only done once. */
+const HOME_MARKER = "catalogue.homepage";
+const DEMO_MANIFEST = "demo.manifest";
 
 const slugify = (name: string) =>
   name
@@ -399,6 +418,154 @@ async function repointPages(removed: Removed): Promise<number> {
   return changed;
 }
 
+/* ------------------------------------------------------------- homepage -- */
+
+type HomeResult = "published" | "already" | "would publish";
+
+async function setUpHomepage(): Promise<{ result: HomeResult; previous: string | null }> {
+  const marker = await prisma.setting.findUnique({ where: { key: HOME_MARKER }, select: { jsonValue: true } });
+  if (marker) return { result: "already", previous: null };
+
+  const current = await prisma.page.findUnique({ where: { slug: "home" }, select: { id: true, title: true } });
+  const previousSlug = `home-previous-${new Date().toISOString().slice(0, 10)}`;
+  if (DRY_RUN) return { result: "would publish", previous: current ? previousSlug : null };
+
+  const products = await prisma.product.findMany({
+    where: { slug: { in: [...catalogueSlugs] }, deletedAt: null, status: "PUBLISHED" },
+    select: { id: true, name: true, slug: true, shortDescription: true, primaryImageId: true },
+  });
+  const byName = new Map(products.map((product) => [product.name, product]));
+  const pick = (names: string[]) => names.map((name) => byName.get(name)).filter((row) => row !== undefined);
+
+  const categories = await prisma.category.findMany({
+    where: { slug: { in: HN_CATALOGUE.map((category) => slugify(category.name)) }, parentId: null, deletedAt: null },
+    orderBy: { order: "asc" },
+    select: { id: true },
+  });
+  const productCount = await prisma.product.count({ where: { deletedAt: null, status: "PUBLISHED" } });
+  const setsCategory = HN_CATALOGUE.find((category) => category.subs.some((sub) => sub.name === "Laparoscopy Sets & Systems"));
+
+  const sections = hnHomeSections({
+    heroImage: await image(HOME_IMAGES.hero, "Polymer clip applicators, gold, purple and green"),
+    setsImage: await image(HOME_IMAGES.sets, "Laparoscopy instruments: trocars, graspers and a needle holder"),
+    cards: pick(HOME_PRODUCTS.cards).map((product) => ({
+      title: product.name,
+      detail: product.shortDescription?.split(/[.,:]/)[0]?.slice(0, 80) ?? "",
+      image: product.primaryImageId ?? "",
+      href: `/products/${product.slug}`,
+    })),
+    categories: categories.map((category) => category.id),
+    bento: pick(HOME_PRODUCTS.bento).map((product) => product.id),
+    endoscopy: pick(HOME_PRODUCTS.endoscopy).map((product) => product.id),
+    productCount,
+    setsHref: setsCategory
+      ? `/categories/${slugify(setsCategory.name)}/${slugify("Laparoscopy Sets & Systems")}`
+      : "/products",
+  });
+
+  // The homepage it replaces stays in Pages as a draft, under a slug of its own.
+  let previous: string | null = null;
+  if (current) {
+    previous = previousSlug;
+    for (let n = 2; await prisma.page.findUnique({ where: { slug: previous }, select: { id: true } }); n++) {
+      previous = `${previousSlug}-${n}`;
+    }
+    await prisma.page.update({
+      where: { id: current.id },
+      data: { slug: previous, title: `${current.title} (previous)`, status: "DRAFT", publishedAt: null },
+    });
+  }
+
+  const page = await prisma.page.create({
+    data: {
+      slug: "home",
+      title: "Homepage",
+      ...live(),
+      sections: {
+        create: sections.map((section, order) => ({
+          type: section.type as never,
+          order,
+          enabled: true,
+          content: json(section.content),
+          design: json({ ...DEFAULT_SECTION_DESIGN, ...section.design }),
+        })),
+      },
+    },
+    select: { id: true },
+  });
+
+  await prisma.setting.create({
+    data: {
+      key: HOME_MARKER,
+      group: "system",
+      type: "JSON",
+      label: "Catalogue homepage",
+      description: "Written by the catalogue seeder once it has published the HN Medical System homepage.",
+      jsonValue: json({ pageId: page.id, previous }),
+    },
+  });
+  await recordAuditEvent({
+    action: "PAGE_CREATED",
+    module: "PAGES",
+    entityType: "Page",
+    entityId: page.id,
+    summary: previous
+      ? `Published the HN Medical System homepage; the previous one is kept as the draft /${previous}`
+      : "Published the HN Medical System homepage",
+    metadata: { source: "seed-catalogue" },
+  });
+  return { result: "published", previous };
+}
+
+/* ------------------------------------------------------------- settings -- */
+
+async function fillCompanySettings(): Promise<string[]> {
+  const changed: string[] = [];
+  for (const [key, value] of Object.entries(COMPANY_SETTINGS)) {
+    const definition = SETTINGS_BY_KEY.get(key);
+    if (!definition) continue;
+    const row = await prisma.setting.findUnique({ where: { key }, select: { value: true } });
+    const currentValue = row?.value ?? null;
+    const placeholder = !currentValue || currentValue === DEMO_SETTING_VALUES[key];
+    if (!placeholder || currentValue === value) continue;
+    changed.push(key);
+    if (DRY_RUN) continue;
+    await prisma.setting.upsert({
+      where: { key },
+      update: { value },
+      create: {
+        key,
+        group: definition.group,
+        type: definition.type,
+        label: definition.label,
+        description: definition.description,
+        value,
+        isSecret: definition.isSecret ?? false,
+      },
+    });
+  }
+
+  // The demo seeder restores the settings it filled when its content is
+  // removed; these now hold real details, so take them off its list.
+  if (!DRY_RUN && changed.length) {
+    const manifest = await prisma.setting.findUnique({ where: { key: DEMO_MANIFEST }, select: { jsonValue: true } });
+    const data = manifest?.jsonValue as { settings?: Record<string, unknown> } | null;
+    if (data?.settings) {
+      for (const key of changed) delete data.settings[key];
+      await prisma.setting.update({ where: { key: DEMO_MANIFEST }, data: { jsonValue: json(data) } });
+    }
+  }
+  if (!DRY_RUN && changed.length) {
+    await recordAuditEvent({
+      action: "SETTINGS_UPDATED",
+      module: "SETTINGS",
+      summary: `Filled ${changed.join(", ")} from the HN Medical System catalogue`,
+      metadata: { source: "seed-catalogue", keys: changed },
+    });
+  }
+  return changed;
+}
+
 /* ------------------------------------------------------------------ run -- */
 
 async function run(): Promise<void> {
@@ -407,6 +574,8 @@ async function run(): Promise<void> {
   const added = await add();
   const removed = await remove();
   const pages = await repointPages(removed);
+  const home = await setUpHomepage();
+  const settings = await fillCompanySettings();
 
   const verb = DRY_RUN ? "Would add" : "Added";
   console.log(`${verb} ${added.categories} categories and ${added.products} products from the HN Medical System catalogue.`);
@@ -418,6 +587,17 @@ async function run(): Promise<void> {
   );
   for (const product of removed.products) console.log(`  - ${product.name}`);
   console.log(`${DRY_RUN ? "Would update" : "Updated"} ${pages} page sections that pointed at them.`);
+  if (home.result === "already") console.log("The HN Medical System homepage was published on an earlier run; left as it is.");
+  else
+    console.log(
+      `${home.result === "published" ? "Published" : "Would publish"} the HN Medical System homepage` +
+        (home.previous ? `; the previous homepage is kept as the draft page "${home.previous}".` : "."),
+    );
+  console.log(
+    settings.length
+      ? `${DRY_RUN ? "Would fill" : "Filled"} from the catalogue: ${settings.join(", ")}.`
+      : "Company and contact settings already set; left as they are.",
+  );
   if (!DRY_RUN) {
     console.log("Removed products can be restored from Products in the admin (as drafts).");
     console.log("Restart the application so cached pages are rebuilt.");

@@ -270,7 +270,17 @@ empty, the same soft delete as **Delete** in the admin, so each can be
 restored from Products (as a draft). Homepage sections that featured a
 removed product or category are pointed at catalogue ones. A product or
 category that already exists under the same address is never overwritten,
-so the command is safe to run again. Restart the application afterwards.
+so the command is safe to run again.
+
+The same command publishes the HN Medical System homepage
+(`scripts/catalogue/hn-homepage.ts`): the catalogue's ranges, instruments,
+sets, endoscopy systems and how to order. The homepage it replaces is kept
+in **Pages** as a draft called `home-previous-<date>`, so nothing is lost.
+This happens once; after that the homepage belongs to the editors and later
+runs leave it alone. It also fills in the company name, tagline,
+description, phone, email, address and default page titles from the
+catalogue, but only where a setting is blank or still holds the demo
+placeholder. Restart the application afterwards.
 
 ---
 

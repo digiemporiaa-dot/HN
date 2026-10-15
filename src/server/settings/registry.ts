@@ -110,7 +110,7 @@ export const SETTINGS: SettingDefinition[] = [
     label: "Tagline",
     description: "One line shown beneath the name in the footer.",
     defaultValue:
-      "Medical, surgical and hospital equipment for healthcare institutions",
+      "A surgical house — open and laparoscopy instruments",
     maxLength: 200,
   },
   {
@@ -120,7 +120,7 @@ export const SETTINGS: SettingDefinition[] = [
     label: "Short description",
     description: "Used as the default meta description when none is set.",
     defaultValue:
-      "B2B supplier of medical, surgical and hospital equipment to healthcare institutions across India.",
+      "Open and laparoscopy instruments, gynaecology instruments, portable endoscopy systems and sterilization trays from HN Medical System, Rohtak.",
     maxLength: 400,
   },
   {
