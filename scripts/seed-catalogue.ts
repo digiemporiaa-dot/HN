@@ -19,6 +19,7 @@ import {
   hnAboutSections,
   hnHomeSections,
 } from "./catalogue/hn-homepage";
+import { SUPPORT_IMAGE, hnPrivacySections, hnSupportSections, hnTermsSections } from "./catalogue/hn-pages";
 import { storeFile, webpSize } from "./lib/media";
 
 /**
@@ -41,9 +42,9 @@ import { storeFile, webpSize } from "./lib/media";
  *     admin), and then any category left with nothing live in it;
  *   - points page sections that featured a removed product or category at
  *     catalogue ones instead, so no card links to a page that has gone;
- *   - publishes the HN Medical System homepage and About page
- *     (scripts/catalogue/hn-homepage.ts). The page each replaces is kept as a
- *     draft, "home-previous-…" or "about-previous-…", in Pages. It does this
+ *   - publishes the HN Medical System homepage, About, Support, Privacy and
+ *     Terms pages (scripts/catalogue/hn-homepage.ts, hn-pages.ts). The page
+ *     each replaces is kept as a draft, "<slug>-previous-…", in Pages. It does this
  *     once per page: after that the page is the editors', and running the
  *     script again leaves it alone;
  *   - sets the header menu to Home, Products, About and Contact, if it is
@@ -67,6 +68,9 @@ const HERO_IMAGE = HOME_IMAGES.hero;
 /** Records the homepage this script published, so it is only done once. */
 const HOME_MARKER = "catalogue.homepage";
 const ABOUT_MARKER = "catalogue.about";
+const SUPPORT_MARKER = "catalogue.support";
+const PRIVACY_MARKER = "catalogue.privacy";
+const TERMS_MARKER = "catalogue.terms";
 const DEMO_MANIFEST = "demo.manifest";
 
 const slugify = (name: string) =>
@@ -553,6 +557,16 @@ async function buildAbout(): Promise<SectionRows> {
   });
 }
 
+async function buildSupport(): Promise<SectionRows> {
+  return hnSupportSections({
+    heroImage: await image(SUPPORT_IMAGE, "Sterilization tray lid marked HN Medical System, Rohtak"),
+  });
+}
+
+/** Today, as the policies print it: "15 October 2026". */
+const today = () =>
+  new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date());
+
 /* --------------------------------------------------------------- header -- */
 
 /**
@@ -687,6 +701,21 @@ async function run(): Promise<void> {
   const pages = await repointPages(removed);
   const home = await publishPage({ slug: "home", title: "Homepage", marker: HOME_MARKER, label: "homepage", build: buildHomepage });
   const about = await publishPage({ slug: "about", title: "About us", marker: ABOUT_MARKER, label: "About page", build: buildAbout });
+  const support = await publishPage({ slug: "support", title: "Support", marker: SUPPORT_MARKER, label: "Support page", build: buildSupport });
+  const privacy = await publishPage({
+    slug: "privacy",
+    title: "Privacy policy",
+    marker: PRIVACY_MARKER,
+    label: "Privacy policy page",
+    build: async () => hnPrivacySections({ updated: today() }),
+  });
+  const terms = await publishPage({
+    slug: "terms",
+    title: "Terms of use",
+    marker: TERMS_MARKER,
+    label: "Terms of use page",
+    build: async () => hnTermsSections({ updated: today() }),
+  });
   const header = await replaceDemoHeader();
   const demo = await unpublishDemoContent();
   const settings = await fillCompanySettings();
@@ -701,7 +730,13 @@ async function run(): Promise<void> {
   );
   for (const product of removed.products) console.log(`  - ${product.name}`);
   console.log(`${DRY_RUN ? "Would update" : "Updated"} ${pages} page sections that pointed at them.`);
-  for (const [label, page] of [["homepage", home], ["About page", about]] as const) {
+  for (const [label, page] of [
+    ["homepage", home],
+    ["About page", about],
+    ["Support page", support],
+    ["Privacy policy page", privacy],
+    ["Terms of use page", terms],
+  ] as const) {
     if (page.result === "already") console.log(`The HN Medical System ${label} was published on an earlier run; left as it is.`);
     else
       console.log(

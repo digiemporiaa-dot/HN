@@ -272,11 +272,12 @@ removed product or category are pointed at catalogue ones. A product or
 category that already exists under the same address is never overwritten,
 so the command is safe to run again.
 
-The same command publishes the HN Medical System homepage and About page
-(`scripts/catalogue/hn-homepage.ts`): the catalogue's ranges, instruments,
-sets, endoscopy systems and how to order. Each page it replaces is kept in
-**Pages** as a draft called `home-previous-<date>` or
-`about-previous-<date>`, so nothing is lost. This happens once per page;
+The same command publishes the HN Medical System homepage, About, Support,
+Privacy policy and Terms of use pages (`scripts/catalogue/hn-homepage.ts`,
+`scripts/catalogue/hn-pages.ts`). The privacy policy describes what the site
+actually collects; have both legal pages reviewed before launch. Each page
+it replaces is kept in **Pages** as a draft called `<slug>-previous-<date>`
+(for example `home-previous-…`), so nothing is lost. This happens once per page;
 after that the page belongs to the editors and later runs leave it alone.
 If the header menu is still the demo's, it becomes Home, Products, About and
 Contact. The demo's specialties, solutions, "Partner" brands, city pages and
