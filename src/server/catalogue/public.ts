@@ -34,7 +34,7 @@ export type TaxonomyRecord = {
   banner: PublicImage | null;
   status: string;
   /** Categories this record is linked to, already filtered to published ones. */
-  categories: Array<{ name: string; slug: string; parentSlug: string | null }>;
+  categories: Array<{ name: string; slug: string; parentSlug: string | null; image: PublicImage | null }>;
   websiteUrl?: string | null;
 };
 
@@ -45,6 +45,7 @@ type LinkRow = {
     status: string;
     deletedAt: Date | null;
     parent: { slug: string } | null;
+    image: { storageKey: string; altText: string | null } | null;
   };
 };
 
@@ -56,6 +57,7 @@ const linkedCategories = (rows: LinkRow[]) =>
       name: row.name,
       slug: row.slug,
       parentSlug: row.parent?.slug ?? null,
+      image: toImage(row.image, row.name),
     }));
 
 const CATEGORY_LINK = {
@@ -67,6 +69,7 @@ const CATEGORY_LINK = {
         status: true,
         deletedAt: true,
         parent: { select: { slug: true } },
+        image: IMAGE,
       },
     },
   },

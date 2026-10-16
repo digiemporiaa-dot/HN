@@ -159,7 +159,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
   const figures = [
     categoryCount > 0 ? { value: String(categoryCount), label: "Product categories", detail: "From instruments to endoscopy systems" } : null,
     productCount > 0 ? { value: String(productCount), label: "Products in the catalogue", detail: "Each quoted to your requirement" } : null,
-    specialtyCount > 0 ? { value: String(specialtyCount), label: "Clinical specialties", detail: "Departments we supply" } : null,
+    specialtyCount > 0 ? { value: String(specialtyCount), label: "Specialties", detail: "Where our instruments are used" } : null,
     cityCount > 0 ? { value: String(cityCount), label: "Cities with local pages", detail: "Supply and service across India" } : null,
   ].filter((row): row is { value: string; label: string; detail: string } => row !== null);
 
@@ -266,7 +266,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       ? section(
           "SOLUTION_GRID",
           {
-            overline: "Healthcare solutions",
+            overline: "Solutions",
             heading: "Designed around **clinical needs**.",
             intro: "",
             items: ids(solutions),
@@ -293,7 +293,7 @@ export async function starterHomeSections(): Promise<StarterSection[]> {
       ? section(
           "SPECIALTY_GRID",
           {
-            overline: "Clinical specialties",
+            overline: "Specialties",
             heading: "Instruments for every **specialty**.",
             intro: "Browse the instruments typically specified for each specialty.",
             items: ids(specialties),
