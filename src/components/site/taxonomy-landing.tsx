@@ -31,14 +31,14 @@ import { SmartImage } from "./media";
 /* Words that change between the four landing types. */
 const COPY: Record<string, { eyebrow: string; overview: string; products: string }> = {
   specialty: {
-    eyebrow: "Clinical specialty",
-    overview: "Equipment for the department",
-    products: "Equipment for this specialty",
+    eyebrow: "Specialty",
+    overview: "About the specialty",
+    products: "Products for this specialty",
   },
   solution: {
-    eyebrow: "Healthcare solution",
+    eyebrow: "Solution",
     overview: "What the solution covers",
-    products: "Equipment in this solution",
+    products: "Products in this solution",
   },
   application: {
     eyebrow: "Clinical environment",
@@ -139,7 +139,7 @@ export function TaxonomyLanding({
             </MetaChip>
             {record.categories.length > 0 ? (
               <MetaChip>
-                {record.categories.length} equipment {record.categories.length === 1 ? "category" : "categories"}
+                {record.categories.length} product {record.categories.length === 1 ? "category" : "categories"}
               </MetaChip>
             ) : null}
           </>
@@ -162,7 +162,7 @@ export function TaxonomyLanding({
                 href="#products"
                 className={buttonStyles({ variant: "soft", size: "lg" })}
               >
-                View equipment
+                View products
               </Link>
             )}
           </div>
@@ -183,8 +183,8 @@ export function TaxonomyLanding({
               <div className="stage-surface reveal-scale relative aspect-[4/3] overflow-hidden rounded-[1.75rem] lg:col-span-6">
                 <div className="absolute inset-[10%]">
                   <SmartImage
-                    src={categoryVisual(record.categories[0].name).url}
-                    alt={categoryVisual(record.categories[0].name).alt}
+                    src={(record.categories[0].image ?? categoryVisual(record.categories[0].name)).url}
+                    alt={(record.categories[0].image ?? categoryVisual(record.categories[0].name)).alt}
                     sizes="(min-width: 1024px) 45vw, 100vw"
                     fit="contain"
                   />
@@ -199,7 +199,7 @@ export function TaxonomyLanding({
       {record.categories.length > 0 ? (
         <Section spacing="large" container="wide" background="pearl">
           <SectionHeader
-            overline="Equipment categories"
+            overline="Product categories"
             title="Ranges to explore."
             action={<ArrowLink href="/categories">All categories</ArrowLink>}
           />
@@ -211,7 +211,7 @@ export function TaxonomyLanding({
                   data={{
                     name: category.name,
                     href: categoryPath(category.slug, category.parentSlug),
-                    image: null,
+                    image: category.image,
                   }}
                   sizes="(min-width: 1024px) 25vw, 50vw"
                 />
@@ -258,8 +258,8 @@ export function TaxonomyLanding({
 
       <PageCta
         background="pearl"
-        title={brand ? `Sourcing ${record.name} equipment?` : `Planning equipment for ${record.name.toLowerCase()}?`}
-        body="Share the department, quantities and timeline — we will prepare a consolidated quotation for your requirement."
+        title={brand ? `Sourcing ${record.name} products?` : `Sourcing for ${record.name}?`}
+        body="Share the codes, quantities and timeline — we will prepare a quotation for your requirement."
         image={heroImage ?? undefined}
         actions={
           <>
@@ -284,8 +284,8 @@ const INDEX_KIND: Record<string, VisualKind | "brand"> = {
 
 const INDEX_EYEBROW: Record<string, string> = {
   categories: "Equipment catalogue",
-  specialties: "Clinical specialties",
-  solutions: "Healthcare solutions",
+  specialties: "Specialties",
+  solutions: "Solutions",
   applications: "Clinical environments",
   brands: "Manufacturers",
 };
@@ -390,8 +390,8 @@ export function TaxonomyIndex({
       </Section>
 
       <PageCta
-        title="Need help choosing equipment?"
-        body="Tell us about the department or project. Our team will help shortlist equipment and prepare a quotation."
+        title="Need help choosing?"
+        body="Tell us the procedure or the instruments you use now. We will point you to the right codes and prepare a quotation."
         actions={
           <>
             <Link href="/rfq" className={buttonStyles({ size: "lg" })}>

@@ -279,6 +279,11 @@ actually collects; have both legal pages reviewed before launch. Each page
 it replaces is kept in **Pages** as a draft called `<slug>-previous-<date>`
 (for example `home-previous-…`), so nothing is lost. This happens once per page;
 after that the page belongs to the editors and later runs leave it alone.
+It also adds HN Medical System specialties (laparoscopic surgery,
+gynaecology, urology, ENT and orthopaedics, as the catalogue lists them) and
+solutions (complete laparoscopy sets, portable endoscopy systems, spares and
+replacement parts), linked to catalogue products
+(`scripts/catalogue/hn-taxonomy.ts`); existing ones are left alone.
 If the header menu is still the demo's, it becomes Home, Products, About and
 Contact. The demo's specialties, solutions, "Partner" brands, city pages and
 articles are switched to draft (not deleted), so the header and footer stop

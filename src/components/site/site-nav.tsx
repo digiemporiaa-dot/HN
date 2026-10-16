@@ -305,7 +305,7 @@ function panelFor(item: HeaderItem, data: MegaMenuData): ReactNode | null {
   if (item.mega === "specialties" && data.specialties.length > 0)
     return (
       <CardsPanel
-        title="Clinical specialties"
+        title="Specialties"
         items={data.specialties}
         href={item.href ?? "/specialties"}
         allLabel="All specialties"
@@ -315,7 +315,7 @@ function panelFor(item: HeaderItem, data: MegaMenuData): ReactNode | null {
   if (item.mega === "solutions" && data.solutions.length > 0)
     return (
       <CardsPanel
-        title="Healthcare solutions"
+        title="Solutions"
         items={data.solutions}
         href={item.href ?? "/solutions"}
         allLabel="All solutions"
