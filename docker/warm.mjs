@@ -14,6 +14,7 @@ const PAGES = [
   "/specialties",
   "/solutions",
   "/applications",
+  "/catalogues",
   "/locations",
   "/contact",
   "/sitemap.xml",

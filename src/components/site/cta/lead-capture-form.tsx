@@ -17,6 +17,7 @@ export type LeadTarget = {
   configKey?: string;
   productId?: string;
   documentId?: string;
+  catalogueId?: string;
 };
 
 const INITIAL: CtaState = {};
@@ -108,6 +109,7 @@ export function LeadCaptureForm({ cta, target }: { cta: EffectiveCta; target: Le
       {target.configKey ? <input type="hidden" name="configKey" value={target.configKey} /> : null}
       {target.productId ? <input type="hidden" name="productId" value={target.productId} /> : null}
       {target.documentId ? <input type="hidden" name="documentId" value={target.documentId} /> : null}
+      {target.catalogueId ? <input type="hidden" name="catalogueId" value={target.catalogueId} /> : null}
       <input type="hidden" name="submissionKey" value={submissionKey} />
       <input type="hidden" name="startedAt" value={startedAt} />
       <LeadContextFields />

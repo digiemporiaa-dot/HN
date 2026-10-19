@@ -236,6 +236,15 @@ export const DEMO_SETTING_VALUES: Record<string, string> = {
 export const HEADER_ITEMS: Array<[string, string]> = [
   ["Home", "/"],
   ["Products", "/products"],
+  ["Catalogues", "/catalogues"],
+  ["About", "/about"],
+  ["Contact", "/contact"],
+];
+
+/** This seeder's earlier header menu, before the Catalogues page existed. */
+export const PREVIOUS_HEADER_ITEMS: Array<[string, string]> = [
+  ["Home", "/"],
+  ["Products", "/products"],
   ["About", "/about"],
   ["Contact", "/contact"],
 ];

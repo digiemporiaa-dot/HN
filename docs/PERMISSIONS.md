@@ -62,6 +62,7 @@ The database still stores the `(PermissionModule, PermissionAction)` enum pair, 
 Notes on specific resources:
 
 - **Subcategories** is a menu entry on the categories resource. It is one tree shown on two screens, so it has no permission set of its own.
+- **PDF catalogues** is a menu entry on the products resource: catalogues are product literature, so whoever may manage products may manage them. Uploading a PDF from its form also needs Media Create.
 - **Quotations** (stored as `RFQ`, id `sales.rfqs`) are leads whose source is RFQ.
   - On the Quotations screen, the status and internal notes need RFQ Edit; the owner needs RFQ Assign; the CSV needs RFQ Export.
   - From the Leads screen, editing, deleting or reassigning one needs the Leads action *and* the matching RFQ action (reassigning: Leads Assign and RFQ Assign).

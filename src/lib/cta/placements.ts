@@ -24,6 +24,7 @@ export const CTA_PLACEMENTS = [
   { id: "header.quote-list", label: "Header — Quotation list", kind: "REQUEST_QUOTATION" },
   { id: "rfq.page", label: "Quotation page (/rfq)", kind: "REQUEST_QUOTATION" },
   { id: "cms.brochure.download", label: "Page builder — Brochure download section", kind: "DOWNLOAD_BROCHURE" },
+  { id: "catalogues.page", label: "Catalogues page — Download", kind: "DOWNLOAD_CATALOGUE" },
   { id: "cms.cta.primary", label: "Page builder — Call to action, primary button", kind: "CUSTOM" },
   { id: "cms.cta.secondary", label: "Page builder — Call to action, secondary button", kind: "CUSTOM" },
 ] as const satisfies readonly CtaPlacement[];

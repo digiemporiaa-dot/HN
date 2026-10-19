@@ -284,8 +284,10 @@ gynaecology, urology, ENT and orthopaedics, as the catalogue lists them) and
 solutions (complete laparoscopy sets, portable endoscopy systems, spares and
 replacement parts), linked to catalogue products
 (`scripts/catalogue/hn-taxonomy.ts`); existing ones are left alone.
-If the header menu is still the demo's, it becomes Home, Products, About and
-Contact. The demo's specialties, solutions, "Partner" brands, city pages and
+If the header menu is still the demo's (or this command's earlier one), it
+becomes Home, Products, Catalogues, About and Contact. PDF catalogues are
+uploaded in the admin under Catalogue › PDF catalogues and listed on
+`/catalogues`; see `docs/CTA-POPUPS-AND-QUOTATIONS.md`. The demo's specialties, solutions, "Partner" brands, city pages and
 articles are switched to draft (not deleted), so the header and footer stop
 linking to them. It also fills in the company name, tagline,
 description, phone, email, address and default page titles from the

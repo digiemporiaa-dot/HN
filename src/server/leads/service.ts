@@ -332,6 +332,8 @@ export async function resolveGrant(token: string): Promise<{
           deletedAt: true,
           title: true,
           originalName: true,
+          // A catalogue from the Catalogues page names the file by its title.
+          catalogueFiles: { select: { title: true }, orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
     },
@@ -345,6 +347,7 @@ export async function resolveGrant(token: string): Promise<{
     : grant.media
       ? {
           title:
+            grant.media.catalogueFiles?.[0]?.title ||
             grant.media.title ||
             grant.media.originalName.replace(/\.[^.]+$/, "") ||
             "Catalogue",
@@ -371,7 +374,7 @@ export async function resolveGrant(token: string): Promise<{
  * pages that matter.
  */
 export async function isGatedStorageKey(storageKey: string): Promise<boolean> {
-  const [document, cta] = await Promise.all([
+  const [document, cta, catalogue] = await Promise.all([
     prisma.productDocument.findFirst({
       where: { gated: true, media: { storageKey } },
       select: { id: true },
@@ -389,6 +392,12 @@ export async function isGatedStorageKey(storageKey: string): Promise<boolean> {
       },
       select: { id: true },
     }),
+    // A gated catalogue on the Catalogues page, including one in the bin or
+    // unpublished: the file stays off this route until someone ungates it.
+    prisma.catalogue.findFirst({
+      where: { gated: true, file: { storageKey } },
+      select: { id: true },
+    }),
   ]);
-  return document !== null || cta !== null;
+  return document !== null || cta !== null || catalogue !== null;
 }

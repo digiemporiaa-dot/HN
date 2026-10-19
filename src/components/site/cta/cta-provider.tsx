@@ -44,6 +44,8 @@ export type CtaRequest = {
   productName?: string;
   documentId?: string;
   documentTitle?: string;
+  /** A catalogue from the Catalogues page; the server releases its file. */
+  catalogueId?: string;
   /** The document is released only after the form. */
   gated?: boolean;
   /** Where the button goes without a popup: a file or a page. */
@@ -179,8 +181,9 @@ export function CtaProvider({ children }: { children: ReactNode }) {
       }
 
       // A catalogue popup with no file to release would take details for
-      // nothing: the button does nothing rather than mislead.
-      if (request.kind === "DOWNLOAD_CATALOGUE" && !cta.hasFile) {
+      // nothing: the button does nothing rather than mislead. A catalogue
+      // from the Catalogues page brings its own file.
+      if (request.kind === "DOWNLOAD_CATALOGUE" && !cta.hasFile && !request.catalogueId) {
         if (request.href) navigate(request.href, router);
         return;
       }
@@ -262,6 +265,7 @@ export function CtaProvider({ children }: { children: ReactNode }) {
                 configKey: active.request.configKey,
                 productId: active.request.productId,
                 documentId: active.request.documentId,
+                catalogueId: active.request.catalogueId,
               }}
             />
           )}

@@ -12,6 +12,7 @@ import {
   ABOUT_IMAGES,
   COMPANY_SETTINGS,
   DEMO_HEADER_ITEMS,
+  PREVIOUS_HEADER_ITEMS,
   DEMO_SETTING_VALUES,
   HEADER_ITEMS,
   HOME_IMAGES,
@@ -48,8 +49,8 @@ import { storeFile, webpSize } from "./lib/media";
  *     each replaces is kept as a draft, "<slug>-previous-…", in Pages. It does this
  *     once per page: after that the page is the editors', and running the
  *     script again leaves it alone;
- *   - sets the header menu to Home, Products, About and Contact, if it is
- *     still the demo seeder's menu;
+ *   - sets the header menu to Home, Products, Catalogues, About and Contact,
+ *     if it is still the demo seeder's menu or this seeder's earlier one;
  *   - adds HN Medical System specialties (laparoscopic surgery, gynaecology,
  *     urology, ENT, orthopaedics) and solutions (complete sets, endoscopy
  *     systems, spares), linked to catalogue products (hn-taxonomy.ts);
@@ -677,11 +678,12 @@ async function replaceDemoHeader(): Promise<boolean> {
   });
   if (!menu) return false;
   const current = menu.items.map((item) => [item.label, item.href ?? ""]);
-  const isDemo =
-    current.length === DEMO_HEADER_ITEMS.length &&
+  const matches = (expected: Array<[string, string]>) =>
+    current.length === expected.length &&
     menu.items.every((item) => item.parentId === null) &&
-    current.every(([label, href], index) => label === DEMO_HEADER_ITEMS[index][0] && href === DEMO_HEADER_ITEMS[index][1]);
-  if (!isDemo) return false;
+    current.every(([label, href], index) => label === expected[index][0] && href === expected[index][1]);
+  // The demo's menu, or this seeder's own earlier one; a menu anyone edited is left alone.
+  if (!matches(DEMO_HEADER_ITEMS) && !matches(PREVIOUS_HEADER_ITEMS)) return false;
   if (DRY_RUN) return true;
 
   await prisma.navigationItem.deleteMany({ where: { id: { in: menu.items.map((item) => item.id) } } });
@@ -849,7 +851,7 @@ async function run(): Promise<void> {
   console.log(
     header
       ? `${DRY_RUN ? "Would set" : "Set"} the header menu to ${HEADER_ITEMS.map(([label]) => label).join(", ")}.`
-      : "Header menu is not the demo one; left as it is.",
+      : "Header menu has been edited; left as it is.",
   );
   const unpublished = Object.entries(demo).filter(([, count]) => count > 0);
   console.log(

@@ -188,6 +188,8 @@ export const MODULES = [
       { label: "Categories", href: "/admin/categories", icon: Tags, resource: "catalogue.categories", createHref: "/admin/categories/new", createLabel: "New category" },
       // The same resource as categories: one tree, two screens.
       { label: "Subcategories", href: "/admin/subcategories", icon: FolderTree, resource: "catalogue.categories" },
+      // Product literature, under the products resource like subcategories under categories.
+      { label: "PDF catalogues", href: "/admin/catalogues", icon: FileText, resource: "catalogue.products", createHref: "/admin/catalogues/new", createLabel: "New catalogue" },
       { label: "Brands", href: "/admin/brands", icon: BadgeCheck, resource: "catalogue.brands", createHref: "/admin/brands/new", createLabel: "New brand" },
       { label: "Specialties", href: "/admin/specialties", icon: Stethoscope, resource: "catalogue.specialties" },
       { label: "Solutions", href: "/admin/solutions", icon: Blocks, resource: "catalogue.solutions" },

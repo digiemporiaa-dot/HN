@@ -52,6 +52,7 @@ Nothing else is ever matched, labels least of all. The browser resolves this to 
 | `rfq.page` | The `/rfq` page |
 | `cms.brochure.download` | Page builder, Brochure download section |
 | `cms.cta.primary`, `cms.cta.secondary` | Page builder, Call to action section |
+| `catalogues.page` | The `/catalogues` page, each catalogue's Download button |
 
 An id is never renamed or reused. A retired one is removed and simply stops matching.
 
@@ -67,6 +68,19 @@ An id is never renamed or reused. A retired one is removed and simply stops matc
 4. A failure at any step stores nothing and releases nothing.
 5. An ungated document with no configuration is still a plain link and downloads directly.
 6. A catalogue file named by a live gated configuration is refused by the public media route, like a gated product document.
+
+## PDF catalogues page
+
+- **Admin:** Catalogue › PDF catalogues (`/admin/catalogues`), under the Products permission (View, Create, Edit, Delete, Publish). Uploading a PDF from the form also needs Media Create.
+- **Each catalogue** has a title, description, PDF, optional cover, status and a **gated** switch (on by default). The `Catalogue` table is added by migration `20261019090000_catalogues`.
+- **Public page:** `/catalogues` lists the published ones.
+  - Gated: the button opens the download form (the `DOWNLOAD_CATALOGUE` popup, configurable under CTA popups with the `catalogues.page` placement).
+  - Ungated: the button is a plain link to the PDF.
+- **On submit:**
+  - the button names its catalogue (`catalogueId`); the server checks it is published and releases **that catalogue's** file, never one the request names;
+  - the lead (source Document download, placement `catalogues.page`) and its grant are stored together;
+  - the file downloads under the catalogue's title.
+- **Gating:** a gated catalogue's PDF is refused by the public media route, even after it is unpublished or deleted, until someone ungates it.
 
 ## Request quotation
 
