@@ -487,6 +487,8 @@ model MediaAsset {
   blogPostCovers       BlogPost[]        @relation("BlogPostCover")
   applicationImages    Application[]     @relation("ApplicationImage")
   ctaConfigFiles       CtaConfig[]       @relation("CtaConfigFile")
+  catalogueFiles       Catalogue[]       @relation("CatalogueFile")
+  catalogueCovers      Catalogue[]       @relation("CatalogueCover")
   documentGrants       DocumentGrant[]   @relation("DocumentGrantMedia")
 
   /// Soft deleted: recovering a wrongly deleted asset that is still referenced
@@ -2365,4 +2367,41 @@ model CtaConfig {
   @@index([targetProductId])
   @@index([fileId])
   @@index([formId])
+}
+
+/// A downloadable catalogue (a PDF) listed on /catalogues.
+///
+/// Gated by default: the file is released only through a download grant, after
+/// the visitor has filled in the download form, and the public media route
+/// refuses it. An ungated catalogue is a plain link.
+model Catalogue {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  /// The PDF. Deleting the media asset removes the catalogue with it.
+  fileId String
+  file   MediaAsset @relation("CatalogueFile", fields: [fileId], references: [id], onDelete: Cascade)
+
+  /// The cover shown on the card; a generic document mark without one.
+  coverId String?
+  cover   MediaAsset? @relation("CatalogueCover", fields: [coverId], references: [id], onDelete: SetNull)
+
+  gated Boolean @default(true)
+  order Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  /// Soft deleted, so a download grant already issued keeps its record.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, order])
+  @@index([fileId])
+  @@index([coverId])
+  @@index([deletedAt])
 }

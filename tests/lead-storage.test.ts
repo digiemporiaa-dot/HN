@@ -9,6 +9,7 @@ const db = {
   documentGrant: { findUnique: vi.fn() },
   productDocument: { findFirst: vi.fn() },
   ctaConfig: { findFirst: vi.fn() },
+  catalogue: { findFirst: vi.fn() },
 };
 vi.mock("@/server/db", () => ({ prisma: db }));
 vi.mock("@/server/http/client", () => ({ requestContext: vi.fn() }));
@@ -83,9 +84,23 @@ describe("download grants", () => {
 
   it("keeps a file gated by a live CTA popup off the public media route", async () => {
     db.productDocument.findFirst.mockResolvedValue(null);
+    db.catalogue.findFirst.mockResolvedValue(null);
     db.ctaConfig.findFirst.mockResolvedValue({ id: "c1" });
     expect(await service.isGatedStorageKey("docs/catalogue.pdf")).toBe(true);
     db.ctaConfig.findFirst.mockResolvedValue(null);
+    expect(await service.isGatedStorageKey("docs/catalogue.pdf")).toBe(false);
+  });
+
+  it("keeps a gated catalogue's PDF off the public media route", async () => {
+    db.productDocument.findFirst.mockResolvedValue(null);
+    db.ctaConfig.findFirst.mockResolvedValue(null);
+    db.catalogue.findFirst.mockResolvedValue({ id: "k1" });
+    expect(await service.isGatedStorageKey("docs/catalogue.pdf")).toBe(true);
+    expect(db.catalogue.findFirst).toHaveBeenLastCalledWith({
+      where: { gated: true, file: { storageKey: "docs/catalogue.pdf" } },
+      select: { id: true },
+    });
+    db.catalogue.findFirst.mockResolvedValue(null);
     expect(await service.isGatedStorageKey("docs/catalogue.pdf")).toBe(false);
   });
 });

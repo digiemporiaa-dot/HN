@@ -39,6 +39,7 @@ const STATIC_ENTRIES: Entry[] = [
   entry("/solutions", undefined, 0.6),
   entry("/applications", undefined, 0.5),
   entry("/locations", undefined, 0.5),
+  entry("/catalogues", undefined, 0.7),
   entry("/contact", undefined, 0.6),
   entry("/blog", undefined, 0.6),
 ];

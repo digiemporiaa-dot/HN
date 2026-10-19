@@ -6,7 +6,7 @@ import { withSeoOverride } from "@/server/seo/overrides";
 
 const BASE_METADATA: Metadata = {
   title: "Specialties",
-  description: "The clinical departments we equip.",
+  description: "The specialties our instruments and endoscopy systems are used in.",
   alternates: { canonical: "/specialties" },
 };
 
@@ -21,7 +21,7 @@ export default async function Page() {
   return (
     <TaxonomyIndex
       title="Specialties"
-      description="The clinical departments we equip."
+      description="The specialties our instruments and endoscopy systems are used in."
       trail={[{ label: "Home", href: "/" }, { label: "Specialties" }]}
       cards={cards}
       unit="specialties"

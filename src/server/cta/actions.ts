@@ -61,6 +61,7 @@ export async function submitCtaLeadAction(_previous: CtaState, formData: FormDat
   const configKey = String(formData.get("configKey") ?? "");
   const productId = idOrNull(formData.get("productId"));
   const documentId = idOrNull(formData.get("documentId"));
+  const catalogueId = idOrNull(formData.get("catalogueId"));
   const leadContext = readLeadContext(formData);
 
   const cta = await resolveServerCta({
@@ -103,6 +104,15 @@ export async function submitCtaLeadAction(_previous: CtaState, formData: FormDat
           : null;
       if (!document) return { error: NOT_AVAILABLE };
       file = { documentId: document.id, mediaId: null, title: document.title };
+    } else if (catalogueId) {
+      // A catalogue from the Catalogues page: it must be published, and its
+      // file is the one the catalogue names, never one the request chooses.
+      const catalogue = await prisma.catalogue.findFirst({
+        where: { id: catalogueId, status: "PUBLISHED", deletedAt: null, file: { deletedAt: null } },
+        select: { title: true, fileId: true },
+      });
+      if (!catalogue) return { error: NOT_AVAILABLE };
+      file = { documentId: null, mediaId: catalogue.fileId, title: catalogue.title };
     } else {
       // A catalogue is whatever file the configuration names. The request
       // cannot choose one.
@@ -207,6 +217,7 @@ export async function submitCtaLeadAction(_previous: CtaState, formData: FormDat
       productId: product?.id ?? null,
       documentId: file?.documentId ?? null,
       mediaId: file?.mediaId ?? null,
+      catalogueId,
     },
     ...screening.context,
   });

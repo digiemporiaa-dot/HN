@@ -24,6 +24,7 @@ const DEFAULT_ITEMS: Array<{ label: string; href: string }> = [
   { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
   { label: "Categories", href: "/categories" },
+  { label: "Catalogues", href: "/catalogues" },
   { label: "Contact", href: "/contact" },
 ];
 

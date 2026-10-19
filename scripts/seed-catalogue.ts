@@ -12,6 +12,7 @@ import {
   ABOUT_IMAGES,
   COMPANY_SETTINGS,
   DEMO_HEADER_ITEMS,
+  PREVIOUS_HEADER_ITEMS,
   DEMO_SETTING_VALUES,
   HEADER_ITEMS,
   HOME_IMAGES,
@@ -19,6 +20,7 @@ import {
   hnAboutSections,
   hnHomeSections,
 } from "./catalogue/hn-homepage";
+import { HN_SOLUTIONS, HN_SPECIALTIES, type TaxonomyEntry } from "./catalogue/hn-taxonomy";
 import { SUPPORT_IMAGE, hnPrivacySections, hnSupportSections, hnTermsSections } from "./catalogue/hn-pages";
 import { storeFile, webpSize } from "./lib/media";
 
@@ -47,8 +49,11 @@ import { storeFile, webpSize } from "./lib/media";
  *     each replaces is kept as a draft, "<slug>-previous-…", in Pages. It does this
  *     once per page: after that the page is the editors', and running the
  *     script again leaves it alone;
- *   - sets the header menu to Home, Products, About and Contact, if it is
- *     still the demo seeder's menu;
+ *   - sets the header menu to Home, Products, Catalogues, About and Contact,
+ *     if it is still the demo seeder's menu or this seeder's earlier one;
+ *   - adds HN Medical System specialties (laparoscopic surgery, gynaecology,
+ *     urology, ENT, orthopaedics) and solutions (complete sets, endoscopy
+ *     systems, spares), linked to catalogue products (hn-taxonomy.ts);
  *   - switches the demo seeder's specialties, solutions, placeholder brands,
  *     city pages and articles to draft, so the header and footer stop linking
  *     to hospital-equipment content. Nothing is deleted;
@@ -567,6 +572,99 @@ async function buildSupport(): Promise<SectionRows> {
 const today = () =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date());
 
+/* ------------------------------------------------------------- taxonomy -- */
+
+/** Catalogue product names for an entry; "*Category" means every product in it. */
+function productNames(entry: TaxonomyEntry): string[] {
+  return entry.products.flatMap((name) => {
+    if (!name.startsWith("*")) return [name];
+    const category = HN_CATALOGUE.find((row) => row.name === name.slice(1));
+    return category ? category.subs.flatMap((sub) => sub.products.map((product) => product.name)) : [];
+  });
+}
+
+/**
+ * Adds the HN Medical System specialties and solutions, linked to catalogue
+ * products and categories. One that already exists under the same address is
+ * left as it is.
+ */
+async function addTaxonomy(): Promise<{ specialties: number; solutions: number }> {
+  const result = { specialties: 0, solutions: 0 };
+  const products = await prisma.product.findMany({
+    where: { slug: { in: [...catalogueSlugs] }, deletedAt: null },
+    select: { id: true, name: true },
+  });
+  const productIds = new Map(products.map((product) => [product.name, product.id]));
+  const categories = await prisma.category.findMany({
+    where: { slug: { in: HN_CATALOGUE.map((category) => slugify(category.name)) }, parentId: null, deletedAt: null },
+    select: { id: true, name: true },
+  });
+  const categoryIds = new Map(categories.map((category) => [category.name, category.id]));
+  const ids = (names: string[], from: Map<string, string>) =>
+    [...new Set(names.map((name) => from.get(name)).filter((id): id is string => Boolean(id)))];
+
+  for (const [order, entry] of HN_SPECIALTIES.entries()) {
+    const slug = slugify(entry.name);
+    if (await prisma.specialty.findUnique({ where: { slug }, select: { id: true } })) continue;
+    result.specialties++;
+    if (DRY_RUN) continue;
+    const picture = await image(entry.image, entry.imageAlt);
+    const row = await prisma.specialty.create({
+      data: {
+        slug,
+        name: entry.name,
+        shortDescription: entry.short,
+        description: entry.description,
+        imageId: picture,
+        bannerId: picture,
+        featured: entry.featured ?? false,
+        order,
+        ...live(),
+      },
+      select: { id: true },
+    });
+    await prisma.productSpecialty.createMany({
+      data: ids(productNames(entry), productIds).map((productId) => ({ productId, specialtyId: row.id })),
+      skipDuplicates: true,
+    });
+    await prisma.categorySpecialty.createMany({
+      data: ids(entry.categories, categoryIds).map((categoryId) => ({ categoryId, specialtyId: row.id })),
+      skipDuplicates: true,
+    });
+  }
+
+  for (const [order, entry] of HN_SOLUTIONS.entries()) {
+    const slug = slugify(entry.name);
+    if (await prisma.solution.findUnique({ where: { slug }, select: { id: true } })) continue;
+    result.solutions++;
+    if (DRY_RUN) continue;
+    const picture = await image(entry.image, entry.imageAlt);
+    const row = await prisma.solution.create({
+      data: {
+        slug,
+        name: entry.name,
+        shortDescription: entry.short,
+        description: entry.description,
+        imageId: picture,
+        bannerId: picture,
+        featured: entry.featured ?? false,
+        order,
+        ...live(),
+      },
+      select: { id: true },
+    });
+    await prisma.productSolution.createMany({
+      data: ids(productNames(entry), productIds).map((productId) => ({ productId, solutionId: row.id })),
+      skipDuplicates: true,
+    });
+    await prisma.solutionCategory.createMany({
+      data: ids(entry.categories, categoryIds).map((categoryId) => ({ categoryId, solutionId: row.id })),
+      skipDuplicates: true,
+    });
+  }
+  return result;
+}
+
 /* --------------------------------------------------------------- header -- */
 
 /**
@@ -580,11 +678,12 @@ async function replaceDemoHeader(): Promise<boolean> {
   });
   if (!menu) return false;
   const current = menu.items.map((item) => [item.label, item.href ?? ""]);
-  const isDemo =
-    current.length === DEMO_HEADER_ITEMS.length &&
+  const matches = (expected: Array<[string, string]>) =>
+    current.length === expected.length &&
     menu.items.every((item) => item.parentId === null) &&
-    current.every(([label, href], index) => label === DEMO_HEADER_ITEMS[index][0] && href === DEMO_HEADER_ITEMS[index][1]);
-  if (!isDemo) return false;
+    current.every(([label, href], index) => label === expected[index][0] && href === expected[index][1]);
+  // The demo's menu, or this seeder's own earlier one; a menu anyone edited is left alone.
+  if (!matches(DEMO_HEADER_ITEMS) && !matches(PREVIOUS_HEADER_ITEMS)) return false;
   if (DRY_RUN) return true;
 
   await prisma.navigationItem.deleteMany({ where: { id: { in: menu.items.map((item) => item.id) } } });
@@ -698,6 +797,7 @@ async function run(): Promise<void> {
 
   const added = await add();
   const removed = await remove();
+  const taxonomy = await addTaxonomy();
   const pages = await repointPages(removed);
   const home = await publishPage({ slug: "home", title: "Homepage", marker: HOME_MARKER, label: "homepage", build: buildHomepage });
   const about = await publishPage({ slug: "about", title: "About us", marker: ABOUT_MARKER, label: "About page", build: buildAbout });
@@ -723,6 +823,10 @@ async function run(): Promise<void> {
   const verb = DRY_RUN ? "Would add" : "Added";
   console.log(`${verb} ${added.categories} categories and ${added.products} products from the HN Medical System catalogue.`);
   if (added.kept.length) console.log(`Already there, left unchanged: ${added.kept.length} products.`);
+  console.log(
+    `${verb} ${taxonomy.specialties} specialties and ${taxonomy.solutions} solutions for HN Medical System` +
+      (taxonomy.specialties + taxonomy.solutions === 0 ? " (already there)." : "."),
+  );
   if (added.skipped.length) console.log(`Skipped because they are in the bin: ${added.skipped.join(", ")}.`);
   console.log(
     `${DRY_RUN ? "Would move" : "Moved"} ${removed.products.length} other products and ${removed.categories.length} empty categories to the bin` +
@@ -747,7 +851,7 @@ async function run(): Promise<void> {
   console.log(
     header
       ? `${DRY_RUN ? "Would set" : "Set"} the header menu to ${HEADER_ITEMS.map(([label]) => label).join(", ")}.`
-      : "Header menu is not the demo one; left as it is.",
+      : "Header menu has been edited; left as it is.",
   );
   const unpublished = Object.entries(demo).filter(([, count]) => count > 0);
   console.log(

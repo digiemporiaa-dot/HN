@@ -58,9 +58,10 @@ async function columnsFor(): Promise<FooterColumn[]> {
       prisma.application.count({
         where: { products: { some: { product: { deletedAt: null, status: "PUBLISHED" } } } },
       }),
-    ]).catch(() => [0, 0, 0, 0, 0]),
+      prisma.catalogue.count({ where: { status: "PUBLISHED", deletedAt: null, file: { deletedAt: null } } }),
+    ]).catch(() => [0, 0, 0, 0, 0, 0]),
   ]);
-  const [solutionCount, specialtyCount, brandCount, postCount, applicationCount] = published;
+  const [solutionCount, specialtyCount, brandCount, postCount, applicationCount, catalogueCount] = published;
 
   const configured = menu
     .filter((column) => column.children.length > 0)
@@ -130,6 +131,7 @@ async function columnsFor(): Promise<FooterColumn[]> {
     id: "auto-resources",
     label: "Resources",
     links: [
+      ...(catalogueCount ? [{ id: "catalogues", label: "PDF catalogues", href: "/catalogues" }] : []),
       ...(postCount ? [{ id: "blog", label: "Insights & guides", href: "/blog" }] : []),
       ...(applicationCount
         ? [{ id: "applications", label: "Clinical applications", href: "/applications" }]
